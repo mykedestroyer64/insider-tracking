@@ -1,0 +1,61 @@
+# Test run: can GitHub's servers read the Senate eFD site?
+# Start it by hand: Actions tab -> "eFD access check" -> "Run workflow".
+name: eFD access check
+
+on:
+  workflow_dispatch:   # only runs when you press "Run workflow" (no schedule)
+
+permissions:
+  contents: read       # the job only needs to read this repository's files
+
+jobs:
+  efd-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Get the files from this repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install requirements
+        run: python -m pip install -r requirements.txt
+
+      - name: Run the eFD check
+        shell: bash   # bash with "pipefail": the step fails when the script fails, even through tee
+        env:
+          EFD_CONTACT_EMAIL: ${{ secrets.EFD_CONTACT_EMAIL }}   # your email, kept private
+        run: |
+          mkdir -p output
+          python -u efd_check.py 2>&1 | tee output/console.log
+
+      - name: Write the verdict to the job summary
+        if: always()   # also when the check failed
+        shell: bash
+        run: |
+          {
+            echo "## eFD access check"
+            echo
+            if grep -q '^VERDICT' output/console.log 2>/dev/null; then
+              echo "**$(grep '^VERDICT' output/console.log)**"
+              if grep -q '^\[' output/console.log; then   # the five step lines, if any
+                echo
+                echo '```'
+                grep '^\[' output/console.log
+                echo '```'
+              fi
+            else
+              echo "**No verdict.** The script stopped before printing one. Open the \"Run the eFD check\" step to see why."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the output folder
+        if: always()   # also when the check failed
+        uses: actions/upload-artifact@v7
+        with:
+          name: efd-check-output
+          path: output/
+          if-no-files-found: warn
