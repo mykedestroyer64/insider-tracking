@@ -1,0 +1,92 @@
+# The collector: saves Senate periodic transaction reports from eFD in the Supabase database.
+# Runs by itself every 3 hours, and whenever you press "Run workflow" on the Actions tab.
+name: insider-tracking collector
+
+on:
+  schedule:
+    - cron: "23 */3 * * *"   # every 3 hours at 23 minutes past (UTC); GitHub may start it late
+  workflow_dispatch:         # adds the "Run workflow" button
+
+permissions:
+  contents: write   # only used for the small weekly heartbeat file (last step)
+
+concurrency:
+  group: collector          # never two collector runs at the same time
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Get the files from this repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install requirements
+        run: python -m pip install -r requirements.txt
+
+      - name: Run the collector
+        shell: bash   # bash with "pipefail": the step fails when the collector fails, even through tee
+        env:   # private settings, stored as repository secrets
+          EFD_CONTACT_EMAIL: ${{ secrets.EFD_CONTACT_EMAIL }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          mkdir -p output
+          python -u collect.py 2>&1 | tee output/console.log
+
+      - name: Write the verdict to the job summary
+        if: always()   # also when the collector failed
+        shell: bash
+        run: |
+          {
+            echo "## insider-tracking collector"
+            echo
+            if grep -q '^VERDICT' output/console.log 2>/dev/null; then
+              echo "**$(grep '^VERDICT' output/console.log)**"
+              if grep -qE '^\[|^Database now|^History' output/console.log; then
+                echo
+                echo '```'
+                grep -E '^\[|^Database now|^History|^Requests' output/console.log
+                echo '```'
+              fi
+            else
+              echo "**No verdict.** The collector stopped before printing one. Open the \"Run the collector\" step to see why."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the output when something went wrong
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: collector-output
+          path: output/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Weekly heartbeat (stops GitHub from pausing the schedule)
+        if: always()
+        shell: bash
+        run: |
+          # GitHub switches off scheduled workflows in a public repository after 60 days
+          # without any change to it, so once a week we save today's date in a small file.
+          last=$(head -n 1 status/heartbeat.txt 2>/dev/null || true)
+          last_seconds=$(date -u -d "${last:-2000-01-01}" +%s 2>/dev/null || echo 0)
+          if [ $(( ( $(date -u +%s) - last_seconds ) / 86400 )) -ge 7 ]; then
+            mkdir -p status
+            date -u +%F > status/heartbeat.txt
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add status/heartbeat.txt
+            git commit --quiet -m "Weekly heartbeat: the collector is running"
+            git pull --rebase --quiet origin "$GITHUB_REF_NAME"
+            git push --quiet origin "HEAD:$GITHUB_REF_NAME"
+            echo "Saved the weekly heartbeat."
+          else
+            echo "Heartbeat is recent enough ($last), nothing to save."
+          fi
