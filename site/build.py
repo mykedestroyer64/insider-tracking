@@ -61,7 +61,7 @@ def log(message):
 def headline(trade):
     name = trade.filer.name if trade.filer else "Someone"
     verb = {"buy": "bought", "sell": "sold", "exchange": "exchanged"}.get(trade.group, "traded")
-    what = trade.ticker if trade.is_stock else (trade.asset_type or "an asset").lower()
+    what = trade.ticker_text if trade.is_stock else (trade.asset_type or "an asset").lower()
     if not trade.is_stock and trade.asset_type:
         what = {"corporate bond": "a bond", "municipal security": "a municipal bond",
                 "mutual fund": "a fund", "stock option": "stock options"}.get(what, what)
@@ -86,7 +86,7 @@ def trade_record(trade):
         "r": trade.received.isoformat() if trade.received else None,
         "sn": filer.name if filer else "", "ss": filer.slug if filer else "",
         "sp": (filer.party_state or filer.filer_type) if filer else "",
-        "k": trade.ticker if trade.is_stock else None, "ks": trade.stock_slug,
+        "k": trade.ticker_text if trade.is_stock else None, "ks": trade.stock_slug,
         "a": trade.asset_name, "at": trade.asset_type,
         "g": trade.group, "tl": trade.label,
         "am": trade.amount, "mn": trade.amount_min, "mx": trade.amount_max,
@@ -204,15 +204,14 @@ class Builder:
             by_year = Counter(t.received.year for t in filer.trades if t.received)
             per_stock = defaultdict(lambda: {"trades": 0, "buys": 0, "sells": 0, "last": None})
             for t in filer.trades:
-                if not t.is_stock:
-                    continue
-                s = per_stock[t.stock_slug]
-                s.update(ticker=t.ticker.upper(), slug=t.stock_slug, name=ds.stocks[t.stock_slug]["name"])
-                s["trades"] += 1
-                s["buys"] += t.group == "buy"
-                s["sells"] += t.group == "sell"
-                if t.received and (s["last"] is None or t.received > s["last"]):
-                    s["last"] = t.received
+                for ticker, slug in zip(t.tickers, t.stock_slugs):
+                    s = per_stock[slug]
+                    s.update(ticker=ticker.upper(), slug=slug, name=ds.stocks[slug]["name"])
+                    s["trades"] += 1
+                    s["buys"] += t.group == "buy"
+                    s["sells"] += t.group == "sell"
+                    if t.received and (s["last"] is None or t.received > s["last"]):
+                        s["last"] = t.received
             top = sorted(per_stock.values(), key=lambda s: (-s["trades"], s["ticker"]))[:TOP_STOCKS_ON_SENATOR_PAGE]
             self.page("senator.html", f"/senators/{filer.slug}/index.html", page="senators",
                       filer=filer, stats=stats, top_stocks=top,
@@ -291,7 +290,7 @@ class Builder:
             who = filer.name if filer else report.filer_name
             extra = f" ({filer.party_state})" if filer and filer.party_state else ""
             items = "".join(
-                f"<li>{escape(t.label)}: {escape(t.ticker if t.is_stock else (t.asset_name or 'asset'))}"
+                f"<li>{escape(t.label)}: {escape(t.ticker_text if t.is_stock else (t.asset_name or 'asset'))}"
                 f"{' (' + escape(t.asset_name) + ')' if t.is_stock and t.asset_name else ''}, "
                 f"{escape(t.amount or 'amount not given')}, traded {sitedata.fmt_date(t.traded) or 'date not given'}"
                 f"{', late' if t.late else ''}</li>" for t in trades)

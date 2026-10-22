@@ -32,6 +32,35 @@ CACHE_DAYS = 7
 SINCE = date(2011, 1, 1)      # eFD starts in 2012; keep people who served from 2011 on
 PARTY_LETTERS = {"Democrat": "D", "Republican": "R", "Independent": "I"}
 
+# First names eFD and the legislators list may write differently ("Thomas" vs "Tom").
+NICKNAME_GROUPS = """
+thomas tom tommy | william bill billy will | robert rob bob bobby | richard rick dick rich
+james jim jimmy | john jack johnny | michael mike | joseph joe joey | christopher chris
+edward ed ted eddie ned | theodore ted | charles chuck charlie | patrick pat | patricia pat patty tricia
+benjamin ben | timothy tim | daniel dan danny | jonathan jon | margaret maggie peggy
+elizabeth liz beth betsy | catherine katherine kate katie cathy kathy | anthony tony
+andrew andy drew | matthew matt | steven stephen steve | kenneth ken | ronald ron
+donald don | gerald jerry | jerome jerry | lawrence larry | raymond ray | samuel sam
+alexander alex | nicholas nick | gregory greg | jeffrey jeff | frederick fred | peter pete
+deborah debra deb debbie | susan sue | jacqueline jacklyn jacky jackie | kimberly kim
+cynthia cindy | bernard bernie | joshua josh | martin marty | mitchell mitch | douglas doug
+rebecca becky | jennifer jen jenny | victoria vicky | joan joanne | raphael rafael
+"""
+NICKNAMES = {}
+for _group in NICKNAME_GROUPS.replace("\n", "|").split("|"):
+    _names = _group.split()
+    for _name in _names:
+        NICKNAMES.setdefault(_name, set()).update(_names)
+
+
+def same_first_name(mine, theirs):
+    """'thomas' and 'tom', 'rob' and 'robert', 'jd' and 'jd'... (both already squashed)."""
+    if mine == theirs:
+        return True
+    if len(mine) > 1 and len(theirs) > 1 and (mine.startswith(theirs) or theirs.startswith(mine)):
+        return True
+    return theirs in NICKNAMES.get(mine, ())
+
 
 class Legislator:
     def __init__(self, record):
@@ -109,12 +138,7 @@ class Matcher:
         first_tokens = {t for t in first_tokens if t}
 
         def compatible(leg):
-            for mine in first_tokens:
-                for theirs in leg.first_tokens:
-                    if mine == theirs or (len(mine) > 1 and len(theirs) > 1
-                                          and (mine.startswith(theirs) or theirs.startswith(mine))):
-                        return True
-            return False
+            return any(same_first_name(mine, theirs) for mine in first_tokens for theirs in leg.first_tokens)
 
         good = [leg for leg in candidates if compatible(leg)]
         if len(good) == 1:

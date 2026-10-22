@@ -6,6 +6,7 @@
 <link href="{{ site_url }}/"/>
 <id>{{ site_url }}/</id>
 <updated>{{ feed_updated }}</updated>
+<author><name>Insider Tracking</name></author>
 {% for e in entries %}
 <entry>
 <title>{{ e.title | e }}</title>

@@ -5,7 +5,7 @@
 <section class="page-head">
 <div class="hero-text">
 <h1>Stocks</h1>
-<p class="lead">{{ stocks | length }} stocks with a ticker symbol in senators’ trade reports. Bonds, funds and other assets without a ticker appear on each senator’s page.</p>
+<p class="lead">{{ fmt_number(stocks | length) }} stocks with a ticker symbol in senators’ trade reports. Bonds, funds and other assets without a ticker appear on each senator’s page.</p>
 </div>
 {% include "_search.html" %}
 </section>

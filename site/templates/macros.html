@@ -7,7 +7,7 @@
 {%- endmacro %}
 
 {% macro asset_cell(trade, base) -%}
-{% if trade.is_stock %}<a href="{{ base }}/stocks/{{ trade.stock_slug }}/" class="plain cell-main">{{ trade.ticker }}</a>{% if trade.asset_name %}<div class="muted">{{ trade.asset_name }}</div>{% endif %}{% else %}<span class="cell-main">{{ trade.asset_name or "–" }}</span>{% if trade.asset_type %}<div class="muted">{{ trade.asset_type }}</div>{% endif %}{% endif %}
+{% if trade.is_stock %}<span class="cell-main">{% for ticker in trade.tickers %}{% if not loop.first %} → {% endif %}<a href="{{ base }}/stocks/{{ trade.stock_slugs[loop.index0] }}/" class="plain">{{ ticker }}</a>{% endfor %}</span>{% if trade.asset_name %}<div class="muted">{{ trade.asset_name }}</div>{% endif %}{% else %}<span class="cell-main">{{ trade.asset_name or "–" }}</span>{% if trade.asset_type %}<div class="muted">{{ trade.asset_type }}</div>{% endif %}{% endif %}
 {%- endmacro %}
 
 {% macro filer_cell(trade, base) -%}

@@ -130,12 +130,27 @@ class Trade:
         return TRADE_GROUPS.get(self.trade_type or "", "other")
 
     @property
+    def tickers(self):
+        """The ticker symbols in this row: usually one, two for an exchange ('T WBD')."""
+        return [t for t in (self.ticker or "").split() if t not in ("--", "N/A")]
+
+    @property
     def is_stock(self):
-        return bool(self.ticker) and self.ticker not in ("--", "N/A")
+        return bool(self.tickers)
+
+    @property
+    def ticker_text(self):
+        """'AAPL', or 'T → WBD' for an exchange of one stock for another."""
+        return " → ".join(self.tickers)
 
     @property
     def stock_slug(self):
-        return stock_slug(self.ticker) if self.is_stock else None
+        """The page this trade is listed on first (an exchange is on both stocks' pages)."""
+        return stock_slug(self.tickers[0]) if self.is_stock else None
+
+    @property
+    def stock_slugs(self):
+        return [stock_slug(t) for t in self.tickers]
 
 
 @dataclass
@@ -197,7 +212,7 @@ class Filer:
             "buys": sum(1 for t in trades if t.group == "buy"),
             "sells": sum(1 for t in trades if t.group == "sell"),
             "late": sum(1 for t in trades if t.late),
-            "stocks": len({t.ticker for t in trades if t.is_stock}),
+            "stocks": len({slug for t in trades for slug in t.stock_slugs}),
             "last_traded": max((t.traded for t in trades if t.traded), default=None),
             "last_received": max((t.received for t in trades if t.received), default=None),
             "paper_reports": sum(1 for r in self.reports if r.kind == "paper"),
@@ -325,14 +340,12 @@ class Dataset:
     def _group_stocks(self):
         stocks = {}
         for trade in self.trades:
-            if not trade.is_stock:
-                continue
-            slug = trade.stock_slug
-            stock = stocks.setdefault(slug, {"ticker": trade.ticker.upper(), "slug": slug,
-                                             "names": Counter(), "trades": []})
-            stock["trades"].append(trade)
-            if trade.asset_name:
-                stock["names"][trade.asset_name] += 1
+            for ticker, slug in zip(trade.tickers, trade.stock_slugs):   # an exchange counts for both stocks
+                stock = stocks.setdefault(slug, {"ticker": ticker.upper(), "slug": slug,
+                                                 "names": Counter(), "trades": []})
+                stock["trades"].append(trade)
+                if trade.asset_name and len(trade.tickers) == 1:
+                    stock["names"][trade.asset_name] += 1
         for stock in stocks.values():
             stock["name"] = stock["names"].most_common(1)[0][0] if stock["names"] else stock["ticker"]
             stock["trades"].sort(key=lambda t: (t.received or date.min, t.traded or date.min), reverse=True)
@@ -349,16 +362,42 @@ class Dataset:
         """Fill in party, state and official names using a legislators matcher."""
         for filer in self.filers.values():
             matcher.apply(filer)
-        # Official names may collide after matching: keep slugs unique
-        used, by_slug = set(), {}
+        self._merge_same_person()
+        # Two different people can still share an official name: keep slugs unique
+        used = set()
         for filer in sorted(self.filers.values(), key=lambda f: f.key):
             base, n = filer.slug, 2
             while filer.slug in used:
                 filer.slug = f"{base}-{n}"
                 n += 1
             used.add(filer.slug)
-            by_slug[filer.slug] = filer
         self.stocks = self._group_stocks()
+
+    def _merge_same_person(self):
+        """eFD writes some names in several ways ('Mike Rounds' and 'M. Michael Rounds', or a
+        candidate who later became a senator). Filers matched to the same official person
+        become one, keeping the filer type of the newest report."""
+        def newest(filer):
+            return max((r.received for r in filer.reports if r.received), default=date.min)
+
+        by_person, merged = {}, {}
+        for filer in sorted(self.filers.values(), key=newest, reverse=True):
+            person = filer.bioguide or filer.key
+            primary = by_person.get(person)
+            if primary is None:
+                by_person[person] = filer
+                merged[filer.key] = filer
+                continue
+            primary.reports.extend(filer.reports)
+            primary.trades.extend(filer.trades)
+            for report in filer.reports:
+                self.filer_by_report[report.path] = primary
+            for trade in filer.trades:
+                trade.filer = primary
+        for filer in by_person.values():
+            filer.reports.sort(key=lambda r: (r.received or date.min), reverse=True)
+            filer.trades.sort(key=lambda t: (t.received or date.min, t.traded or date.min), reverse=True)
+        self.filers = merged
 
     def trades_sorted(self):
         return sorted(self.trades, key=lambda t: (t.received or date.min, t.report_path, t.row), reverse=True)
@@ -369,7 +408,7 @@ class Dataset:
 
     def overview_stats(self):
         recent = self.recent_window(30)
-        tickers = Counter(t.ticker.upper() for t in recent if t.is_stock)
+        tickers = Counter(ticker.upper() for t in recent for ticker in t.tickers)
         most = tickers.most_common(1)
         return {
             "trades_30d": len(recent),
