@@ -128,6 +128,9 @@ class Matcher:
         filer.state = leg.state
         filer.name = leg.official
         filer.slug = slugify(leg.official)
+        if not filer.filer_type:      # eFD leaves the type out for some paper filings
+            still_serving = (leg.last_term or {}).get("end", "") >= date.today().isoformat()
+            filer.filer_type = "Senator" if still_serving else "Former Senator"
 
     def find(self, filer):
         last = squash(last_name_core(filer.last_name))
