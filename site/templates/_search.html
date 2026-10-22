@@ -1,0 +1,8 @@
+<form class="search" role="search" action="{{ base }}/trades/" method="get" data-search data-index="{{ base }}/data/search.json">
+<label for="{{ field_id | default('q') }}" class="muted">Search a senator or stock</label>
+<div class="search-row">
+<input id="{{ field_id | default('q') }}" name="q" type="search" placeholder="e.g. Fetterman or NVDA" autocomplete="off" aria-autocomplete="list" aria-controls="{{ field_id | default('q') }}-results" aria-expanded="false"{% if query %} value="{{ query }}"{% endif %}>
+<button class="btn" type="submit">Search</button>
+</div>
+<ul class="search-results" id="{{ field_id | default('q') }}-results" role="listbox" hidden></ul>
+</form>

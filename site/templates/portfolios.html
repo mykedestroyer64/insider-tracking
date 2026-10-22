@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Portfolios · Insider Tracking{% endblock %}
+{% block description %}Coming soon: each senator's estimated stock holdings, worked out from their trade reports and yearly financial disclosures.{% endblock %}
+{% block content %}
+<div class="notice muted"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" class="icon"><circle cx="8" cy="8" r="6.5"></circle><path d="M8 7v4M8 4.8v.4"></path></svg>Portfolios are a later step. This page explains what they will show.</div>
+<section class="page-head">
+<div class="hero-text">
+<h1>Portfolios</h1>
+<p class="lead">What each senator owns, estimated from the reports they file. Coming soon.</p>
+</div>
+{% include "_search.html" %}
+</section>
+<section class="section">
+<div class="prose">
+<h2>What this page will show</h2>
+<p>For each senator: the stocks they are estimated to hold, the value range of each holding, and how the portfolio has changed over time.</p>
+<h2>How it will be worked out</h2>
+<p>The starting point is the senator’s yearly financial report, which lists what they owned at the end of the year. Every trade reported since then is added or subtracted. Both reports give value ranges rather than exact amounts, so every holding will be shown as a range, and the page can’t show gains or losses in price.</p>
+<h2>Why it isn’t here yet</h2>
+<p>The collector currently reads trade reports only. Yearly financial reports are longer and use a different format, so reading them is a separate step. In the meantime, every trade is on the <a href="{{ base }}/trades/">Trades</a> page and on each <a href="{{ base }}/senators/">senator’s page</a>.</p>
+</div>
+</section>
+{% endblock %}

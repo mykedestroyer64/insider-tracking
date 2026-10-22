@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}About · Insider Tracking{% endblock %}
+{% block description %}How Insider Tracking collects U.S. senators' trade reports, what the numbers mean, and how to get in touch.{% endblock %}
+{% block content %}
+<section class="page-head">
+<div class="hero-text">
+<h1>About Insider Tracking</h1>
+<p class="lead">A free, independent record of the stock trades U.S. senators report, built from the Senate’s own disclosure site.</p>
+</div>
+{% include "_search.html" %}
+</section>
+
+<section class="section" id="how">
+<div class="prose">
+<h2>How it works</h2>
+<p>Under the STOCK Act of 2012, senators must report trades of stocks, bonds and other securities worth more than $1,000 within 45 days. The reports are public on the Senate’s Financial Disclosure site, but they are hard to browse there: one report at a time, behind a click-through agreement.</p>
+<p>Every three hours, a small program reads the Senate site, saves new reports in a database, and rebuilds this website from it. Nothing is typed in by hand, and nothing is left out on purpose: if it is in an electronic report, it is here.</p>
+<p>Insider Tracking is non-commercial and carries no advertising. It is not affiliated with the U.S. Senate or any senator.</p>
+</div>
+</section>
+
+<section class="section" id="methods">
+<div class="prose">
+<h2>Data and methods</h2>
+<ul>
+<li><strong>Source.</strong> U.S. Senate Financial Disclosures, <a href="https://efdsearch.senate.gov/search/home/" rel="noopener">efdsearch.senate.gov</a>, Periodic Transaction Reports filed since 2012. Every trade links to its report there.</li>
+<li><strong>Amounts.</strong> Senators report value ranges, such as $15,001–$50,000, not exact amounts or numbers of shares. The site shows the ranges as filed. Filters on amount use the lower end of the range.</li>
+<li><strong>Days to disclose.</strong> The number of days between the trade and the day the Senate received the report. The law allows 45 days. Reports received later than that are marked late.</li>
+<li><strong>Amendments.</strong> A senator can correct an earlier report. Trades from amended reports are shown and labelled, but they don’t count as late, because they re-report older trades.</li>
+<li><strong>Paper filings.</strong> Some reports are filed on paper and scanned. They are counted as reports but their trades can’t be read automatically yet, so they aren’t in the trade lists.</li>
+<li><strong>Who is who.</strong> The Senate site gives names only. Party and state come from the public-domain <a href="https://github.com/unitedstates/congress-legislators" rel="noopener">congress-legislators</a> dataset. Candidates who never served aren’t in that dataset, so they appear without party or state.</li>
+<li><strong>What is not here.</strong> Trades by members of the House of Representatives, trades under $1,000, and holdings from yearly financial reports.</li>
+</ul>
+</div>
+</section>
+
+<section class="section" id="contact">
+<div class="prose">
+<h2>Contact and corrections</h2>
+<p>Found a mistake, or a report that isn’t showing? Open an issue in the project’s repository on GitHub: <a href="https://github.com/{{ repo }}/issues" rel="noopener">github.com/{{ repo }}/issues</a>. The code that collects the data and builds this site is public there too.</p>
+<h2>Legal</h2>
+<p>Federal law (5 U.S.C. § 13107) forbids using financial disclosure reports for any commercial purpose other than news reporting, for credit ratings, or for soliciting money. This site is for public information only.</p>
+</div>
+</section>
+{% endblock %}

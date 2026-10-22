@@ -1,0 +1,51 @@
+{% macro clock(label) -%}
+<svg width="14" height="14" viewBox="0 0 16 16" class="icon"{% if label %} role="img" aria-label="{{ label }}"{% else %} aria-hidden="true"{% endif %}><circle cx="8" cy="8" r="6.5"></circle><path d="M8 4.5V8l2.5 1.5"></path></svg>
+{%- endmacro %}
+
+{% macro days_cell(trade) -%}
+{% if trade.days is not none %}<span class="days">{% if trade.late %}{{ clock("Late") }}{% endif %}<span{% if trade.late %} class="late-flag"{% endif %}>{{ trade.days }}</span></span>{% if trade.is_amendment %}<div class="muted">amendment</div>{% endif %}{% else %}<span class="muted">–</span>{% endif %}
+{%- endmacro %}
+
+{% macro asset_cell(trade, base) -%}
+{% if trade.is_stock %}<a href="{{ base }}/stocks/{{ trade.stock_slug }}/" class="plain cell-main">{{ trade.ticker }}</a>{% if trade.asset_name %}<div class="muted">{{ trade.asset_name }}</div>{% endif %}{% else %}<span class="cell-main">{{ trade.asset_name or "–" }}</span>{% if trade.asset_type %}<div class="muted">{{ trade.asset_type }}</div>{% endif %}{% endif %}
+{%- endmacro %}
+
+{% macro filer_cell(trade, base) -%}
+{% if trade.filer %}<a href="{{ base }}/senators/{{ trade.filer.slug }}/" class="plain cell-main">{{ trade.filer.name }}</a><div class="muted">{{ trade.filer.party_state or trade.filer.filer_type }}</div>{% endif %}
+{%- endmacro %}
+
+{% macro trade_table(trades, base, show_filer=True, show_asset=True, caption=None) -%}
+<div class="table-wrap">
+<table class="trades">
+{% if caption %}<caption class="visually-hidden">{{ caption }}</caption>{% endif %}
+<thead>
+<tr>
+{% if show_filer %}<th scope="col">Senator</th>{% endif %}
+{% if show_asset %}<th scope="col">Stock or asset</th>{% endif %}
+<th scope="col">Trade</th>
+<th scope="col">Owner</th>
+<th scope="col">Amount</th>
+<th scope="col">Traded</th>
+<th scope="col">Disclosed</th>
+<th scope="col" class="r">Days</th>
+<th scope="col">Source</th>
+</tr>
+</thead>
+<tbody>
+{% for t in trades %}
+<tr>
+{% if show_filer %}<td>{{ filer_cell(t, base) }}</td>{% endif %}
+{% if show_asset %}<td>{{ asset_cell(t, base) }}</td>{% endif %}
+<td class="nowrap">{{ t.label }}</td>
+<td>{{ t.owner or "–" }}</td>
+<td class="num nowrap">{{ t.amount or "–" }}</td>
+<td class="num nowrap">{{ fmt_date(t.traded) or "–" }}</td>
+<td class="num nowrap">{{ fmt_date(t.received) or "–" }}</td>
+<td class="r">{{ days_cell(t) }}</td>
+<td><a href="{{ t.report_url }}" rel="noopener">Report</a></td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{%- endmacro %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Stocks · Insider Tracking{% endblock %}
+{% block description %}Every stock U.S. senators have reported trading since 2012, with the number of senators and trades for each.{% endblock %}
+{% block content %}
+<section class="page-head">
+<div class="hero-text">
+<h1>Stocks</h1>
+<p class="lead">{{ stocks | length }} stocks with a ticker symbol in senators’ trade reports. Bonds, funds and other assets without a ticker appear on each senator’s page.</p>
+</div>
+{% include "_search.html" %}
+</section>
+
+<section class="section" aria-labelledby="stocks-h">
+<div class="card-head">
+<h2 id="stocks-h">All stocks, most traded first</h2>
+<div class="field"><label for="stock-filter" class="muted">Filter by ticker or company</label><input id="stock-filter" type="search" data-filter="#stock-table" placeholder="e.g. NVDA or Apple"></div>
+</div>
+<div class="table-wrap">
+<table id="stock-table">
+<thead><tr><th scope="col">Stock</th><th scope="col">Company</th><th scope="col" class="r">Senators</th><th scope="col" class="r">Trades</th><th scope="col" class="r">Buys</th><th scope="col" class="r">Sells</th><th scope="col">Last trade</th></tr></thead>
+<tbody>
+{% for s in stocks %}
+<tr data-search="{{ s.ticker }} {{ s.name }}">
+<td><a href="{{ base }}/stocks/{{ s.slug }}/" class="plain cell-main">{{ s.ticker }}</a></td>
+<td>{{ s.name }}</td>
+<td class="r num">{{ s.filers | length }}</td>
+<td class="r num">{{ fmt_number(s.trades | length) }}</td>
+<td class="r num">{{ fmt_number(s.buys) }}</td>
+<td class="r num">{{ fmt_number(s.sells) }}</td>
+<td class="num nowrap">{{ fmt_date(s.last_received) or "–" }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+{% endblock %}

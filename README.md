@@ -1,6 +1,6 @@
 # insider-tracking
 
-**insider-tracking** is a free, non-commercial website about US senators' stock trades, built from the Senate's official financial disclosure site, [eFD](https://efdsearch.senate.gov). This repository holds the collector, which saves the reports and trades in a database.
+**insider-tracking** is a free, non-commercial website about US senators' stock trades, built from the Senate's official financial disclosure site, [eFD](https://efdsearch.senate.gov). This repository holds the collector, which saves the reports and trades in a database, and the website, which is built from that database and published on GitHub Pages.
 
 | File | What it does |
 |---|---|
@@ -8,10 +8,40 @@
 | `efd_site.py` | talks to eFD politely (agreement, search, report pages) and stops if it is blocked |
 | `parsing.py` | turns eFD pages into clean data |
 | `database.py` | creates the tables and saves the data |
+| `site/build.py` | builds the website from the database (with `site/data.py`, `site/people.py`, `site/charts.py`) |
+| `site/templates/`, `site/static/` | the pages' templates, the stylesheet, the fonts and the small amount of JavaScript |
+| `site/overrides.json` | fixes for senators whose party and state the build can't work out by name |
 | `.github/workflows/collect.yml` | runs the collector every 3 hours |
+| `.github/workflows/site.yml` | builds and publishes the website after every collector run |
 | `efd_check.py` and `.github/workflows/efd-check.yml` | the step 1 access test, still handy for checking eFD by hand |
 | `requirements.txt` | the Python libraries needed |
 | `status/heartbeat.txt` | a date the collector saves once a week (see "Good to know") |
+
+## The website
+
+After every successful collector run, GitHub builds the website from the database and publishes it to GitHub Pages at `https://<your GitHub name>.github.io/insider-tracking/`. Visitors never touch the database: the site is plain pages, so it is fast and free to host.
+
+Pages: an overview with charts and the latest trades, every trade with filters, a page per senator, a page per stock, late filings, and a feed (`feed.xml`) that any news reader can follow. Party and state come from the public-domain [congress-legislators](https://github.com/unitedstates/congress-legislators) dataset; senators the build can't match by name are listed in the build log and can be added to `site/overrides.json`.
+
+### Switching it on (once)
+
+1. In the repository, open **Settings > Pages**. Under **Build and deployment**, set **Source** to **GitHub Actions**.
+2. Open the **Actions** tab, click **Publish the website**, then **Run workflow**. The first build takes a minute or two.
+3. The run's Summary shows the address of the site. From then on, the site is rebuilt after every collector run.
+
+### Building it on your computer
+
+With the two Supabase secrets in your environment (see part B above) and the requirements installed:
+
+```
+python site/build.py --out _site
+```
+
+Open `_site/index.html` in a browser. Links assume the site lives under `/insider-tracking/`; run with `--base ""` for links that work straight from the folder.
+
+### Colors and fonts
+
+Every color is defined once, at the top of `site/static/site.css`. The fonts (Libre Franklin and Newsreader, both under the SIL Open Font License) are served from `site/static/fonts/`, so no outside service is contacted when someone visits.
 
 ## How the collector works
 

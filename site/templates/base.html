@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Insider Tracking{% endblock %}</title>
+<meta name="description" content="{% block description %}Stock trades reported by U.S. senators, collected from the Senate's official disclosure site and updated every three hours.{% endblock %}">
+<link rel="stylesheet" href="{{ base }}/static/site.css?v={{ build_id }}">
+<link rel="icon" href="{{ base }}/static/icon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/atom+xml" title="Insider Tracking: new trade reports" href="{{ base }}/feed.xml">
+<script>/* keep the menu open on wide screens unless the visitor chose otherwise; runs before paint so nothing jumps */
+try{var p=localStorage.getItem("menu-pinned");if(p===null?window.innerWidth>=1200:p==="1"){document.documentElement.classList.add("menu-open")}}catch(e){}</script>
+{% block head %}{% endblock %}
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="shell">
+<div class="rail">
+<aside class="side" id="side" aria-label="Site menu">
+<a href="{{ base }}/" class="brand"><span class="mark" aria-hidden="true">IT</span><span class="lbl">Insider Tracking</span></a>
+<nav aria-label="Main" class="side-nav">
+{% for item in nav %}
+<a href="{{ base }}{{ item.href }}"{% if item.id == page %} class="is-active" aria-current="page"{% endif %} title="{{ item.label }}">{{ item.icon | safe }}<span class="lbl">{{ item.label }}</span></a>
+{% endfor %}
+</nav>
+<button type="button" class="pin" id="pin" aria-pressed="false" title="Keep menu open"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" class="icon"><path d="M6 2h4l-.5 4 2.5 2.5v1.5H4V8.5L6.5 6 6 2z"></path><path d="M8 10v4"></path></svg><span class="lbl" id="pin-label">Keep menu open</span></button>
+</aside>
+</div>
+<main id="main" class="content">
+{% block content %}{% endblock %}
+<div class="grow"></div>
+<footer class="site-footer">
+<div class="notes muted">
+<p>Insider Tracking is independent and non-commercial. It is not affiliated with the U.S. Senate.</p>
+<p>Source: U.S. Senate Financial Disclosures (efdsearch.senate.gov), checked every three hours.{% if updated %} Data updated {{ updated }}.{% endif %} Reports filed on paper are listed, but their trades aren’t read yet.</p>
+<p>Federal law forbids using these reports for commercial purposes, credit ratings or fundraising (5 U.S.C. § 13107).</p>
+</div>
+<nav aria-label="Footer" class="muted">
+<a href="{{ base }}/about/">How it works</a>
+<a href="{{ base }}/about/#methods">Data and methods</a>
+<a href="{{ base }}/about/#contact">Contact</a>
+<a href="{{ base }}/feed.xml">Feed</a>
+</nav>
+</footer>
+</main>
+</div>
+<script src="{{ base }}/static/site.js?v={{ build_id }}" defer></script>
+</body>
+</html>

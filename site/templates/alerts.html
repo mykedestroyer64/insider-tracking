@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Alerts · Insider Tracking{% endblock %}
+{% block description %}Follow new Senate trade reports by feed. Email alerts are coming soon.{% endblock %}
+{% block content %}
+<section class="page-head">
+<div class="hero-text">
+<h1>Follow new trades</h1>
+<p class="lead">Senators file new trade reports most weeks. Here is how to hear about them.</p>
+</div>
+{% include "_search.html" %}
+</section>
+<section class="section">
+<div class="prose">
+<h2>By feed, available now</h2>
+<p>The site publishes a feed of new trade reports, updated every three hours. Add this address to any news reader, such as Feedly, Inoreader or NetNewsWire:</p>
+<p><a href="{{ base }}/feed.xml">{{ site_url }}/feed.xml</a></p>
+<p>Each entry is one report: who filed it, when, and the trades in it.</p>
+<h2>By email, coming soon</h2>
+<p>A free email whenever new trade reports arrive is the next step. There is nothing to sign up for yet.</p>
+</div>
+</section>
+{% endblock %}

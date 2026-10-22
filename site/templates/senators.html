@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Senators · Insider Tracking{% endblock %}
+{% block description %}Every U.S. senator and Senate candidate who has reported stock trades since 2012, with trade counts and late filings.{% endblock %}
+{% block content %}
+<section class="page-head">
+<div class="hero-text">
+<h1>Senators</h1>
+<p class="lead">Everyone who has filed a trade report with the Senate since 2012: {{ senators | length }} senators and former senators, and {{ candidates | length }} candidates. Senators who never reported a trade aren’t listed.</p>
+</div>
+{% include "_search.html" %}
+</section>
+
+<section class="section" aria-labelledby="sen-h">
+<div class="card-head">
+<h2 id="sen-h">Senators and former senators</h2>
+<div class="field"><label for="sen-filter" class="muted">Filter by name, party or state</label><input id="sen-filter" type="search" data-filter="#sen-table" placeholder="e.g. Ohio, OH or Republican"></div>
+</div>
+<div class="table-wrap">
+<table id="sen-table">
+<thead><tr><th scope="col">Senator</th><th scope="col">Party</th><th scope="col">State</th><th scope="col" class="r">Trades</th><th scope="col" class="r">Buys</th><th scope="col" class="r">Sells</th><th scope="col" class="r">Late</th><th scope="col">Last trade</th></tr></thead>
+<tbody>
+{% for f, s in senators %}
+<tr data-search="{{ f.name }} {{ f.party or '' }} {{ f.state or '' }} {{ f.state_name }} {{ f.description }}">
+<td><a href="{{ base }}/senators/{{ f.slug }}/" class="plain cell-main">{{ f.name }}</a>{% if not f.is_senator or 'former' in f.filer_type | lower %}<div class="muted">{{ f.filer_type }}</div>{% endif %}</td>
+<td>{{ f.party or "–" }}</td>
+<td>{{ f.state_name or "–" }}</td>
+<td class="r num">{{ fmt_number(s.trades) }}</td>
+<td class="r num">{{ fmt_number(s.buys) }}</td>
+<td class="r num">{{ fmt_number(s.sells) }}</td>
+<td class="r num">{{ fmt_number(s.late) }}</td>
+<td class="num nowrap">{{ fmt_date(s.last_traded) or "–" }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+
+{% if candidates %}
+<section class="section" aria-labelledby="cand-h">
+<div class="titles">
+<h2 id="cand-h">Candidates</h2>
+<p class="muted">People running for the Senate also file trade reports. Party and state aren’t available for them.</p>
+</div>
+<div class="table-wrap">
+<table>
+<thead><tr><th scope="col">Candidate</th><th scope="col" class="r">Trades</th><th scope="col" class="r">Buys</th><th scope="col" class="r">Sells</th><th scope="col" class="r">Late</th><th scope="col">Last trade</th></tr></thead>
+<tbody>
+{% for f, s in candidates %}
+<tr>
+<td><a href="{{ base }}/senators/{{ f.slug }}/" class="plain cell-main">{{ f.name }}</a></td>
+<td class="r num">{{ fmt_number(s.trades) }}</td>
+<td class="r num">{{ fmt_number(s.buys) }}</td>
+<td class="r num">{{ fmt_number(s.sells) }}</td>
+<td class="r num">{{ fmt_number(s.late) }}</td>
+<td class="num nowrap">{{ fmt_date(s.last_traded) or "–" }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+{% endif %}
+{% endblock %}

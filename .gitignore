@@ -9,3 +9,7 @@ env/
 # Python cache files
 __pycache__/
 *.pyc
+
+# Website build output and caches
+_site/
+site/cache/

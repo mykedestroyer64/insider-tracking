@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Page not found · Insider Tracking{% endblock %}
+{% block content %}
+<section class="page-head">
+<div class="hero-text">
+<h1>Page not found</h1>
+<p class="lead">That address doesn’t exist, or the page has moved. Try a search, or start from the <a href="{{ base }}/">overview</a>.</p>
+</div>
+{% include "_search.html" %}
+</section>
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% from "macros.html" import clock %}
+{% block title %}Insider Tracking: what U.S. senators buy and sell{% endblock %}
+{% block content %}
+<section class="hero">
+<div class="hero-text">
+<h1>See what U.S. senators buy and sell</h1>
+<p class="lead">Senators vote on laws that affect the companies they invest in. Insider Tracking lists the stock trades they report to the Senate, updated every three hours, for voters, reporters and anyone who wants to check.</p>
+</div>
+{% include "_search.html" %}
+</section>
+
+<section class="panel-area" aria-label="Overview">
+<div class="main-col">
+
+<dl class="tiles" aria-label="Last 30 days">
+<div class="tile"><dt class="muted">Trades disclosed, last 30 days</dt><dd class="big">{{ fmt_number(stats.trades_30d) }}</dd></div>
+<div class="tile"><dt class="muted">Senators trading, last 30 days</dt><dd class="big">{{ fmt_number(stats.filers_30d) }}</dd></div>
+<div class="tile"><dt class="muted">Disclosed after 45 days</dt><dd class="big">{{ fmt_number(stats.late_30d) }}</dd></div>
+<div class="tile"><dt class="muted">Most traded stock, last 30 days</dt><dd class="big">{% if stats.top_ticker %}<a href="{{ base }}/stocks/{{ stats.top_ticker_slug }}/" class="plain">{{ stats.top_ticker }}</a>{% else %}–{% endif %}</dd></div>
+</dl>
+
+<section class="card" aria-labelledby="activity-h" data-activity>
+<div class="card-head">
+<div class="titles">
+<h2 id="activity-h">Trades disclosed over time</h2>
+<p class="muted" id="act-caption">{{ charts["1Y"].caption }}</p>
+</div>
+<div role="group" aria-label="Time range" class="chips">
+{% for key in ["3M", "1Y", "5Y", "All"] %}<button type="button" class="chip{% if key == "1Y" %} is-on{% endif %}" aria-pressed="{{ 'true' if key == '1Y' else 'false' }}" data-range="{{ key }}">{{ key }}</button>{% endfor %}
+</div>
+</div>
+{% set c = charts["1Y"] %}
+<div class="chart-wrap">
+<svg viewBox="0 0 840 300" role="img" aria-label="Line chart of trades disclosed over the selected time range. The highest point and the latest value are labelled." class="chart">
+<line x1="48" x2="816" y1="20" y2="20" style="stroke: #EBEBEB; stroke-width: 1"></line>
+<line x1="48" x2="816" y1="78" y2="78" style="stroke: #EBEBEB; stroke-width: 1"></line>
+<line x1="48" x2="816" y1="136" y2="136" style="stroke: #EBEBEB; stroke-width: 1"></line>
+<line x1="48" x2="816" y1="194" y2="194" style="stroke: #EBEBEB; stroke-width: 1"></line>
+<line x1="48" x2="816" y1="252" y2="252" style="stroke: #C4C4C4; stroke-width: 1"></line>
+{% for y in [24, 82, 140, 198, 256] %}<text x="40" y="{{ y }}" text-anchor="end" class="chart-label act-y">{{ c.y[loop.index0] }}</text>{% endfor %}
+<path id="act-area" d="{{ c.area }}" style="fill: #111111; fill-opacity: 0.08"></path>
+<path id="act-line" d="{{ c.line }}" style="fill: none; stroke: #111111; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round"></path>
+<circle id="act-end" cx="{{ c.endX }}" cy="{{ c.endY }}" r="4" style="fill: #111111; stroke: #FFFFFF; stroke-width: 2"></circle>
+<text id="act-peak" x="{{ c.peakX }}" y="{{ c.peakY }}" text-anchor="{{ c.peakAnchor }}" class="chart-note">{{ c.peakText }}</text>
+<text id="act-endlabel" x="808" y="{{ c.endLabelY }}" text-anchor="end" class="chart-note">{{ c.endText }}</text>
+{% for x in [48, 201.6, 355.2, 508.8, 662.4, 816] %}<text x="{{ x }}" y="276" text-anchor="{{ 'start' if loop.first else ('end' if loop.last else 'middle') }}" class="chart-label act-t">{{ c.t[loop.index0] }}</text>{% endfor %}
+</svg>
+</div>
+<script type="application/json" id="activity-data">{{ charts_json | safe }}</script>
+</section>
+
+<section class="card" aria-labelledby="late-h">
+<div class="card-head">
+<div class="titles">
+<h2 id="late-h">How long senators take to disclose</h2>
+<p class="muted">Trades in the last 12 months, by days from trade to public report. The law allows 45 days.</p>
+</div>
+<div class="legend muted">
+<span><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="10" rx="2" style="fill: #8A8A8A"></rect></svg>Within 45 days</span>
+<span><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="10" rx="2" style="fill: #111111"></rect></svg>Late</span>
+</div>
+</div>
+{{ histogram_svg | safe }}
+<a href="{{ base }}/late/" class="more">See every late filing</a>
+</section>
+
+</div>
+
+<div class="side-col">
+
+<section class="card flush" aria-labelledby="latest-h" data-latest>
+<div class="card-head">
+<h2 id="latest-h">Latest trades</h2>
+<a href="{{ base }}/trades/" class="muted" style="line-height: 44px">See all trades</a>
+</div>
+<div class="list-head" aria-hidden="true"><span>Senator</span><span>Stock</span><span>Trade</span><span class="r">Days</span></div>
+{% for t in latest %}
+<div class="list-row{% if loop.first %} is-selected{% endif %}" data-trade='{{ trade_json(t) }}'>
+<div>
+<button type="button" class="link-btn" data-pick aria-pressed="{{ 'true' if loop.first else 'false' }}">{{ t.filer.name if t.filer else "Unknown" }}</button>
+<div class="muted">{{ t.filer.party_state if t.filer else "" }}</div>
+</div>
+<div>{% if t.is_stock %}<a href="{{ base }}/stocks/{{ t.stock_slug }}/" class="plain">{{ t.ticker }}</a>{% else %}<span class="muted">{{ (t.asset_type or "Other") }}</span>{% endif %}</div>
+<span>{{ t.label }}</span>
+<span class="days">{% if t.late %}{{ clock("Late") }}{% endif %}{{ t.days if t.days is not none else "–" }}</span>
+</div>
+{% endfor %}
+<p class="muted late-note" style="padding-top: 10px">{{ clock("") }}Disclosed after the 45-day legal limit. Click a senator’s name to see the trade.</p>
+</section>
+
+<section class="card detail" aria-labelledby="detail-h" id="detail">
+<div class="titles">
+<p class="muted">Selected trade</p>
+<h2 id="detail-h" data-f="headline">{% if latest %}{{ headline(latest[0]) }}{% else %}No trades yet{% endif %}</h2>
+<p data-f="sub">{% if latest %}{{ latest[0].asset_name or "" }}{% if latest[0].asset_name %} · {% endif %}{{ latest[0].label }}{% endif %}</p>
+</div>
+<dl>
+<dt class="muted">Senator</dt><dd data-f="who">{% if latest and latest[0].filer %}{{ latest[0].filer.description }}{% endif %}</dd>
+<dt class="muted">Traded</dt><dd data-f="traded">{% if latest %}{{ fmt_date(latest[0].traded) }}{% endif %}</dd>
+<dt class="muted">Disclosed</dt><dd data-f="received">{% if latest %}{{ fmt_date(latest[0].received) }}{% endif %}</dd>
+<dt class="muted">Days to disclose</dt><dd data-f="days">{% if latest %}{{ days_text(latest[0]) }}{% endif %}</dd>
+<dt class="muted">Amount</dt><dd data-f="amount">{% if latest %}{{ latest[0].amount or "–" }}{% endif %}</dd>
+<dt class="muted">Owner</dt><dd data-f="owner">{% if latest %}{{ latest[0].owner or "–" }}{% endif %}</dd>
+<dt class="muted">Comment</dt><dd data-f="comment">{% if latest %}{{ latest[0].comment or "–" }}{% endif %}</dd>
+</dl>
+<a href="{% if latest %}{{ latest[0].report_url }}{% else %}#{% endif %}" class="more" data-f="link" rel="noopener">View the official report</a>
+</section>
+
+</div>
+</section>
+
+<section class="section" id="alerts" aria-labelledby="alerts-h">
+<div class="card-head">
+<div class="titles">
+<h2 id="alerts-h">Follow new trades</h2>
+<p class="lead">Email alerts are coming soon. Until then, any news reader can follow the feed of new trade reports.</p>
+</div>
+<a href="{{ base }}/feed.xml" class="btn">Open the feed</a>
+</div>
+</section>
+{% endblock %}

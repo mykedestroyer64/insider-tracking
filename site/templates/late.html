@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "macros.html" import trade_table %}
+{% block title %}Late filings · Insider Tracking{% endblock %}
+{% block description %}Senate stock trades disclosed more than 45 days after they happened, the limit set by the STOCK Act.{% endblock %}
+{% block content %}
+<section class="page-head">
+<div class="hero-text">
+<h1>Late filings</h1>
+<p class="lead">The STOCK Act gives senators 45 days to report a trade. These trades were reported later than that. Amendments, which re-report old trades, aren’t counted.</p>
+</div>
+{% include "_search.html" %}
+</section>
+
+<section class="section">
+<dl class="tiles on-white" aria-label="Summary">
+<div class="tile"><dt class="muted">Late trades, last 12 months</dt><dd class="big">{{ fmt_number(hist.late) }} of {{ fmt_number(hist.total) }}</dd></div>
+<div class="tile"><dt class="muted">Share late, last 12 months</dt><dd class="big">{% if hist.total %}{{ (100 * hist.late / hist.total) | round | int }}%{% else %}–{% endif %}</dd></div>
+<div class="tile"><dt class="muted">Late trades since 2012</dt><dd class="big">{{ fmt_number(late | length) }}</dd></div>
+<div class="tile"><dt class="muted">Senators with a late filing</dt><dd class="big">{{ by_filer | length }}</dd></div>
+</dl>
+</section>
+
+<section class="section" aria-labelledby="by-h">
+<div class="titles"><h2 id="by-h">By senator</h2><p class="muted">Share of each senator’s trades that were reported after 45 days.</p></div>
+<div class="table-wrap">
+<table>
+<thead><tr><th scope="col">Senator</th><th scope="col" class="r">Late</th><th scope="col" class="r">All trades</th><th scope="col" class="r">Share late</th><th scope="col" class="r">Longest delay</th></tr></thead>
+<tbody>
+{% for row in by_filer %}
+<tr><td><a href="{{ base }}/senators/{{ row.filer.slug }}/" class="plain cell-main">{{ row.filer.name }}</a><div class="muted">{{ row.filer.party_state or row.filer.filer_type }}</div></td><td class="r num">{{ row.late }}</td><td class="r num">{{ row.total }}</td><td class="r num">{{ row.share }}%</td><td class="r num">{{ row.longest }} days</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+
+<section class="section" aria-labelledby="all-h">
+<div class="titles"><h2 id="all-h">Every late filing</h2><p class="muted">Longest delay first.</p></div>
+{{ trade_table(late, base, caption="Trades disclosed after 45 days") }}
+</section>
+{% endblock %}
