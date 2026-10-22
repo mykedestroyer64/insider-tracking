@@ -24,7 +24,7 @@
 <td><a href="{{ base }}/stocks/{{ s.slug }}/" class="plain cell-main">{{ s.ticker }}</a></td>
 <td>{{ s.name }}</td>
 <td class="r num">{{ s.filers | length }}</td>
-<td class="r num">{{ fmt_number(s.trades | length) }}</td>
+<td class="r num">{{ fmt_number(s.count) }}</td>
 <td class="r num">{{ fmt_number(s.buys) }}</td>
 <td class="r num">{{ fmt_number(s.sells) }}</td>
 <td class="num nowrap">{{ fmt_date(s.last_received) or "–" }}</td>

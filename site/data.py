@@ -122,6 +122,11 @@ class Trade:
         return (not self.is_amendment) and self.days is not None and self.days > LATE_AFTER_DAYS
 
     @property
+    def counted(self):
+        """Amendments usually repeat trades already reported, so they are shown but not counted."""
+        return not self.is_amendment
+
+    @property
     def label(self):
         return TRADE_LABELS.get(self.trade_type or "", self.transaction_type or "Other")
 
@@ -168,6 +173,23 @@ class Report:
     url: str
     transaction_count: int
     first_seen: datetime | None
+    trades: list = field(default_factory=list)
+
+    @property
+    def oldest_trade(self):
+        return min((t.traded for t in self.trades if t.traded), default=None)
+
+    @property
+    def delay(self):
+        """Days from the report's oldest trade to its filing: the delay the 45-day rule is about."""
+        if self.oldest_trade and self.received:
+            return max(0, (self.received - self.oldest_trade).days)
+        return None
+
+    @property
+    def late(self):
+        """Filed more than 45 days after a trade in it (amendments don't count: they re-file old trades)."""
+        return (not self.is_amendment) and self.delay is not None and self.delay > LATE_AFTER_DAYS
 
 
 @dataclass
@@ -205,13 +227,26 @@ class Filer:
         parts = [part for part in (party, self.state_name, self.filer_type) if part]
         return " · ".join(parts)
 
+    @property
+    def counted_trades(self):
+        return [t for t in self.trades if t.counted]
+
+    @property
+    def filed_reports(self):
+        """Reports with trades read from them, amendments aside (the unit of the 45-day rule)."""
+        return [r for r in self.reports if r.trades and not r.is_amendment]
+
     def stats(self):
-        trades = self.trades
+        trades = self.counted_trades
+        reports = self.filed_reports
         return {
             "trades": len(trades),
             "buys": sum(1 for t in trades if t.group == "buy"),
             "sells": sum(1 for t in trades if t.group == "sell"),
-            "late": sum(1 for t in trades if t.late),
+            "amendment_trades": sum(1 for t in self.trades if not t.counted),
+            "reports": len(reports),
+            "late": sum(1 for r in reports if r.late),
+            "late_trades": sum(1 for t in trades if t.late),
             "stocks": len({slug for t in trades for slug in t.stock_slugs}),
             "last_traded": max((t.traded for t in trades if t.traded), default=None),
             "last_received": max((t.received for t in trades if t.received), default=None),
@@ -298,6 +333,11 @@ class Dataset:
         self.trades = trades
         self.updated = updated
         self.today = today or date.today()
+        self.report_by_path = {r.path: r for r in reports}
+        for trade in self.trades:
+            report = self.report_by_path.get(trade.report_path)
+            if report is not None:
+                report.trades.append(trade)
         self.filers = self._group_filers()
         for trade in self.trades:
             trade.filer = self.filer_by_report.get(trade.report_path)
@@ -349,11 +389,13 @@ class Dataset:
         for stock in stocks.values():
             stock["name"] = stock["names"].most_common(1)[0][0] if stock["names"] else stock["ticker"]
             stock["trades"].sort(key=lambda t: (t.received or date.min, t.traded or date.min), reverse=True)
-            stock["filers"] = sorted({t.filer.slug: t.filer for t in stock["trades"] if t.filer}.values(),
+            counted = [t for t in stock["trades"] if t.counted]
+            stock["count"] = len(counted)
+            stock["filers"] = sorted({t.filer.slug: t.filer for t in counted if t.filer}.values(),
                                      key=lambda f: f.name)
-            stock["buys"] = sum(1 for t in stock["trades"] if t.group == "buy")
-            stock["sells"] = sum(1 for t in stock["trades"] if t.group == "sell")
-            stock["last_received"] = max((t.received for t in stock["trades"] if t.received), default=None)
+            stock["buys"] = sum(1 for t in counted if t.group == "buy")
+            stock["sells"] = sum(1 for t in counted if t.group == "sell")
+            stock["last_received"] = max((t.received for t in counted if t.received), default=None)
         return stocks
 
     # ---- views
@@ -404,45 +446,54 @@ class Dataset:
 
     def recent_window(self, days):
         start = self.today - timedelta(days=days)
-        return [t for t in self.trades if t.received and t.received > start]
+        return [t for t in self.trades if t.counted and t.received and t.received > start]
+
+    def filed_reports(self, days=None):
+        """Reports with trades, amendments aside, optionally only those received in the last N days."""
+        start = self.today - timedelta(days=days) if days else None
+        return [r for r in self.reports if r.trades and not r.is_amendment and r.received
+                and (start is None or r.received > start)]
 
     def overview_stats(self):
         recent = self.recent_window(30)
         tickers = Counter(ticker.upper() for t in recent for ticker in t.tickers)
         most = tickers.most_common(1)
+        recent_reports = self.filed_reports(30)
         return {
             "trades_30d": len(recent),
             "filers_30d": len({t.filer.key for t in recent if t.filer}),
-            "late_30d": sum(1 for t in recent if t.late),
+            "reports_30d": len(recent_reports),
+            "late_30d": sum(1 for r in recent_reports if r.late),
             "top_ticker": most[0][0] if most else None,
             "top_ticker_slug": stock_slug(most[0][0]) if most else None,
             "top_ticker_count": most[0][1] if most else 0,
-            "trades_total": len(self.trades),
+            "trades_total": sum(1 for t in self.trades if t.counted),
             "reports_total": len(self.reports),
             "filers_total": len(self.filers),
             "paper_reports": sum(1 for r in self.reports if r.kind == "paper"),
             "unread_reports": sum(1 for r in self.reports if r.status in ("to_read", "failed")),
         }
 
+    def late_reports(self):
+        """Reports filed after the 45-day limit, longest delay first."""
+        return sorted((r for r in self.filed_reports() if r.late), key=lambda r: (r.delay, r.received), reverse=True)
+
     def late_trades(self):
         return sorted((t for t in self.trades if t.late), key=lambda t: (t.days, t.received), reverse=True)
 
     def delay_histogram(self, months=12):
-        """Counts of trades (not amendments) by days from trade to disclosure, last N months."""
-        start = self.today - timedelta(days=30 * months)
+        """Reports (not amendments) by days from their oldest trade to their filing, last N months."""
         bins = [(0, 7, "0–7"), (8, 15, "8–15"), (16, 22, "16–22"), (23, 30, "23–30"), (31, 37, "31–37"),
                 (38, 45, "38–45"), (46, 60, "46–60"), (61, 90, "61–90"), (91, None, "90+")]
         counts = [0] * len(bins)
         total = late = 0
-        for trade in self.trades:
-            if trade.is_amendment or trade.days is None or not trade.received or trade.received <= start:
+        for report in self.filed_reports(30 * months):
+            if report.delay is None:
                 continue
-            days = max(0, trade.days)
             total += 1
-            if days > LATE_AFTER_DAYS:
-                late += 1
+            late += report.late
             for i, (lo, hi, _) in enumerate(bins):
-                if days >= lo and (hi is None or days <= hi):
+                if report.delay >= lo and (hi is None or report.delay <= hi):
                     counts[i] += 1
                     break
         return {"labels": [b[2] for b in bins], "counts": counts, "late_from_index": 6,
@@ -452,7 +503,7 @@ class Dataset:
         """Trades disclosed per month, from the first month with data to this month."""
         if not self.trades:
             return []
-        by_month = Counter((t.received.year, t.received.month) for t in self.trades if t.received)
+        by_month = Counter((t.received.year, t.received.month) for t in self.trades if t.received and t.counted)
         first = min(by_month)
         y, m = first
         series = []
@@ -469,7 +520,7 @@ class Dataset:
         starts = [this_monday - timedelta(weeks=weeks - 1 - i) for i in range(weeks)]
         counts = Counter()
         for trade in self.trades:
-            if trade.received and trade.received >= starts[0]:
+            if trade.counted and trade.received and trade.received >= starts[0]:
                 index = (trade.received - starts[0]).days // 7
                 if 0 <= index < weeks:
                     counts[index] += 1

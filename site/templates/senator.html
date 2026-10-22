@@ -17,11 +17,11 @@
 <div class="tile"><dt class="muted">Trades reported</dt><dd class="big">{{ fmt_number(stats.trades) }}</dd></div>
 <div class="tile"><dt class="muted">Buys</dt><dd class="big">{{ fmt_number(stats.buys) }}</dd></div>
 <div class="tile"><dt class="muted">Sells</dt><dd class="big">{{ fmt_number(stats.sells) }}</dd></div>
-<div class="tile"><dt class="muted">Disclosed after 45 days</dt><dd class="big">{{ fmt_number(stats.late) }}</dd></div>
+<div class="tile"><dt class="muted">Reports filed late</dt><dd class="big">{{ fmt_number(stats.late) }}<span class="of"> of {{ fmt_number(stats.reports) }}</span></dd></div>
 <div class="tile"><dt class="muted">Different stocks</dt><dd class="big">{{ fmt_number(stats.stocks) }}</dd></div>
 <div class="tile"><dt class="muted">Last trade</dt><dd class="big">{{ fmt_date(stats.last_traded) or "–" }}</dd></div>
 </dl>
-{% if stats.paper_reports or stats.unread_reports %}<p class="muted">{% if stats.paper_reports %}{{ stats.paper_reports }} of this filer’s reports {{ 'were' if stats.paper_reports != 1 else 'was' }} filed on paper and {{ "aren’t" if stats.paper_reports != 1 else "isn’t" }} read yet. {% endif %}{% if stats.unread_reports %}{{ stats.unread_reports }} report{{ 's' if stats.unread_reports != 1 }} {{ 'are' if stats.unread_reports != 1 else 'is' }} still waiting to be read.{% endif %}</p>{% endif %}
+{% if stats.amendment_trades or stats.paper_reports or stats.unread_reports %}<p class="muted">{% if stats.amendment_trades %}{{ fmt_number(stats.amendment_trades) }} more row{{ 's' if stats.amendment_trades != 1 }} come{{ 's' if stats.amendment_trades == 1 }} from amendments, which re-file earlier reports; they are listed below but not counted. {% endif %}{% if stats.paper_reports %}{{ stats.paper_reports }} of this filer’s reports {{ 'were' if stats.paper_reports != 1 else 'was' }} filed on paper and {{ "aren’t" if stats.paper_reports != 1 else "isn’t" }} read yet. {% endif %}{% if stats.unread_reports %}{{ stats.unread_reports }} report{{ 's' if stats.unread_reports != 1 }} {{ 'are' if stats.unread_reports != 1 else 'is' }} still waiting to be read.{% endif %}</p>{% endif %}
 </section>
 
 {% if yearly_svg %}

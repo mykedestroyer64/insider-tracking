@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "macros.html" import trade_table %}
 {% block title %}{{ stock.ticker }}: senators’ trades · Insider Tracking{% endblock %}
-{% block description %}{{ stock.ticker }} ({{ stock.name }}): {{ stock.trades | length }} trades reported by {{ stock.filers | length }} U.S. senators, with dates, amounts and late filings.{% endblock %}
+{% block description %}{{ stock.ticker }} ({{ stock.name }}): {{ stock.count }} trades reported by {{ stock.filers | length }} U.S. senators, with dates, amounts and late filings.{% endblock %}
 {% block content %}
 <section class="page-head">
 <div class="hero-text">
@@ -14,7 +14,7 @@
 
 <section class="section">
 <dl class="tiles on-white" aria-label="Summary">
-<div class="tile"><dt class="muted">Trades reported</dt><dd class="big">{{ fmt_number(stock.trades | length) }}</dd></div>
+<div class="tile"><dt class="muted">Trades reported</dt><dd class="big">{{ fmt_number(stock.count) }}</dd></div>
 <div class="tile"><dt class="muted">Senators who traded it</dt><dd class="big">{{ stock.filers | length }}</dd></div>
 <div class="tile"><dt class="muted">Buys</dt><dd class="big">{{ fmt_number(stock.buys) }}</dd></div>
 <div class="tile"><dt class="muted">Sells</dt><dd class="big">{{ fmt_number(stock.sells) }}</dd></div>

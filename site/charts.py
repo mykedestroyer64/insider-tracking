@@ -91,7 +91,7 @@ def activity_charts(dataset):
 
 
 def histogram_svg(hist):
-    """The 'how long senators take to disclose' bar chart (840 x 300)."""
+    """The 'how long senators take to file' bar chart (840 x 300): one bar group of reports."""
     counts, labels = hist["counts"], hist["labels"]
     top = nice_max(max(counts) if counts else 0)
     n = len(counts)
@@ -114,7 +114,8 @@ def histogram_svg(hist):
             y = min(y, base - 2)
             d = (f"M{x:.1f} {base} V{y + 4:.1f} A4 4 0 0 1 {x + 4:.1f} {y:.1f} H{x + 20:.1f} "
                  f"A4 4 0 0 1 {x + 24:.1f} {y + 4:.1f} V{base} Z")
-            parts.append(f'<path d="{d}" style="fill: {fill}"><title>{escape(label)} days: {count}</title></path>')
+            parts.append(f'<path d="{d}" style="fill: {fill}"><title>{escape(label)} days: {count} '
+                         f'report{"" if count == 1 else "s"}</title></path>')
         parts.append(f'<text x="{cx:.1f}" y="268" text-anchor="middle" class="chart-label">{escape(label)}</text>')
     boundary = LEFT + slot * hist["late_from_index"]
     parts.append(f'<line x1="{boundary:.1f}" x2="{boundary:.1f}" y1="10" y2="{base}" '
@@ -126,9 +127,9 @@ def histogram_svg(hist):
         parts.append(f'<text x="{late_x:.1f}" y="204" text-anchor="middle" class="chart-note">'
                      f'{hist["late"]} late ({pct}%)</text>')
     parts.append(f'<text x="{(LEFT + RIGHT) / 2:.0f}" y="292" text-anchor="middle" class="chart-label">'
-                 'days from trade to disclosure</text>')
-    label = (f"Bar chart of trades by days from trade to disclosure in the last 12 months. "
-             f"{hist['late']} of {hist['total']} trades were disclosed after the 45-day limit.")
+                 'days from the oldest trade in a report to its filing</text>')
+    label = (f"Bar chart of reports by days from their oldest trade to their filing, last 12 months. "
+             f"{hist['late']} of {hist['total']} reports were filed after the 45-day limit.")
     return ('<div class="chart-wrap">'
             f'<svg viewBox="0 0 840 300" role="img" aria-label="{escape(label)}" class="chart">'
             + "".join(parts) + "</svg></div>")

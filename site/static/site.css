@@ -37,6 +37,7 @@ a:hover { color: var(--ink-2); }
 .plain:hover { color: var(--ink); text-decoration: underline; }
 .num { font-variant-numeric: tabular-nums; }
 .big { font-size: 22px; font-weight: 600; line-height: 1.25; }
+.big .of { font-size: 15px; font-weight: 400; color: var(--ink-2); }
 .nowrap { white-space: nowrap; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .skip { position: absolute; left: -9999px; top: 8px; z-index: 10; padding: 8px 12px; background: var(--ink); color: var(--on-ink); }

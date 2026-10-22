@@ -17,7 +17,7 @@
 </div>
 <div class="table-wrap">
 <table id="sen-table">
-<thead><tr><th scope="col">Senator</th><th scope="col">Party</th><th scope="col">State</th><th scope="col" class="r">Trades</th><th scope="col" class="r">Buys</th><th scope="col" class="r">Sells</th><th scope="col" class="r">Late</th><th scope="col">Last trade</th></tr></thead>
+<thead><tr><th scope="col">Senator</th><th scope="col">Party</th><th scope="col">State</th><th scope="col" class="r">Trades</th><th scope="col" class="r">Buys</th><th scope="col" class="r">Sells</th><th scope="col" class="r">Late reports</th><th scope="col">Last trade</th></tr></thead>
 <tbody>
 {% for f, s in senators %}
 <tr data-search="{{ f.name }} {{ f.party or '' }} {{ f.state or '' }} {{ f.state_name }} {{ f.description }}">
@@ -44,7 +44,7 @@
 </div>
 <div class="table-wrap">
 <table>
-<thead><tr><th scope="col">Candidate</th><th scope="col" class="r">Trades</th><th scope="col" class="r">Buys</th><th scope="col" class="r">Sells</th><th scope="col" class="r">Late</th><th scope="col">Last trade</th></tr></thead>
+<thead><tr><th scope="col">Candidate</th><th scope="col" class="r">Trades</th><th scope="col" class="r">Buys</th><th scope="col" class="r">Sells</th><th scope="col" class="r">Late reports</th><th scope="col">Last trade</th></tr></thead>
 <tbody>
 {% for f, s in candidates %}
 <tr>

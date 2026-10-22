@@ -1,33 +1,34 @@
 {% extends "base.html" %}
-{% from "macros.html" import trade_table %}
+{% from "macros.html" import clock %}
 {% block title %}Late filings · Insider Tracking{% endblock %}
-{% block description %}Senate stock trades disclosed more than 45 days after they happened, the limit set by the STOCK Act.{% endblock %}
+{% block description %}Senate trade reports filed more than 45 days after a trade in them, the limit set by the STOCK Act.{% endblock %}
 {% block content %}
 <section class="page-head">
 <div class="hero-text">
 <h1>Late filings</h1>
-<p class="lead">The STOCK Act gives senators 45 days to report a trade. These trades were reported later than that. Amendments, which re-report old trades, aren’t counted.</p>
+<p class="lead">The STOCK Act gives senators 45 days to report a trade. A report is late when a trade in it is older than that on the day it is filed. Amendments, which re-file earlier reports, aren’t counted.</p>
 </div>
 {% include "_search.html" %}
 </section>
 
 <section class="section">
 <dl class="tiles on-white" aria-label="Summary">
-<div class="tile"><dt class="muted">Late trades, last 12 months</dt><dd class="big">{{ fmt_number(hist.late) }} of {{ fmt_number(hist.total) }}</dd></div>
-<div class="tile"><dt class="muted">Share late, last 12 months</dt><dd class="big">{% if hist.total %}{{ (100 * hist.late / hist.total) | round | int }}%{% else %}–{% endif %}</dd></div>
-<div class="tile"><dt class="muted">Late trades since 2012</dt><dd class="big">{{ fmt_number(late | length) }}</dd></div>
-<div class="tile"><dt class="muted">Senators with a late filing</dt><dd class="big">{{ by_filer | length }}</dd></div>
+<div class="tile"><dt class="muted">Reports filed late, last 12 months</dt><dd class="big">{{ fmt_number(late_12m) }}<span class="of"> of {{ fmt_number(reports_12m) }}</span></dd></div>
+<div class="tile"><dt class="muted">Share late, last 12 months</dt><dd class="big">{% if reports_12m %}{{ (100 * late_12m / reports_12m) | round | int }}%{% else %}–{% endif %}</dd></div>
+<div class="tile"><dt class="muted">Trades past 45 days in them</dt><dd class="big">{{ fmt_number(late_trades_12m) }}</dd></div>
+<div class="tile"><dt class="muted">Late reports since 2012</dt><dd class="big">{{ fmt_number(late | length) }}</dd></div>
+<div class="tile"><dt class="muted">Senators with a late report</dt><dd class="big">{{ by_filer | length }}</dd></div>
 </dl>
 </section>
 
 <section class="section" aria-labelledby="by-h">
-<div class="titles"><h2 id="by-h">By senator</h2><p class="muted">Share of each senator’s trades that were reported after 45 days.</p></div>
+<div class="titles"><h2 id="by-h">By senator</h2><p class="muted">Share of each senator’s reports that were filed after 45 days, and how many trades those reports held.</p></div>
 <div class="table-wrap">
 <table>
-<thead><tr><th scope="col">Senator</th><th scope="col" class="r">Late</th><th scope="col" class="r">All trades</th><th scope="col" class="r">Share late</th><th scope="col" class="r">Longest delay</th></tr></thead>
+<thead><tr><th scope="col">Senator</th><th scope="col" class="r">Late reports</th><th scope="col" class="r">All reports</th><th scope="col" class="r">Share late</th><th scope="col" class="r">Trades filed late</th><th scope="col" class="r">Longest delay</th></tr></thead>
 <tbody>
 {% for row in by_filer %}
-<tr><td><a href="{{ base }}/senators/{{ row.filer.slug }}/" class="plain cell-main">{{ row.filer.name }}</a><div class="muted">{{ row.filer.party_state or row.filer.filer_type }}</div></td><td class="r num">{{ row.late }}</td><td class="r num">{{ row.total }}</td><td class="r num">{{ row.share }}%</td><td class="r num">{{ row.longest }} days</td></tr>
+<tr><td><a href="{{ base }}/senators/{{ row.filer.slug }}/" class="plain cell-main">{{ row.filer.name }}</a><div class="muted">{{ row.filer.party_state or row.filer.filer_type }}</div></td><td class="r num">{{ row.late }}</td><td class="r num">{{ row.total }}</td><td class="r num">{{ row.share }}%</td><td class="r num">{{ fmt_number(row.late_trades) }}</td><td class="r num">{{ row.longest }} days</td></tr>
 {% endfor %}
 </tbody>
 </table>
@@ -35,7 +36,18 @@
 </section>
 
 <section class="section" aria-labelledby="all-h">
-<div class="titles"><h2 id="all-h">Every late filing</h2><p class="muted">Longest delay first.</p></div>
-{{ trade_table(late, base, caption="Trades disclosed after 45 days") }}
+<div class="titles"><h2 id="all-h">Every late report</h2><p class="muted">Longest delay first. “Days” counts from the oldest trade in the report to the day it was filed; the trades themselves are on each senator’s page.</p></div>
+<div class="table-wrap">
+<table class="trades">
+<caption class="visually-hidden">Reports filed after 45 days</caption>
+<thead><tr><th scope="col">Senator</th><th scope="col" class="r">Trades</th><th scope="col">Oldest trade</th><th scope="col">Filed</th><th scope="col" class="r">Days</th><th scope="col">Source</th></tr></thead>
+<tbody>
+{% for r in late %}
+{% set f = filer_of.get(r.path) %}
+<tr><td>{% if f %}<a href="{{ base }}/senators/{{ f.slug }}/" class="plain cell-main">{{ f.name }}</a><div class="muted">{{ f.party_state or f.filer_type }}</div>{% else %}{{ r.filer_name }}{% endif %}</td><td class="r num">{{ r.trades | length }}</td><td class="num nowrap">{{ fmt_date(r.oldest_trade) }}</td><td class="num nowrap">{{ fmt_date(r.received) }}</td><td class="r"><span class="days">{{ clock("Late") }}<span class="late-flag">{{ r.delay }}</span></span></td><td><a href="{{ r.url }}" rel="noopener">Report</a></td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
 </section>
 {% endblock %}

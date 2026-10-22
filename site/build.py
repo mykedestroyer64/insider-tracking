@@ -182,7 +182,7 @@ class Builder:
     def build_home(self):
         ds = self.ds
         activity = charts.activity_charts(ds)
-        latest = ds.trades_sorted()[:LATEST_ON_HOME]
+        latest = [t for t in ds.trades_sorted() if t.counted][:LATEST_ON_HOME]
         self.page("index.html", "/index.html", page="home",
                   stats=ds.overview_stats(), charts=activity,
                   charts_json=json.dumps(activity, separators=(",", ":")),
@@ -201,9 +201,9 @@ class Builder:
         self.page("senators.html", "/senators/index.html", page="senators",
                   senators=senators, candidates=candidates)
         for filer, stats in with_stats:
-            by_year = Counter(t.received.year for t in filer.trades if t.received)
+            by_year = Counter(t.received.year for t in filer.counted_trades if t.received)
             per_stock = defaultdict(lambda: {"trades": 0, "buys": 0, "sells": 0, "last": None})
-            for t in filer.trades:
+            for t in filer.counted_trades:
                 for ticker, slug in zip(t.tickers, t.stock_slugs):
                     s = per_stock[slug]
                     s.update(ticker=ticker.upper(), slug=slug, name=ds.stocks[slug]["name"])
@@ -219,13 +219,13 @@ class Builder:
 
     def build_stocks(self):
         ds = self.ds
-        stocks = sorted(ds.stocks.values(), key=lambda s: (-len(s["trades"]), s["ticker"]))
-        self.page("stocks.html", "/stocks/index.html", page="stocks", stocks=stocks)
+        stocks = sorted(ds.stocks.values(), key=lambda s: (-s["count"], s["ticker"]))
+        self.page("stocks.html", "/stocks/index.html", page="stocks", stocks=[s for s in stocks if s["count"]])
         for stock in stocks:
-            by_year = Counter(t.received.year for t in stock["trades"] if t.received)
+            by_year = Counter(t.received.year for t in stock["trades"] if t.received and t.counted)
             rows = {}
             for t in stock["trades"]:
-                if not t.filer:
+                if not t.filer or not t.counted:
                     continue
                 row = rows.setdefault(t.filer.slug, {"filer": t.filer, "trades": 0, "buys": 0, "sells": 0, "last": None})
                 row["trades"] += 1
@@ -239,21 +239,26 @@ class Builder:
 
     def build_late(self):
         ds = self.ds
-        late = ds.late_trades()
+        late = ds.late_reports()
         rows = {}
-        for t in late:
-            if not t.filer:
+        for report in late:
+            filer = ds.filer_by_report.get(report.path)
+            if not filer:
                 continue
-            row = rows.setdefault(t.filer.key, {"filer": t.filer, "late": 0, "longest": 0})
+            row = rows.setdefault(filer.key, {"filer": filer, "late": 0, "late_trades": 0, "longest": 0})
             row["late"] += 1
-            row["longest"] = max(row["longest"], t.days)
+            row["late_trades"] += sum(1 for t in report.trades if t.late)
+            row["longest"] = max(row["longest"], report.delay)
         for row in rows.values():
-            total = sum(1 for t in row["filer"].trades if not t.is_amendment and t.days is not None)
+            total = len(row["filer"].filed_reports)
             row["total"] = total
             row["share"] = round(100 * row["late"] / total) if total else 0
         by_filer = sorted(rows.values(), key=lambda r: (-r["late"], -r["share"], r["filer"].name))
+        year_ago = ds.filed_reports(365)
         self.page("late.html", "/late/index.html", page="late", late=late, by_filer=by_filer,
-                  hist=ds.delay_histogram())
+                  hist=ds.delay_histogram(), filer_of=ds.filer_by_report,
+                  late_12m=sum(1 for r in year_ago if r.late), reports_12m=len(year_ago),
+                  late_trades_12m=sum(1 for r in year_ago for t in r.trades if t.late))
 
     # ---- data files, feed, sitemap
 
@@ -264,7 +269,7 @@ class Builder:
             if filer.trades:
                 search.append({"t": "senator", "n": filer.name, "s": filer.party_state or filer.filer_type,
                                "u": f"/senators/{filer.slug}/"})
-        for stock in sorted(ds.stocks.values(), key=lambda s: -len(s["trades"])):
+        for stock in sorted((s for s in ds.stocks.values() if s["count"]), key=lambda s: -s["count"]):
             search.append({"t": "stock", "n": stock["ticker"], "k": stock["name"], "s": stock["name"],
                            "u": f"/stocks/{stock['slug']}/"})
         self.write("/data/search.json", json.dumps(search, ensure_ascii=False, separators=(",", ":")))

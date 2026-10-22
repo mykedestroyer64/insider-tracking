@@ -16,7 +16,7 @@
 <dl class="tiles" aria-label="Last 30 days">
 <div class="tile"><dt class="muted">Trades disclosed, last 30 days</dt><dd class="big">{{ fmt_number(stats.trades_30d) }}</dd></div>
 <div class="tile"><dt class="muted">Senators trading, last 30 days</dt><dd class="big">{{ fmt_number(stats.filers_30d) }}</dd></div>
-<div class="tile"><dt class="muted">Disclosed after 45 days</dt><dd class="big">{{ fmt_number(stats.late_30d) }}</dd></div>
+<div class="tile"><dt class="muted">Reports filed late, last 30 days</dt><dd class="big">{{ fmt_number(stats.late_30d) }}<span class="of"> of {{ fmt_number(stats.reports_30d) }}</span></dd></div>
 <div class="tile"><dt class="muted">Most traded stock, last 30 days</dt><dd class="big">{% if stats.top_ticker %}<a href="{{ base }}/stocks/{{ stats.top_ticker_slug }}/" class="plain">{{ stats.top_ticker }}</a>{% else %}–{% endif %}</dd></div>
 </dl>
 
@@ -53,8 +53,8 @@
 <section class="card" aria-labelledby="late-h">
 <div class="card-head">
 <div class="titles">
-<h2 id="late-h">How long senators take to disclose</h2>
-<p class="muted">Trades in the last 12 months, by days from trade to public report. The law allows 45 days.</p>
+<h2 id="late-h">How long senators take to file</h2>
+<p class="muted">Reports from the last 12 months, by days from the oldest trade in each to its filing. The law allows 45 days.</p>
 </div>
 <div class="legend muted">
 <span><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="10" rx="2" style="fill: #8A8A8A"></rect></svg>Within 45 days</span>
