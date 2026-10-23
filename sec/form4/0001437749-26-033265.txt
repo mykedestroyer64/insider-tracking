@@ -1,0 +1,217 @@
+<SEC-DOCUMENT>0001437749-26-033265.txt : 20261022
+<SEC-HEADER>0001437749-26-033265.hdr.sgml : 20261022
+<ACCEPTANCE-DATETIME>20261022160241
+ACCESSION NUMBER:		0001437749-26-033265
+CONFORMED SUBMISSION TYPE:	4
+PUBLIC DOCUMENT COUNT:		1
+CONFORMED PERIOD OF REPORT:	20261021
+FILED AS OF DATE:		20261022
+DATE AS OF CHANGE:		20261022
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			Newman Randy L
+		CENTRAL INDEX KEY:			0001786850
+		ORGANIZATION NAME:           	
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	001-39036
+		FILM NUMBER:		261478844
+
+	MAIL ADDRESS:	
+		STREET 1:		401 DEMERS AVENUE
+		CITY:			GRAND FORKS
+		STATE:			ND
+		ZIP:			58201
+
+ISSUER:		
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			ALERUS FINANCIAL CORP
+		CENTRAL INDEX KEY:			0000903419
+		STANDARD INDUSTRIAL CLASSIFICATION:	NATIONAL COMMERCIAL BANKS [6021]
+		ORGANIZATION NAME:           	02 Finance
+		EIN:				450375407
+		STATE OF INCORPORATION:			DE
+		FISCAL YEAR END:			1231
+
+	BUSINESS ADDRESS:	
+		STREET 1:		401 DEMERS AVE
+		CITY:			GRAND FORKS
+		STATE:			ND
+		ZIP:			58201
+		BUSINESS PHONE:		7017953200
+
+	MAIL ADDRESS:	
+		STREET 1:		PO BOX 6001
+		STREET 2:		401 DEMERS AVE
+		CITY:			GRAND FORKS
+		STATE:			ND
+		ZIP:			58206-6001
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	FIRST NATIONAL CORP NORTH DAKOTA
+		DATE OF NAME CHANGE:	19980312
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<SEQUENCE>1
+<FILENAME>rdgdoc.xml
+<DESCRIPTION>RANDY NEWMAN FORM 4 FILING
+<TEXT>
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+
+    <schemaVersion>X0609</schemaVersion>
+
+    <documentType>4</documentType>
+
+    <periodOfReport>2026-10-21</periodOfReport>
+
+    <issuer>
+        <issuerCik>0000903419</issuerCik>
+        <issuerName>ALERUS FINANCIAL CORP</issuerName>
+        <issuerTradingSymbol>ALRS</issuerTradingSymbol>
+        <issuerForeignTradingSymbol></issuerForeignTradingSymbol>
+    </issuer>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001786850</rptOwnerCik>
+            <rptOwnerName>Newman Randy L</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerNonUSAddressFlag>false</rptOwnerNonUSAddressFlag>
+            <rptOwnerStreet1>401 DEMERS AVENUE</rptOwnerStreet1>
+            <rptOwnerStreet2></rptOwnerStreet2>
+            <rptOwnerCity>GRAND FORKS</rptOwnerCity>
+            <rptOwnerState>ND</rptOwnerState>
+            <rptOwnerZipCode>58201</rptOwnerZipCode>
+            <rptOwnerStateDescription></rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>1</isDirector>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <aff10b5One>0</aff10b5One>
+
+    <nonDerivativeTable>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2026-09-22</value>
+            </transactionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>G</transactionCode>
+                <equitySwapInvolved>0</equitySwapInvolved>
+            </transactionCoding>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>89923</value>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>0</value>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>D</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>219963</value>
+                    <footnoteId id="F1"/>
+                    <footnoteId id="F2"/>
+                    <footnoteId id="F3"/>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+        <nonDerivativeHolding>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>156705</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>I</value>
+                </directOrIndirectOwnership>
+                <natureOfOwnership>
+                    <value>By trust</value>
+                    <footnoteId id="F4"/>
+                </natureOfOwnership>
+            </ownershipNature>
+        </nonDerivativeHolding>
+        <nonDerivativeHolding>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>339765</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>I</value>
+                </directOrIndirectOwnership>
+                <natureOfOwnership>
+                    <value>By trust</value>
+                    <footnoteId id="F5"/>
+                </natureOfOwnership>
+            </ownershipNature>
+        </nonDerivativeHolding>
+        <nonDerivativeHolding>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>91923</value>
+                    <footnoteId id="F6"/>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>I</value>
+                </directOrIndirectOwnership>
+                <natureOfOwnership>
+                    <value>By spouse</value>
+                </natureOfOwnership>
+            </ownershipNature>
+        </nonDerivativeHolding>
+    </nonDerivativeTable>
+
+    <footnotes>
+        <footnote id="F1">Includes 1,772 shares of restricted stock.</footnote>
+        <footnote id="F2">Includes 1,814 shares held jointly with Mr. Newman's spouse.</footnote>
+        <footnote id="F3">This transaction involved Mr. Newman's gift of 89,923 shares of Alerus Financial Corporation common stock to his spouse.</footnote>
+        <footnote id="F4">Shares held by the Anita D. Newman Revocable Living Trust under agreement dated August 27, 2015. Mr. Newman's spouse is the trustee of this trust.</footnote>
+        <footnote id="F5">Shares held by the Anita D. Newman 2021 GST Trust. Mr. Newman is a beneficiary and a trustee of this trust, and possesses sole voting and investment power with respect to these shares.</footnote>
+        <footnote id="F6">Reflects 89,923 shares of Alerus Financial Corporation common stock gifted to Mr. Newman's spouse by Mr. Newman.</footnote>
+    </footnotes>
+
+    <ownerSignature>
+        <signatureName>/s/ Nicholas Brenckman, by power of attorney</signatureName>
+        <signatureDate>2026-10-22</signatureDate>
+    </ownerSignature>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

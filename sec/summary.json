@@ -1,0 +1,71 @@
+{
+  "verdict": "OK",
+  "verdict_line": "VERDICT: OK - 2026 Q3: 5,184 buys and 25,441 sells; 238 Form 4 filings on 2026-10-22, 6 read (ran on GitHub Actions)",
+  "ran_on": "GitHub Actions",
+  "started_at_utc": "2026-10-23T13:44:00+00:00",
+  "finished_at_utc": "2026-10-23T13:44:25+00:00",
+  "steps": [
+    {
+      "step": 1,
+      "name": "Find the newest quarterly data file",
+      "status": "OK",
+      "http_codes": [
+        301,
+        200
+      ],
+      "detail": "83 quarterly files listed, newest 2026 Q3"
+    },
+    {
+      "step": 2,
+      "name": "Download it",
+      "status": "OK",
+      "http_codes": [
+        200
+      ],
+      "detail": "2026q3_form345.zip, 8.7 MB"
+    },
+    {
+      "step": 3,
+      "name": "Count the buys and sells in it",
+      "status": "OK",
+      "http_codes": [],
+      "detail": "38,152 filings; 5,184 buys and 25,441 sells by 8,070 insiders in 2,845 companies"
+    },
+    {
+      "step": 4,
+      "name": "Find the newest daily list of filings",
+      "status": "OK",
+      "http_codes": [
+        200,
+        200
+      ],
+      "detail": "10/22/2026: 2,282 filings, 238 of them Form 4"
+    },
+    {
+      "step": 5,
+      "name": "Read a few new Form 4 filings",
+      "status": "OK",
+      "http_codes": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "detail": "6 read: 20 stock transactions, 18 of them buys or sells"
+    }
+  ],
+  "quarter": "2026 Q3",
+  "daily": {
+    "day": "20261022",
+    "filings": 2282,
+    "form4": 238,
+    "read": 6,
+    "trades": 20,
+    "buys_sells": 18
+  },
+  "storage_estimate_mb_per_year": 37,
+  "script": "insider-tracking 0.1",
+  "python": "3.12.15"
+}

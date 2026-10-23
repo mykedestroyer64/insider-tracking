@@ -1,0 +1,39 @@
+Filing ID #20006403
+P t r
+erioDic ranSaction ePort
+Clerk of the House of Representatives • Legislative Resource Center • 135 Cannon Building • Washington, DC 20515
+filer information
+name: Hon. Carolyn B. Maloney
+Status: Member
+State/District: NY12
+tranSactionS
+iD owner asset transaction Date notification amount
+type Date
+METROPOLITAN TRANSN AUTH NY S 11/15/2016 12/14/2016 $15,001 - $50,000
+REV UNREFUNDED SER B, 4.50%,
+DUE 11-15-2032
+FILING STATUS: New
+DESCRIPTION: REDEMPTION OF METROPOLITAN TRANSN AUTH NY REV UNREFUNDED SER B, 4.50%, DUE 11-25-
+2032, CUSIP 59261ABT3
+METROPOLITIAN TRANSN AUTH NY S 11/15/2016 12/14/2016 $15,001 - $50,000
+REV SER A, 5.00%, DUE 11-15-2035
+FILING STATUS: New
+DESCRIPTION: REDEMPTION OF METROPOLITIAN TRANSN AUTH NY REV SER A, 5.00% DUE 11-15-2035, CUSIP
+59259RM27
+NEW YORK CITY TRANSPORTATION P 11/3/2016 12/14/2016 $15,001 - $50,000
+FIN AUTH REVS FUTURE TAX 2ND
+SUBSER A1, 4.50%, DUE 05-01-2029
+FILING STATUS: New
+DESCRIPTION: NEW YORK CITY TRANSPORTATION FIN AUTH REVS FUTURE TAX 2ND SUBSER A1, B/E OID, 4.50%,
+DUE 05-01-2029. CUSIP 64971MUD2
+NEW YORK CITY TRANSPORTION SER P 11/3/2016 12/14/2016 $15,001 - $50,000
+S-4 OID 5.50%, DUE 01-15-2033
+FILING STATUS: New
+DESCRIPTION: NEW YORK CITY TRANSPORTATION FIN AUTH BLDG AID REV SER S-4 OID, 5.50%, DUE 01-15-2033
+CUSIP 64972HNC2
+initial Public offeringS
+nmlkj Yes nmlkji No
+certification anD Signature
+gfedcb I CERTIFY that the statements I have made on the attached Periodic Transaction Report are true, complete, and correct to the
+best of my knowledge and belief.
+Digitally Signed: Hon. Carolyn B. Maloney , 12/29/2016

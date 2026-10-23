@@ -1,0 +1,13 @@
+House access check - insider-tracking 0.1
+Running on: GitHub Actions
+Contact email: set (it goes in the User-Agent and is not saved in output)
+
+[1/6] Download this year's list of filings ... OK (HTTP 200) - 1800 filings in the 2026 list, by type: C 872, P 437, X 247, W 104, D 92, A 44, H 2, T 2
+[2/6] Pick the trade reports ................. OK - 437 trade reports: 384 electronic, 53 scanned; newest filed 10/22/2026
+[3/6] Download new electronic reports ........ OK - 12 downloaded
+[4/6] Download scanned reports ............... OK - 3 downloaded
+[5/6] Download older electronic reports ...... OK - 4 downloaded from 2020, 2016
+[6/6] Read the reports' text ................. OK - 16 of 19 PDFs have text; about 54 transactions seen
+
+Saved in output/house: this year's list, 19 PDFs with their text, reports.json, summary.json
+VERDICT: OK - 437 trade reports in the 2026 list (384 electronic, 53 scanned); 19 downloaded, 16 with text, about 54 transactions seen (ran on GitHub Actions)

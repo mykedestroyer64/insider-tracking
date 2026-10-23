@@ -1,0 +1,341 @@
+<SEC-DOCUMENT>0001193125-26-429152.txt : 20261022
+<SEC-HEADER>0001193125-26-429152.hdr.sgml : 20261022
+<ACCEPTANCE-DATETIME>20261022174332
+ACCESSION NUMBER:		0001193125-26-429152
+CONFORMED SUBMISSION TYPE:	4
+PUBLIC DOCUMENT COUNT:		1
+CONFORMED PERIOD OF REPORT:	20260917
+FILED AS OF DATE:		20261022
+DATE AS OF CHANGE:		20261022
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			DELL MICHAEL S
+		CENTRAL INDEX KEY:			0000908724
+		ORGANIZATION NAME:           	
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	814-01751
+		FILM NUMBER:		261479567
+
+	MAIL ADDRESS:	
+		STREET 1:		C/O DELL INC.
+		STREET 2:		ONE DELL WAY
+		CITY:			ROUND ROCK
+		STATE:			TX
+		ZIP:			78682-2244
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			MSD CAPITAL, L.P.
+		CENTRAL INDEX KEY:			0001105497
+		ORGANIZATION NAME:           	
+		STATE OF INCORPORATION:			DE
+		FISCAL YEAR END:			1231
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	814-01751
+		FILM NUMBER:		261479570
+
+	BUSINESS ADDRESS:	
+		STREET 1:		550 MADISON AVENUE
+		STREET 2:		20TH FLOOR
+		CITY:			NEW YORK
+		STATE:			NY
+		ZIP:			10022
+		BUSINESS PHONE:		212-303-1650
+
+	MAIL ADDRESS:	
+		STREET 1:		550 MADISON AVENUE
+		STREET 2:		20TH FLOOR
+		CITY:			NEW YORK
+		STATE:			NY
+		ZIP:			10022
+
+	FORMER NAME:	
+		FORMER CONFORMED NAME:	MSD CAPITAL L P
+		DATE OF NAME CHANGE:	20000207
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			MSD Portfolio L.P. - Investments
+		CENTRAL INDEX KEY:			0001134557
+		ORGANIZATION NAME:           	
+		STATE OF INCORPORATION:			NY
+		FISCAL YEAR END:			1231
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	814-01751
+		FILM NUMBER:		261479569
+
+	BUSINESS ADDRESS:	
+		STREET 1:		550 MADISON AVE
+		STREET 2:		20TH FLOOR
+		CITY:			NEW YORK
+		STATE:			NY
+		ZIP:			10022
+		BUSINESS PHONE:		2123031668
+
+	MAIL ADDRESS:	
+		STREET 1:		550 MADISON AVE
+		STREET 2:		20TH FLOOR
+		CITY:			NEW YORK
+		STATE:			NY
+		ZIP:			10022
+
+	FORMER NAME:	
+		FORMER CONFORMED NAME:	MSD PORTFOLIO L P INVESTMENT
+		DATE OF NAME CHANGE:	20010212
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			Noble Environmental Investments, LLC
+		CENTRAL INDEX KEY:			0001914199
+		ORGANIZATION NAME:           	
+		STATE OF INCORPORATION:			DE
+		FISCAL YEAR END:			1231
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	814-01751
+		FILM NUMBER:		261479568
+
+	BUSINESS ADDRESS:	
+		STREET 1:		550 MADISON AVE
+		STREET 2:		20TH FLOOR
+		CITY:			NEW YORK
+		STATE:			NY
+		ZIP:			10022
+		BUSINESS PHONE:		(212) 303-1650
+
+	MAIL ADDRESS:	
+		STREET 1:		550 MADISON AVE
+		STREET 2:		20TH FLOOR
+		CITY:			NEW YORK
+		STATE:			NY
+		ZIP:			10022
+
+ISSUER:		
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			5C Lending Partners Corp.
+		CENTRAL INDEX KEY:			0001998387
+		ORGANIZATION NAME:           	
+		EIN:				000000000
+		STATE OF INCORPORATION:			MD
+		FISCAL YEAR END:			1231
+
+	BUSINESS ADDRESS:	
+		STREET 1:		1 STUYVESANT AVENUE
+		CITY:			RYE
+		STATE:			NY
+		ZIP:			10580
+		BUSINESS PHONE:		(917) 494-0822
+
+	MAIL ADDRESS:	
+		STREET 1:		1 STUYVESANT AVENUE
+		CITY:			RYE
+		STATE:			NY
+		ZIP:			10580
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<SEQUENCE>1
+<FILENAME>ownership.xml
+<DESCRIPTION>4
+<TEXT>
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+
+    <schemaVersion>X0609</schemaVersion>
+
+    <documentType>4</documentType>
+
+    <periodOfReport>2026-09-17</periodOfReport>
+
+    <issuer>
+        <issuerCik>0001998387</issuerCik>
+        <issuerName>5C Lending Partners Corp.</issuerName>
+        <issuerTradingSymbol>NONE</issuerTradingSymbol>
+        <issuerForeignTradingSymbol></issuerForeignTradingSymbol>
+    </issuer>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001105497</rptOwnerCik>
+            <rptOwnerName>MSD CAPITAL, L.P.</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerNonUSAddressFlag>false</rptOwnerNonUSAddressFlag>
+            <rptOwnerStreet1>550 MADISON AVENUE, 20TH FLOOR</rptOwnerStreet1>
+            <rptOwnerStreet2></rptOwnerStreet2>
+            <rptOwnerCity>NEW YORK</rptOwnerCity>
+            <rptOwnerState>NY</rptOwnerState>
+            <rptOwnerZipCode>10022</rptOwnerZipCode>
+            <rptOwnerStateDescription></rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>false</isDirector>
+            <isOfficer>false</isOfficer>
+            <isTenPercentOwner>true</isTenPercentOwner>
+            <isOther>false</isOther>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001134557</rptOwnerCik>
+            <rptOwnerName>MSD Portfolio L.P. - Investments</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerNonUSAddressFlag>false</rptOwnerNonUSAddressFlag>
+            <rptOwnerStreet1>550 MADISON AVENUE, 20TH FLOOR</rptOwnerStreet1>
+            <rptOwnerStreet2></rptOwnerStreet2>
+            <rptOwnerCity>NEW YORK</rptOwnerCity>
+            <rptOwnerState>NY</rptOwnerState>
+            <rptOwnerZipCode>10022</rptOwnerZipCode>
+            <rptOwnerStateDescription></rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>false</isDirector>
+            <isOfficer>false</isOfficer>
+            <isTenPercentOwner>true</isTenPercentOwner>
+            <isOther>false</isOther>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001914199</rptOwnerCik>
+            <rptOwnerName>Noble Environmental Investments, LLC</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerNonUSAddressFlag>false</rptOwnerNonUSAddressFlag>
+            <rptOwnerStreet1>550 MADISON AVENUE, 20TH FLOOR</rptOwnerStreet1>
+            <rptOwnerStreet2></rptOwnerStreet2>
+            <rptOwnerCity>NEW YORK</rptOwnerCity>
+            <rptOwnerState>NY</rptOwnerState>
+            <rptOwnerZipCode>10022</rptOwnerZipCode>
+            <rptOwnerStateDescription></rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>false</isDirector>
+            <isOfficer>false</isOfficer>
+            <isTenPercentOwner>true</isTenPercentOwner>
+            <isOther>false</isOther>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0000908724</rptOwnerCik>
+            <rptOwnerName>DELL MICHAEL S</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerNonUSAddressFlag>false</rptOwnerNonUSAddressFlag>
+            <rptOwnerStreet1>ONE DELL WAY</rptOwnerStreet1>
+            <rptOwnerStreet2></rptOwnerStreet2>
+            <rptOwnerCity>ROUND ROCK</rptOwnerCity>
+            <rptOwnerState>TX</rptOwnerState>
+            <rptOwnerZipCode>78682</rptOwnerZipCode>
+            <rptOwnerStateDescription></rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>false</isDirector>
+            <isOfficer>false</isOfficer>
+            <isTenPercentOwner>true</isTenPercentOwner>
+            <isOther>false</isOther>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <aff10b5One>false</aff10b5One>
+
+    <nonDerivativeTable>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2026-09-17</value>
+            </transactionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>P</transactionCode>
+                <equitySwapInvolved>false</equitySwapInvolved>
+            </transactionCoding>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>390857</value>
+                    <footnoteId id="F1"/>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>24.48</value>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>A</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>4249305</value>
+                    <footnoteId id="F2"/>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>I</value>
+                </directOrIndirectOwnership>
+                <natureOfOwnership>
+                    <value>See footnote</value>
+                    <footnoteId id="F3"/>
+                    <footnoteId id="F4"/>
+                    <footnoteId id="F5"/>
+                </natureOfOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+    </nonDerivativeTable>
+
+    <footnotes>
+        <footnote id="F1">Represents a purchase of securities from the issuer in the form of a capital call. Under the terms of a subscription agreement between the reporting persons and the issuer, the reporting persons are required to fund drawdowns to purchase shares of the issuer's common stock up to the amount of their capital commitment on an as-needed basis with a minimum ten business days' prior notice to the reporting persons.</footnote>
+        <footnote id="F2">Includes shares acquired pursuant to the reinvestment of dividends under the issuer's dividend reinvestment plan.</footnote>
+        <footnote id="F3">Noble Environmental Investments, LLC (&quot;Noble Investments&quot;) is the record holder of these shares of the issuer's common stock. MSD Portfolio L.P. - Investments (&quot;MSD Portfolio&quot;) indirectly owns Noble Investments through wholly-owned subsidiaries of MSD Portfolio, and MSD Portfolio may be deemed to beneficially own securities owned by Noble Investments. MSD Capital, L.P. (&quot;MSD Capital&quot;) is the general partner of MSD Portfolio and may be deemed to beneficially own securities owned by MSD Portfolio. MSD Capital Management LLC (&quot;MSD Capital Management&quot;) is the general partner of MSD Capital and may be deemed to beneficially own securities owned by MSD Capital. [Cont.].</footnote>
+        <footnote id="F4">[Cont.] Michael S. Dell is the owner of MSD Portfolio and the controlling member of MSD Capital Management and may be deemed to beneficially own securities owned by MSD Portfolio and MSD Capital Management, respectively. Mr. Dell disclaims beneficial ownership of such securities except to the extent of any pecuniary interest therein.</footnote>
+        <footnote id="F5">Each of Noble Investments, MSD Portfolio, MSD Capital, MSD Capital Management and Mr. Dell declares that neither the filing of this statement nor anything herein shall be construed as an admission that such person is, for the purposes of Section 13(d) or 13(g) of the Securities Exchange Act of 1934, as amended, or any other purpose, a member of a group with respect to the issuer or securities of the issuer.</footnote>
+    </footnotes>
+
+    <ownerSignature>
+        <signatureName>MSD Capital, L.P., By: MSD Capital Management LLC, Its: General Partner, By: /s/ Marc R. Lisker, Name: Marc R. Lisker, Title: Manager</signatureName>
+        <signatureDate>2026-10-22</signatureDate>
+    </ownerSignature>
+
+    <ownerSignature>
+        <signatureName>Noble Environmental Investments, LLC, By: /s/ Marc R. Lisker, Name: Marc R. Lisker, Title: Authorized Signatory</signatureName>
+        <signatureDate>2026-10-22</signatureDate>
+    </ownerSignature>
+
+    <ownerSignature>
+        <signatureName>MSD Portfolio L.P. - Investments, By: MSD Capital, L.P., Its: General Partner, By: MSD Capital Management LLC, Its: General Partner, By: /s/ Marc R. Lisker, Name: Marc R. Lisker, Title: Manager</signatureName>
+        <signatureDate>2026-10-22</signatureDate>
+    </ownerSignature>
+
+    <ownerSignature>
+        <signatureName>Michael S. Dell, By: /s/ Marc R. Lisker, Name: Marc R. Lisker, Title: Attorney-in-Fact</signatureName>
+        <signatureDate>2026-10-22</signatureDate>
+    </ownerSignature>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

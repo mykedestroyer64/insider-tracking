@@ -1,0 +1,373 @@
+[
+  {
+    "form": "4",
+    "period": "2026-09-17",
+    "plan_10b5_1": "false",
+    "company": "5C Lending Partners Corp.",
+    "company_cik": "0001998387",
+    "ticker": "NONE",
+    "insiders": [
+      {
+        "name": "MSD CAPITAL, L.P.",
+        "cik": "0001105497",
+        "officer_title": "",
+        "isDirector": false,
+        "isOfficer": false,
+        "isTenPercentOwner": true,
+        "isOther": false
+      },
+      {
+        "name": "MSD Portfolio L.P. - Investments",
+        "cik": "0001134557",
+        "officer_title": "",
+        "isDirector": false,
+        "isOfficer": false,
+        "isTenPercentOwner": true,
+        "isOther": false
+      },
+      {
+        "name": "Noble Environmental Investments, LLC",
+        "cik": "0001914199",
+        "officer_title": "",
+        "isDirector": false,
+        "isOfficer": false,
+        "isTenPercentOwner": true,
+        "isOther": false
+      },
+      {
+        "name": "DELL MICHAEL S",
+        "cik": "0000908724",
+        "officer_title": "",
+        "isDirector": false,
+        "isOfficer": false,
+        "isTenPercentOwner": true,
+        "isOther": false
+      }
+    ],
+    "trades": [
+      {
+        "security": "Common Stock",
+        "date": "2026-09-17",
+        "code": "P",
+        "shares": "390857",
+        "price": "24.48",
+        "acquired_or_disposed": "A",
+        "shares_after": "4249305",
+        "direct_or_indirect": "I"
+      }
+    ],
+    "derivative_trades": 0,
+    "file": "form4/0001193125-26-429152.txt",
+    "url": "https://www.sec.gov/Archives/edgar/data/1998387/0001193125-26-429152.txt"
+  },
+  {
+    "form": "4",
+    "period": "2026-10-20",
+    "plan_10b5_1": "0",
+    "company": "AAR CORP",
+    "company_cik": "0000001750",
+    "ticker": "AIR",
+    "insiders": [
+      {
+        "name": "Lord Ellen M.",
+        "cik": "0001857165",
+        "officer_title": "",
+        "isDirector": true,
+        "isOfficer": false,
+        "isTenPercentOwner": false,
+        "isOther": false
+      }
+    ],
+    "trades": [
+      {
+        "security": "Common Stock",
+        "date": "2026-10-20",
+        "code": "S",
+        "shares": "4241",
+        "price": "100.2426",
+        "acquired_or_disposed": "D",
+        "shares_after": "10155",
+        "direct_or_indirect": "D"
+      }
+    ],
+    "derivative_trades": 0,
+    "file": "form4/0000001750-26-000104.txt",
+    "url": "https://www.sec.gov/Archives/edgar/data/1750/0000001750-26-000104.txt"
+  },
+  {
+    "form": "4",
+    "period": "2026-10-09",
+    "plan_10b5_1": "false",
+    "company": "ACME UNITED CORP",
+    "company_cik": "0000002098",
+    "ticker": "ACU",
+    "insiders": [
+      {
+        "name": "HOLDEN RICHMOND Y JR",
+        "cik": "0001213240",
+        "officer_title": "",
+        "isDirector": true,
+        "isOfficer": false,
+        "isTenPercentOwner": false,
+        "isOther": false
+      }
+    ],
+    "trades": [
+      {
+        "security": "Common Stock",
+        "date": "2026-10-09",
+        "code": "S",
+        "shares": "341",
+        "price": "62.01",
+        "acquired_or_disposed": "D",
+        "shares_after": "16915",
+        "direct_or_indirect": "D"
+      }
+    ],
+    "derivative_trades": 0,
+    "file": "form4/0001193125-26-428985.txt",
+    "url": "https://www.sec.gov/Archives/edgar/data/2098/0001193125-26-428985.txt"
+  },
+  {
+    "form": "4",
+    "period": "2026-10-21",
+    "plan_10b5_1": "0",
+    "company": "ALERUS FINANCIAL CORP",
+    "company_cik": "0000903419",
+    "ticker": "ALRS",
+    "insiders": [
+      {
+        "name": "Newman Randy L",
+        "cik": "0001786850",
+        "officer_title": "",
+        "isDirector": true,
+        "isOfficer": false,
+        "isTenPercentOwner": false,
+        "isOther": false
+      }
+    ],
+    "trades": [
+      {
+        "security": "Common Stock",
+        "date": "2026-09-22",
+        "code": "G",
+        "shares": "89923",
+        "price": "0",
+        "acquired_or_disposed": "D",
+        "shares_after": "219963",
+        "direct_or_indirect": "D"
+      }
+    ],
+    "derivative_trades": 0,
+    "file": "form4/0001437749-26-033265.txt",
+    "url": "https://www.sec.gov/Archives/edgar/data/903419/0001437749-26-033265.txt"
+  },
+  {
+    "form": "4",
+    "period": "2023-04-28",
+    "plan_10b5_1": "0",
+    "company": "AMERICAN TOWER CORP /MA/",
+    "company_cik": "0001053507",
+    "ticker": "AMT",
+    "insiders": [
+      {
+        "name": "Clarke Teresa Hillary",
+        "cik": "0001875332",
+        "officer_title": "",
+        "isDirector": true,
+        "isOfficer": false,
+        "isTenPercentOwner": false,
+        "isOther": false
+      }
+    ],
+    "trades": [
+      {
+        "security": "Common Stock",
+        "date": "2023-04-28",
+        "code": "P",
+        "shares": "6.674",
+        "price": "205.93",
+        "acquired_or_disposed": "A",
+        "shares_after": "5313.674",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common Stock",
+        "date": "2023-07-10",
+        "code": "P",
+        "shares": "7.192",
+        "price": "193.78",
+        "acquired_or_disposed": "A",
+        "shares_after": "5320.866",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common Stock",
+        "date": "2023-10-27",
+        "code": "P",
+        "shares": "8.452",
+        "price": "171.52",
+        "acquired_or_disposed": "A",
+        "shares_after": "5329.318",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common Stock",
+        "date": "2024-02-01",
+        "code": "P",
+        "shares": "7.68",
+        "price": "199.95",
+        "acquired_or_disposed": "A",
+        "shares_after": "5336.998",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common Stock",
+        "date": "2024-04-26",
+        "code": "P",
+        "shares": "18.588",
+        "price": "172.82",
+        "acquired_or_disposed": "A",
+        "shares_after": "5355.586",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common Stock",
+        "date": "2024-07-12",
+        "code": "P",
+        "shares": "15.873",
+        "price": "204.28",
+        "acquired_or_disposed": "A",
+        "shares_after": "5371.459",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common Stock",
+        "date": "2024-10-25",
+        "code": "P",
+        "shares": "14.371",
+        "price": "227.42",
+        "acquired_or_disposed": "A",
+        "shares_after": "5385.83",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common Stock",
+        "date": "2025-02-03",
+        "code": "P",
+        "shares": "17.577",
+        "price": "187.27",
+        "acquired_or_disposed": "A",
+        "shares_after": "5403.407",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common Stock",
+        "date": "2025-04-28",
+        "code": "P",
+        "shares": "25.488",
+        "price": "209.33",
+        "acquired_or_disposed": "A",
+        "shares_after": "5428.895",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common Stock",
+        "date": "2025-07-11",
+        "code": "P",
+        "shares": "24.095",
+        "price": "223.23",
+        "acquired_or_disposed": "A",
+        "shares_after": "5452.99",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common Stock",
+        "date": "2025-10-20",
+        "code": "P",
+        "shares": "28.657",
+        "price": "189.12",
+        "acquired_or_disposed": "A",
+        "shares_after": "5481.647",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common Stock",
+        "date": "2026-02-02",
+        "code": "P",
+        "shares": "30.713",
+        "price": "178.04",
+        "acquired_or_disposed": "A",
+        "shares_after": "5512.36",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common Stock",
+        "date": "2026-04-28",
+        "code": "P",
+        "shares": "43.5",
+        "price": "177.08",
+        "acquired_or_disposed": "A",
+        "shares_after": "5555.86",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common Stock",
+        "date": "2026-07-13",
+        "code": "P",
+        "shares": "46.448",
+        "price": "167.52",
+        "acquired_or_disposed": "A",
+        "shares_after": "5602.308",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common Stock",
+        "date": "2026-10-20",
+        "code": "P",
+        "shares": "42.926",
+        "price": "183.20",
+        "acquired_or_disposed": "A",
+        "shares_after": "5645.234",
+        "direct_or_indirect": "D"
+      }
+    ],
+    "derivative_trades": 0,
+    "file": "form4/0001053507-26-000151.txt",
+    "url": "https://www.sec.gov/Archives/edgar/data/1053507/0001053507-26-000151.txt"
+  },
+  {
+    "form": "4",
+    "period": "2026-10-20",
+    "plan_10b5_1": "0",
+    "company": "APPLIED INDUSTRIAL TECHNOLOGIES INC",
+    "company_cik": "0000109563",
+    "ticker": "AIT",
+    "insiders": [
+      {
+        "name": "Olosky Michael",
+        "cik": "0001833593",
+        "officer_title": "",
+        "isDirector": true,
+        "isOfficer": false,
+        "isTenPercentOwner": false,
+        "isOther": false
+      }
+    ],
+    "trades": [
+      {
+        "security": "Common Stock",
+        "date": "2026-10-20",
+        "code": "A",
+        "shares": "110",
+        "price": "0",
+        "acquired_or_disposed": "A",
+        "shares_after": "110",
+        "direct_or_indirect": "D"
+      }
+    ],
+    "derivative_trades": 0,
+    "file": "form4/0000109563-26-000045.txt",
+    "url": "https://www.sec.gov/Archives/edgar/data/109563/0000109563-26-000045.txt"
+  }
+]

@@ -1,0 +1,92 @@
+Filing ID #20017929
+P T r
+erIODIC rANSACTION ePOrT
+Clerk of the House of Representatives • legislative Resource Center • 135 Cannon building • Washington, DC 20515
+fIler INfOrmATION
+Name: Hon. Austin Scott
+Status: Member
+State/District: GA08
+TrANSACTIONS
+ID Owner Asset Transaction Date Notification Amount Cap.
+Type Date Gains >
+$200?
+SP AT&T Inc. (T) [ST] P 11/16/2020 12/18/2020 $15,001 - gfedc
+$50,000
+FIlING STATuS: New
+SubHOlDING OF: Vivien G Scott IRA
+SP ballard Power Systems, Inc. - P 12/07/2020 12/07/2020 $1,001 - $15,000 gfedc
+Common Shares (blDP) [ST]
+FIlING STATuS: New
+SubHOlDING OF: Vivien G Scott IRA
+SP ballard Power Systems, Inc. - S 12/09/2020 12/09/2020 $1,001 - $15,000 gfedc
+Common Shares (blDP) [ST]
+FIlING STATuS: New
+SubHOlDING OF: Vivien G Scott IRA
+bloom Energy Corporation Class A S 10/09/2020 10/09/2020 $1,001 - $15,000 gfedcb
+(bE) [ST]
+FIlING STATuS: New
+bloom Energy Corporation Class A P 10/30/2020 10/30/2020 $1,001 - $15,000 gfedc
+(bE) [ST]
+FIlING STATuS: New
+bloom Energy Corporation Class A S 11/09/2020 11/09/2020 $1,001 - $15,000 gfedcb
+(bE) [ST]
+FIlING STATuS: New
+SP Clean Energy Fuels Corp. (ClNE) S 12/23/2020 12/28/2020 $15,001 - gfedcb
+ID Owner Asset Transaction Date Notification Amount Cap.
+Type Date Gains >
+$200?
+gfedcb
+[ST] $50,000
+FIlING STATuS: New
+SubHOlDING OF: Vivien G Scott IRA
+SP Exxon Mobil Corporation (XOM) S 12/23/2020 12/28/2020 $1,001 - $15,000 gfedc
+[ST]
+FIlING STATuS: New
+SubHOlDING OF: Vivien G Scott IRA
+SP Ford Motor Company (F) [ST] P 12/23/2020 12/28/2020 $1,001 - $15,000 gfedc
+FIlING STATuS: New
+SubHOlDING OF: Vivien G Scott IRA
+SP FuelCell Energy, Inc. (FCEl) [ST] S 12/23/2020 12/28/2020 $1,001 - $15,000 gfedcb
+FIlING STATuS: New
+SubHOlDING OF: Vivien G Scott IRA
+SP FuelCell Energy, Inc. (FCEl) [ST] S 11/24/2020 11/27/2020 $15,001 - gfedcb
+$50,000
+FIlING STATuS: New
+SubHOlDING OF: Vivien G Scott IRA
+FuelCell Energy, Inc. (FCEl) [ST] P 10/30/2020 10/30/2020 $1,001 - $15,000 gfedc
+FIlING STATuS: New
+FuelCell Energy, Inc. (FCEl) [ST] S 11/09/2020 11/09/2020 $1,001 - $15,000 gfedcb
+FIlING STATuS: New
+SP FuelCell Energy, Inc. (FCEl) [ST] S 11/16/2020 11/18/2020 $1,001 - $15,000 gfedcb
+FIlING STATuS: New
+SubHOlDING OF: Vivien G Scott IRA
+General Electric Company (GE) S 10/09/2020 10/09/2020 $1,001 - $15,000 gfedcb
+[ST]
+FIlING STATuS: New
+General Electric Company (GE) S 10/28/2020 10/28/2020 $1,001 - $15,000 gfedcb
+[ST]
+FIlING STATuS: New
+SP General Electric Company (GE) P 12/23/2020 12/28/2020 $1,001 - $15,000 gfedc
+[ST]
+ID Owner Asset Transaction Date Notification Amount Cap.
+Type Date Gains >
+$200?
+FIlING STATuS: New
+SubHOlDING OF: Vivien G Scott IRA
+SP Plug Power, Inc. (PluG) [ST] S 11/16/2020 11/18/2020 $15,001 - gfedcb
+$50,000
+FIlING STATuS: New
+SubHOlDING OF: Vivien G Scott IRA
+SP Plug Power, Inc. (PluG) [ST] S 11/13/2020 12/17/2020 $1,001 - $15,000 gfedcb
+FIlING STATuS: New
+SubHOlDING OF: Vivien G Scott IRA
+* For the complete list of asset type abbreviations, please visit https://fd.house.gov/reference/asset-type-codes.aspx.
+ASSeT ClASS DeTAIlS
+Vivien G Scott IRA (Owner: SP)
+DESCRIPTION: Retirement Account
+INITIAl PublIC OfferINGS
+nmlkj Yes nmlkji No
+CerTIfICATION AND SIGNATure
+gfedcb I CERTIFY that the statements I have made on the attached Periodic Transaction Report are true, complete, and correct to the
+best of my knowledge and belief. Further, I CERTIFY that I have disclosed all transactions as required by the STOCK Act.
+Digitally Signed: Hon. Austin Scott , 12/30/2020

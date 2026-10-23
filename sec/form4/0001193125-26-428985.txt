@@ -1,0 +1,156 @@
+<SEC-DOCUMENT>0001193125-26-428985.txt : 20261022
+<SEC-HEADER>0001193125-26-428985.hdr.sgml : 20261022
+<ACCEPTANCE-DATETIME>20261022163005
+ACCESSION NUMBER:		0001193125-26-428985
+CONFORMED SUBMISSION TYPE:	4
+PUBLIC DOCUMENT COUNT:		1
+CONFORMED PERIOD OF REPORT:	20261009
+FILED AS OF DATE:		20261022
+DATE AS OF CHANGE:		20261022
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			HOLDEN RICHMOND Y JR
+		CENTRAL INDEX KEY:			0001213240
+		ORGANIZATION NAME:           	
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	001-07698
+		FILM NUMBER:		261479159
+
+	MAIL ADDRESS:	
+		STREET 1:		C/O ACME UNITED CORP
+		STREET 2:		60 ROUND HILL ROAD
+		CITY:			FAIRFIELD
+		STATE:			CT
+		ZIP:			06824
+
+ISSUER:		
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			ACME UNITED CORP
+		CENTRAL INDEX KEY:			0000002098
+		STANDARD INDUSTRIAL CLASSIFICATION:	CUTLERY, HANDTOOLS & GENERAL HARDWARE [3420]
+		ORGANIZATION NAME:           	04 Manufacturing
+		EIN:				060236700
+		STATE OF INCORPORATION:			CT
+		FISCAL YEAR END:			1231
+
+	BUSINESS ADDRESS:	
+		STREET 1:		1 WATERVIEW DRIVE
+		CITY:			SHELTON
+		STATE:			CT
+		ZIP:			06484
+		BUSINESS PHONE:		203-254-6060
+
+	MAIL ADDRESS:	
+		STREET 1:		1 WATERVIEW DRIVE
+		CITY:			SHELTON
+		STATE:			CT
+		ZIP:			06484
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	ACME SHEAR CO
+		DATE OF NAME CHANGE:	19710713
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<SEQUENCE>1
+<FILENAME>ownership.xml
+<DESCRIPTION>4
+<TEXT>
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+
+    <schemaVersion>X0609</schemaVersion>
+
+    <documentType>4</documentType>
+
+    <periodOfReport>2026-10-09</periodOfReport>
+
+    <notSubjectToSection16>false</notSubjectToSection16>
+
+    <issuer>
+        <issuerCik>0000002098</issuerCik>
+        <issuerName>ACME UNITED CORP</issuerName>
+        <issuerTradingSymbol>ACU</issuerTradingSymbol>
+        <issuerForeignTradingSymbol></issuerForeignTradingSymbol>
+    </issuer>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001213240</rptOwnerCik>
+            <rptOwnerName>HOLDEN RICHMOND Y JR</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerNonUSAddressFlag>false</rptOwnerNonUSAddressFlag>
+            <rptOwnerStreet1>1 WATERVIEW DRIVE</rptOwnerStreet1>
+            <rptOwnerStreet2></rptOwnerStreet2>
+            <rptOwnerCity>SHELTON</rptOwnerCity>
+            <rptOwnerState>CT</rptOwnerState>
+            <rptOwnerZipCode>06484</rptOwnerZipCode>
+            <rptOwnerStateDescription></rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>true</isDirector>
+            <isOfficer>false</isOfficer>
+            <isTenPercentOwner>false</isTenPercentOwner>
+            <isOther>false</isOther>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <aff10b5One>false</aff10b5One>
+
+    <nonDerivativeTable>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2026-10-09</value>
+            </transactionDate>
+            <deemedExecutionDate>
+                <value>2026-10-09</value>
+            </deemedExecutionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>S</transactionCode>
+                <equitySwapInvolved>false</equitySwapInvolved>
+            </transactionCoding>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>341</value>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>62.01</value>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>D</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>16915</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+    </nonDerivativeTable>
+
+    <ownerSignature>
+        <signatureName>/s/ Richmond Y. Holden Jr.</signatureName>
+        <signatureDate>2026-10-22</signatureDate>
+    </ownerSignature>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

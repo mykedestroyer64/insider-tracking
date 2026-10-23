@@ -1,0 +1,65 @@
+{
+  "verdict": "OK",
+  "verdict_line": "VERDICT: OK - 437 trade reports in the 2026 list (384 electronic, 53 scanned); 19 downloaded, 16 with text, about 54 transactions seen (ran on GitHub Actions)",
+  "ran_on": "GitHub Actions",
+  "started_at_utc": "2026-10-23T13:43:04+00:00",
+  "finished_at_utc": "2026-10-23T13:44:00+00:00",
+  "list_year": 2026,
+  "steps": [
+    {
+      "step": 1,
+      "name": "Download this year's list of filings",
+      "status": "OK",
+      "http_codes": [
+        200
+      ],
+      "detail": "1800 filings in the 2026 list, by type: C 872, P 437, X 247, W 104, D 92, A 44, H 2, T 2"
+    },
+    {
+      "step": 2,
+      "name": "Pick the trade reports",
+      "status": "OK",
+      "http_codes": [],
+      "detail": "437 trade reports: 384 electronic, 53 scanned; newest filed 10/22/2026"
+    },
+    {
+      "step": 3,
+      "name": "Download new electronic reports",
+      "status": "OK",
+      "http_codes": [],
+      "detail": "12 downloaded"
+    },
+    {
+      "step": 4,
+      "name": "Download scanned reports",
+      "status": "OK",
+      "http_codes": [],
+      "detail": "3 downloaded"
+    },
+    {
+      "step": 5,
+      "name": "Download older electronic reports",
+      "status": "OK",
+      "http_codes": [],
+      "detail": "4 downloaded from 2020, 2016"
+    },
+    {
+      "step": 6,
+      "name": "Read the reports' text",
+      "status": "OK",
+      "http_codes": [],
+      "detail": "16 of 19 PDFs have text; about 54 transactions seen"
+    }
+  ],
+  "counts": {
+    "filings_this_year": 1800,
+    "trade_reports": 437,
+    "electronic": 384,
+    "paper": 53,
+    "downloaded": 19,
+    "with_text": 16,
+    "transactions_seen": 54
+  },
+  "script": "insider-tracking 0.1",
+  "python": "3.12.15"
+}
