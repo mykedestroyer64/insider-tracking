@@ -14,6 +14,7 @@
 | `.github/workflows/collect.yml` | runs the collector every 3 hours |
 | `.github/workflows/site.yml` | builds and publishes the website after every collector run |
 | `efd_check.py` and `.github/workflows/efd-check.yml` | the step 1 access test, still handy for checking eFD by hand |
+| `house_check.py`, `sec_check.py` and `.github/workflows/new-sources-check.yml` | access tests for the next sources: House members' trade reports and company insiders' Form 4 filings (results go to the `check-results` branch) |
 | `requirements.txt` | the Python libraries needed |
 | `status/heartbeat.txt` | a date the collector saves once a week (see "Good to know") |
 
