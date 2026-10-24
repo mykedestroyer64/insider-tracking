@@ -62,6 +62,9 @@ jobs:
           grep -E 'reports, .* trades|filers matched|without party/state|^    .\w+\|' build.log 2>/dev/null | head -40 | while IFS= read -r line; do
             echo "::notice title=Site build::$line"
           done || true
+          if grep -q Traceback build.log 2>/dev/null; then   # the build crashed: post the error too
+            tail -n 25 build.log | while IFS= read -r line; do echo "::notice title=Site build error::$line"; done
+          fi
 
       - name: Prepare the upload
         uses: actions/configure-pages@v6
