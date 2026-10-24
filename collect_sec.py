@@ -167,6 +167,7 @@ def read_daily(conn, web, files, stats, now):
         return f"up to date - the daily lists after {quarter_name(*newest)} are read through {cursor}"
     seen_state = json.loads(database.get_state(conn, "sec_daily_seen") or "{}")
     days_done, fetched, kept, failures_in_a_row = 0, 0, 0, 0
+    progress, stopped = [], None          # what happened on each day, for the step's summary line
     try:
         while day <= now.date():
             if day.weekday() >= 5:                                # EDGAR publishes no lists at weekends
@@ -187,12 +188,15 @@ def read_daily(conn, web, files, stats, now):
                 raise sec_site.unexpected(response, f"the daily list for {day} could not be read")
             seen = set(seen_state.get("accessions", [])) if seen_state.get("day") == day.isoformat() else set()
             todo = [f for f in listed if f["accession"] not in seen]
+            day_fetched, day_kept = 0, 0
             for filing in todo:
                 try:
                     page = web.get(sec_site.ARCHIVES + filing["path"], ok_codes=(404,))
                 except sec_site.OutOfRequests:
+                    stopped = f"{day:%m/%d}: {len(seen)} of {len(listed)} read, budget used up"
                     raise
                 fetched += 1
+                day_fetched += 1
                 if page.status_code == 404:
                     note(f"filing {filing['accession']} is listed but not available (HTTP 404)")
                 else:
@@ -209,6 +213,7 @@ def read_daily(conn, web, files, stats, now):
                         if trades:
                             database.save_insider_filings(conn, [parsed], trades, source=f"daily {day}")
                             kept += 1
+                            day_kept += 1
                             stats["filings_saved"] += 1
                             stats["trades_saved"] += len(trades)
                             stats["suspect"] += sum(1 for t in trades if t["suspect"])
@@ -217,6 +222,7 @@ def read_daily(conn, web, files, stats, now):
                 if len(seen) % 25 == 0:
                     database.set_state(conn, "sec_daily_seen", json.dumps(seen_state))
             database.set_state(conn, "sec_daily_seen", json.dumps(seen_state))
+            progress.append(f"{day:%m/%d}: {len(listed):,} listed, {day_fetched:,} read, {day_kept} kept")
             if day <= today:
                 database.set_state(conn, "sec_daily_cursor", day.isoformat())
                 database.set_state(conn, "sec_daily_seen", "{}")
@@ -229,8 +235,11 @@ def read_daily(conn, web, files, stats, now):
         database.set_state(conn, "sec_daily_seen", json.dumps(seen_state))
     stats["filings_fetched"] += fetched
     cursor = database.get_state(conn, "sec_daily_cursor") or "none yet"
-    return (f"{plural(days_done, 'day')} finished (through {cursor}); {fetched:,} Form 4s read, "
-            f"{kept:,} with officers' or directors' buys or sells")
+    detail = (f"{plural(days_done, 'day')} finished (through {cursor}); {fetched:,} Form 4s read, "
+              f"{kept:,} with officers' or directors' buys or sells")
+    if progress or stopped:
+        detail += " [" + "; ".join(progress + ([stopped] if stopped else [])) + "]"
+    return detail
 
 
 # ---------------------------------------------------------------------- main
