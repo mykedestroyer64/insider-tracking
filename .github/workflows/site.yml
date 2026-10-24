@@ -1,10 +1,11 @@
 # Builds the website from the database and publishes it to GitHub Pages.
-# Runs after every collector run, whenever the site's files change, and on request.
+# Runs after every collector run (Senate and House), whenever the site's files change,
+# and on request.
 name: Publish the website
 
 on:
   workflow_run:
-    workflows: ["insider-tracking collector"]
+    workflows: ["insider-tracking collector", "insider-tracking House collector"]
     types: [completed]
   push:
     branches: [main]

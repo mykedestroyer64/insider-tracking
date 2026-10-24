@@ -293,10 +293,19 @@ def fetch_all(conn, sql):
     return [tuple(None if v is None else str(v) for v in row) for row in rows]
 
 
+HAS_CHAMBER_SQL = """
+select count(*)::text from information_schema.columns
+where table_name = 'reports' and column_name = 'chamber'
+"""
+
+
 def load(conn):
     """Read everything the site needs. Returns a Dataset."""
     reports = {}
-    for row in fetch_all(conn, REPORT_SQL):
+    report_sql = REPORT_SQL
+    if fetch_all(conn, HAS_CHAMBER_SQL)[0][0] != "0":   # until the pages show the House, Senate only
+        report_sql = REPORT_SQL.replace("from reports", "from reports where chamber = 'senate'")
+    for row in fetch_all(conn, report_sql):
         report = Report(
             path=row[0], kind=row[1], status=row[2], first_name=row[3], last_name=row[4],
             filer_name=row[5], filer_type=row[6], title=row[7], is_amendment=row[8] == "1",

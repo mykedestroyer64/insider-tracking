@@ -4,14 +4,16 @@
 
 | File | What it does |
 |---|---|
-| `collect.py` | the collector: runs every 3 hours on GitHub Actions and saves reports and trades in the Supabase database |
+| `collect.py` | the Senate collector: runs every 3 hours on GitHub Actions and saves reports and trades in the Supabase database |
+| `collect_house.py` | the House collector: runs every 3 hours too and saves House members' reports and trades in the same database |
+| `house_site.py`, `house_parsing.py` | download the House Clerk's yearly lists and trade reports (PDFs), and read them |
 | `efd_site.py` | talks to eFD politely (agreement, search, report pages) and stops if it is blocked |
 | `parsing.py` | turns eFD pages into clean data |
 | `database.py` | creates the tables and saves the data |
 | `site/build.py` | builds the website from the database (with `site/data.py`, `site/people.py`, `site/charts.py`) |
 | `site/templates/`, `site/static/` | the pages' templates, the stylesheet, the fonts and the small amount of JavaScript |
 | `site/overrides.json` | fixes for senators whose party and state the build can't work out by name |
-| `.github/workflows/collect.yml` | runs the collector every 3 hours |
+| `.github/workflows/collect.yml`, `.github/workflows/collect-house.yml` | run the two collectors every 3 hours |
 | `.github/workflows/site.yml` | builds and publishes the website after every collector run |
 | `efd_check.py` and `.github/workflows/efd-check.yml` | the step 1 access test, still handy for checking eFD by hand |
 | `house_check.py`, `sec_check.py` and `.github/workflows/new-sources-check.yml` | access tests for the next sources: House members' trade reports and company insiders' Form 4 filings (results go to the `check-results` branch) |

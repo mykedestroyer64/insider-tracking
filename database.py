@@ -7,11 +7,13 @@ pooler": GitHub's servers can't use Supabase's direct connection, which needs
 IPv6.
 
 Tables (created automatically on the first run):
-  reports          one row per eFD report; status says what has been done with it
+  reports          one row per trade report (Senate or House: see "chamber");
+                   status says what has been done with it
   transactions     the trades read from electronic reports
-  report_pages     a compressed copy of each report page, so it can be re-read later
-  collector_runs   one row per run of the collector, with its verdict
-  collector_state  the collector's bookmarks (how far back the history is listed)
+  report_pages     a compressed copy of each Senate report page, so it can be re-read later
+                   (House reports are PDFs that stay online, so they aren't copied)
+  collector_runs   one row per run of a collector, with its verdict
+  collector_state  the collectors' bookmarks (how far back the history is listed)
 
 Row Level Security is switched on for every table and no access rules are
 added, so nobody can read the data through Supabase's public API yet. The
@@ -85,7 +87,12 @@ SCHEMA = [
         value       text not null,
         updated_at  timestamptz not null default now()
     )""",
+    # Added for the House collector (safe to run again: existing rows become 'senate')
+    "alter table reports add column if not exists chamber text not null default 'senate'",
+    "alter table reports add column if not exists state_district text",
+    "alter table collector_runs add column if not exists collector text",
     "create index if not exists reports_status_received on reports (status, date_received desc)",
+    "create index if not exists reports_chamber_status on reports (chamber, status, date_received desc)",
     "create index if not exists reports_last_name on reports (last_name)",
     "create index if not exists transactions_ticker on transactions (ticker)",
     "create index if not exists transactions_date on transactions (transaction_date)",
@@ -95,8 +102,9 @@ SCHEMA = [
     "alter table collector_runs enable row level security",
     "alter table collector_state enable row level security",
     # Descriptions you can see in Supabase's Table Editor
-    "comment on table reports is 'One row per eFD report. status: to_read (electronic, not "
-    "read yet), read, failed (see note), not_read (scanned paper filing), other.'",
+    "comment on table reports is 'One row per trade report. chamber: senate (eFD) or house "
+    "(House Clerk). status: to_read (electronic, not read yet), read, failed (see note), "
+    "not_read (scanned paper filing), other.'",
     "comment on table transactions is 'Trades read from electronic reports. raw holds every "
     "cell exactly as written on the page.'",
     "comment on table report_pages is 'Compressed (gzip) copy of each report page as "
@@ -106,7 +114,9 @@ SCHEMA = [
 ]
 
 REPORT_COLUMNS = ["report_path", "report_uuid", "kind", "status", "first_name", "last_name",
-                  "filer_name", "filer_type", "title", "is_amendment", "date_received", "url"]
+                  "filer_name", "filer_type", "title", "is_amendment", "date_received", "url",
+                  "chamber", "state_district"]
+REPORT_DEFAULTS = {"chamber": "senate", "state_district": None}
 TRANSACTION_COLUMNS = ["report_path", "row_number", "transaction_date", "owner", "ticker",
                        "asset_name", "asset_type", "transaction_type", "trade_type", "amount",
                        "amount_min", "amount_max", "comment", "raw"]
@@ -206,8 +216,8 @@ def ensure_schema(conn):
 
 
 @handles_errors
-def counts(conn):
-    """How many reports there are in each state, and how many transactions."""
+def counts(conn, chamber="senate"):
+    """How many of a chamber's reports there are in each state, and how many transactions."""
     cursor = conn.cursor()
     cursor.execute("""
         select count(*),
@@ -215,9 +225,11 @@ def counts(conn):
                count(*) filter (where status = 'to_read'),
                count(*) filter (where status = 'not_read'),
                count(*) filter (where status = 'failed')
-        from reports""")
+        from reports where chamber = %s""", (chamber,))
     reports, read, to_read, paper, failed = (int(value) for value in cursor.fetchone())
-    cursor.execute("select count(*) from transactions")
+    cursor.execute("""
+        select count(*) from transactions t join reports r on r.report_path = t.report_path
+        where r.chamber = %s""", (chamber,))
     transactions = int(cursor.fetchone()[0])
     conn.commit()
     return {"reports": reports, "read": read, "to_read": to_read, "paper_not_read": paper,
@@ -255,7 +267,8 @@ def add_reports(conn, reports):
         row_slots = "(" + ", ".join(["%s"] * len(REPORT_COLUMNS)) + ")"
         params = []
         for report in chunk:
-            values = dict(report, status=STATUS_FOR_KIND.get(report["kind"], "other"))
+            values = dict(REPORT_DEFAULTS, **report)
+            values["status"] = STATUS_FOR_KIND.get(report["kind"], "other")
             params += [values[column] for column in REPORT_COLUMNS]
         cursor.execute(
             f"insert into reports ({', '.join(REPORT_COLUMNS)}) values "
@@ -267,15 +280,15 @@ def add_reports(conn, reports):
 
 
 @handles_errors
-def reports_to_read(conn, limit):
-    """Electronic reports that haven't been read yet, newest first."""
+def reports_to_read(conn, limit, chamber="senate"):
+    """A chamber's electronic reports that haven't been read yet, newest first."""
     cursor = conn.cursor()
     cursor.execute("""
         select report_path, url, first_name, last_name, date_received
         from reports
-        where status = 'to_read'
+        where status = 'to_read' and chamber = %s
         order by date_received desc nulls last, report_path
-        limit %s""", (int(limit),))
+        limit %s""", (chamber, int(limit)))
     rows = cursor.fetchall()
     conn.commit()
     names = ["report_path", "url", "first_name", "last_name", "date_received"]
@@ -283,8 +296,8 @@ def reports_to_read(conn, limit):
 
 
 @handles_errors
-def save_report(conn, report_path, transactions, page, note=None):
-    """Save a report's transactions and page, and mark it as read - all or nothing."""
+def save_report(conn, report_path, transactions, page, note=None, is_amendment=None):
+    """Save a report's transactions (and page, if given) and mark it as read - all or nothing."""
     cursor = conn.cursor()
     cursor.execute("delete from transactions where report_path = %s", (report_path,))
     row_slots = "(" + ", ".join(["%s"] * (len(TRANSACTION_COLUMNS) - 1)) + ", %s::jsonb)"
@@ -297,10 +310,12 @@ def save_report(conn, report_path, transactions, page, note=None):
             params += [values[column] for column in TRANSACTION_COLUMNS]
         cursor.execute(f"insert into transactions ({', '.join(TRANSACTION_COLUMNS)}) values "
                        + ", ".join([row_slots] * len(chunk)), params)
-    _store_page(cursor, report_path, page)
+    if page is not None:
+        _store_page(cursor, report_path, page)
     cursor.execute("""
-        update reports set status = 'read', read_at = now(), transaction_count = %s, note = %s
-        where report_path = %s""", (len(transactions), note, report_path))
+        update reports set status = 'read', read_at = now(), transaction_count = %s, note = %s,
+                           is_amendment = coalesce(%s, is_amendment)
+        where report_path = %s""", (len(transactions), note, is_amendment, report_path))
     conn.commit()
 
 
@@ -316,6 +331,16 @@ def mark_failed(conn, report_path, reason, page=None):
     conn.commit()
 
 
+@handles_errors
+def mark_scanned(conn, report_path, reason):
+    """A report listed as electronic turned out to be a scan: keep it as not read (no text)."""
+    cursor = conn.cursor()
+    cursor.execute("""
+        update reports set status = 'not_read', kind = 'paper', read_at = now(), note = %s
+        where report_path = %s""", (reason[:500], report_path))
+    conn.commit()
+
+
 def _store_page(cursor, report_path, page):
     cursor.execute("""
         insert into report_pages (report_path, html_gzip, fetched_at) values (%s, %s, now())
@@ -327,10 +352,10 @@ def _store_page(cursor, report_path, page):
 # ---------------------------------------------------------------------- runs
 
 @handles_errors
-def start_run(conn, ran_on):
+def start_run(conn, ran_on, collector="senate"):
     cursor = conn.cursor()
-    cursor.execute("insert into collector_runs (started_at, ran_on) values (now(), %s) "
-                   "returning id", (ran_on,))
+    cursor.execute("insert into collector_runs (started_at, ran_on, collector) "
+                   "values (now(), %s, %s) returning id", (ran_on, collector))
     run_id = int(cursor.fetchone()[0])
     conn.commit()
     return run_id
