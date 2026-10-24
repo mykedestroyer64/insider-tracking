@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Stocks · Insider Tracking{% endblock %}
-{% block description %}Every stock U.S. senators have reported trading since 2012, with the number of senators and trades for each.{% endblock %}
+{% block description %}Every stock members of Congress have reported trading, with the number of members and trades for each.{% endblock %}
 {% block content %}
 <section class="page-head">
 <div class="hero-text">
 <h1>Stocks</h1>
-<p class="lead">{{ fmt_number(stocks | length) }} stocks with a ticker symbol in senators’ trade reports. Bonds, funds and other assets without a ticker appear on each senator’s page.</p>
+<p class="lead">{{ fmt_number(stocks | length) }} stocks with a ticker symbol in the trade reports of members of Congress. Bonds, funds and other assets without a ticker appear on each member’s page.</p>
 </div>
 {% include "_search.html" %}
 </section>
@@ -17,7 +17,7 @@
 </div>
 <div class="table-wrap">
 <table id="stock-table">
-<thead><tr><th scope="col">Stock</th><th scope="col">Company</th><th scope="col" class="r">Senators</th><th scope="col" class="r">Trades</th><th scope="col" class="r">Buys</th><th scope="col" class="r">Sells</th><th scope="col">Last trade</th></tr></thead>
+<thead><tr><th scope="col">Stock</th><th scope="col">Company</th><th scope="col" class="r">Members</th><th scope="col" class="r">Trades</th><th scope="col" class="r">Buys</th><th scope="col" class="r">Sells</th><th scope="col">Last trade</th></tr></thead>
 <tbody>
 {% for s in stocks %}
 <tr data-search="{{ s.ticker }} {{ s.name }}">

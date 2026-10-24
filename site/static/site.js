@@ -2,7 +2,7 @@
    Everything here is optional: the pages work without it, this makes them nicer.
    1. the side menu's pin button      2. the search box
    3. the home page's chart and trade panel      4. the Trades page's filters
-   5. the quick filter on the Senators and Stocks tables */
+   5. the quick filter (and Senate/House buttons) on the Congress and Stocks tables */
 (function () {
   "use strict";
   var $ = function (sel, root) { return (root || document).querySelector(sel); };
@@ -155,7 +155,7 @@
     var years = form.getAttribute("data-years").split(",").filter(Boolean);
     var urlTemplate = form.getAttribute("data-url");
     var cache = {}, rows = [], page = 0, PAGE = 50, sortKey = "r", sortDir = -1;
-    var f = { year: $("#f-year"), senator: $("#f-senator"), stock: $("#f-stock"), type: $("#f-type"), owner: $("#f-owner"), amount: $("#f-amount"), late: $("#f-late") };
+    var f = { year: $("#f-year"), chamber: $("#f-chamber"), member: $("#f-member"), stock: $("#f-stock"), type: $("#f-type"), owner: $("#f-owner"), amount: $("#f-amount"), late: $("#f-late") };
 
     function loadYear(y) {
       if (cache[y]) { return Promise.resolve(cache[y]); }
@@ -169,7 +169,8 @@
       return loadYear(y);
     }
     function matches(t) {
-      if (f.senator.value && t.ss !== f.senator.value) { return false; }
+      if (f.chamber.value && (t.ch || "S") !== f.chamber.value) { return false; }
+      if (f.member.value && t.ss !== f.member.value) { return false; }
       if (f.type.value && t.g !== f.type.value) { return false; }
       if (f.owner.value && (t.o || "") !== f.owner.value) { return false; }
       if (+f.amount.value > 0 && !(t.mn >= +f.amount.value)) { return false; }
@@ -190,10 +191,10 @@
       var stock = t.k ? '<a href="' + esc(base + "/stocks/" + t.ks + "/") + '" class="plain cell-main">' + esc(t.k) + '</a>' + (t.a ? '<div class="muted">' + esc(t.a) + '</div>' : "")
         : '<span class="cell-main">' + esc(t.a || "–") + '</span>' + (t.at ? '<div class="muted">' + esc(t.at) + '</div>' : "");
       var days = t.dy == null ? '<span class="muted">–</span>' : '<span class="days">' + (t.l ? CLOCK : "") + '<span' + (t.l ? ' class="late-flag"' : "") + '>' + t.dy + '</span></span>' + (t.x ? '<div class="muted">amendment</div>' : "");
-      return '<tr><td><a href="' + esc(base + "/senators/" + t.ss + "/") + '" class="plain cell-main">' + esc(t.sn) + '</a><div class="muted">' + esc(t.sp || "") + '</div></td>' +
+      return '<tr><td><a href="' + esc(base + "/congress/" + t.ss + "/") + '" class="plain cell-main">' + esc(t.sn) + '</a><div class="muted">' + esc(t.sp || "") + '</div></td>' +
         '<td>' + stock + '</td><td class="nowrap">' + esc(t.tl) + '</td><td>' + esc(t.o || "–") + '</td><td class="num nowrap">' + esc(t.am || "–") + '</td>' +
         '<td class="num nowrap">' + fmtDate(t.d) + '</td><td class="num nowrap">' + fmtDate(t.r) + '</td><td class="r">' + days + '</td>' +
-        '<td><a href="' + esc(t.u) + '" rel="noopener">Report</a></td></tr>';
+        '<td class="nowrap"><a href="' + esc(t.u) + '" rel="noopener">' + (t.ch === "H" ? "House" : "Senate") + ' report</a></td></tr>';
     }
     function render() {
       var total = rows.length, pages = Math.max(1, Math.ceil(total / PAGE));
@@ -227,25 +228,44 @@
     Object.keys(f).forEach(function (k) { f[k].addEventListener(k === "stock" ? "input" : "change", apply); });
     form.addEventListener("submit", function (e) { e.preventDefault(); apply(); });
 
-    // A search from another page lands here as ?q=...: a senator's name picks the senator, anything else filters stocks.
+    // A search from another page lands here as ?q=...: a member's name picks the member, anything else filters stocks.
     var q = new URLSearchParams(window.location.search).get("q");
     if (q) {
-      var opt = $$("option", f.senator).filter(function (o) { return o.textContent.toLowerCase().indexOf(q.toLowerCase()) === 0 && o.value; })[0];
-      if (opt) { f.senator.value = opt.value; f.year.value = "all"; } else { f.stock.value = q; f.year.value = "all"; }
+      var wanted = q.trim().toLowerCase();
+      var opt = $$("option", f.member).filter(function (o) {
+        var name = o.textContent.toLowerCase().split(" (")[0];
+        return o.value && (name.indexOf(wanted) === 0 || name.split(/\s+/).some(function (w) { return w.indexOf(wanted) === 0; }));
+      })[0];
+      if (opt) { f.member.value = opt.value; f.year.value = "all"; } else { f.stock.value = q; f.year.value = "all"; }
     }
     apply();
   })();
 
-  /* 5. quick filter on index tables ------------------------------------- */
+  /* 5. quick filter on index tables, and the Senate/House buttons ------ */
+  function filterTable(table) {
+    // every word typed must start one of the row's words (name, party letter, state code or name, ticker...)
+    var input = $('input[data-filter="#' + table.id + '"]');
+    var words = input ? input.value.trim().toLowerCase().split(/\s+/).filter(Boolean) : [];
+    var on = $('[data-chamber-filter="#' + table.id + '"] .chip.is-on');
+    var chamber = on ? on.getAttribute("data-chamber") : "all";
+    $$("tbody tr", table).forEach(function (tr) {
+      var tokens = (tr.getAttribute("data-search") || tr.textContent).toLowerCase().split(/[^a-z0-9.&'-]+/);
+      var wrongChamber = chamber !== "all" && tr.getAttribute("data-chamber") !== chamber;
+      tr.hidden = wrongChamber || words.some(function (w) { return !tokens.some(function (t) { return t.indexOf(w) === 0; }); });
+    });
+  }
   $$("input[data-filter]").forEach(function (input) {
     var table = $(input.getAttribute("data-filter"));
+    if (table) { input.addEventListener("input", function () { filterTable(table); }); }
+  });
+  $$("[data-chamber-filter]").forEach(function (group) {
+    var table = $(group.getAttribute("data-chamber-filter"));
     if (!table) { return; }
-    input.addEventListener("input", function () {
-      // every word typed must start one of the row's words (name, party letter, state code or name, ticker...)
-      var words = input.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
-      $$("tbody tr", table).forEach(function (tr) {
-        var tokens = (tr.getAttribute("data-search") || tr.textContent).toLowerCase().split(/[^a-z0-9.&'-]+/);
-        tr.hidden = words.some(function (w) { return !tokens.some(function (t) { return t.indexOf(w) === 0; }); });
+    group.hidden = false;   // the buttons only work with JavaScript, so they start hidden
+    $$(".chip", group).forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        $$(".chip", group).forEach(function (b) { var on = b === btn; b.classList.toggle("is-on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
+        filterTable(table);
       });
     });
   });

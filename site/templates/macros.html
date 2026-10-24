@@ -11,7 +11,7 @@
 {%- endmacro %}
 
 {% macro filer_cell(trade, base) -%}
-{% if trade.filer %}<a href="{{ base }}/senators/{{ trade.filer.slug }}/" class="plain cell-main">{{ trade.filer.name }}</a><div class="muted">{{ trade.filer.party_state or trade.filer.filer_type }}</div>{% endif %}
+{% if trade.filer %}<a href="{{ base }}/congress/{{ trade.filer.slug }}/" class="plain cell-main">{{ trade.filer.name }}</a><div class="muted">{{ trade.filer.party_state or trade.filer.filer_type }}</div>{% endif %}
 {%- endmacro %}
 
 {% macro trade_table(trades, base, show_filer=True, show_asset=True, caption=None) -%}
@@ -20,7 +20,7 @@
 {% if caption %}<caption class="visually-hidden">{{ caption }}</caption>{% endif %}
 <thead>
 <tr>
-{% if show_filer %}<th scope="col">Senator</th>{% endif %}
+{% if show_filer %}<th scope="col">Member</th>{% endif %}
 {% if show_asset %}<th scope="col">Stock or asset</th>{% endif %}
 <th scope="col">Trade</th>
 <th scope="col">Owner</th>
@@ -42,7 +42,7 @@
 <td class="num nowrap">{{ fmt_date(t.traded) or "–" }}</td>
 <td class="num nowrap">{{ fmt_date(t.received) or "–" }}</td>
 <td class="r">{{ days_cell(t) }}</td>
-<td><a href="{{ t.report_url }}" rel="noopener">Report</a></td>
+<td class="nowrap"><a href="{{ t.report_url }}" rel="noopener">{{ "House" if t.chamber == "house" else "Senate" }} report</a></td>
 </tr>
 {% endfor %}
 </tbody>

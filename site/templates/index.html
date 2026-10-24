@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% from "macros.html" import clock %}
-{% block title %}Insider Tracking: what U.S. senators buy and sell{% endblock %}
+{% block title %}Insider Tracking: what members of Congress buy and sell{% endblock %}
 {% block content %}
 <section class="hero">
 <div class="hero-text">
-<h1>See what U.S. senators buy and sell</h1>
-<p class="lead">Senators vote on laws that affect the companies they invest in. Insider Tracking lists the stock trades they report to the Senate, updated every three hours, for voters, reporters and anyone who wants to check.</p>
+<h1>See what members of Congress buy and sell</h1>
+<p class="lead">Senators and representatives vote on laws that affect the companies they invest in. Insider Tracking lists the stock trades they report, updated every three hours, for voters, reporters and anyone who wants to check.</p>
 </div>
 {% include "_search.html" %}
 </section>
@@ -15,7 +15,7 @@
 
 <dl class="tiles" aria-label="Last 30 days">
 <div class="tile"><dt class="muted">Trades disclosed, last 30 days</dt><dd class="big">{{ fmt_number(stats.trades_30d) }}</dd></div>
-<div class="tile"><dt class="muted">Senators trading, last 30 days</dt><dd class="big">{{ fmt_number(stats.filers_30d) }}</dd></div>
+<div class="tile"><dt class="muted">Members trading, last 30 days</dt><dd class="big">{{ fmt_number(stats.filers_30d) }}</dd></div>
 <div class="tile"><dt class="muted">Reports filed late, last 30 days</dt><dd class="big">{{ fmt_number(stats.late_30d) }}<span class="of"> of {{ fmt_number(stats.reports_30d) }}</span></dd></div>
 <div class="tile"><dt class="muted">Most traded stock, last 30 days</dt><dd class="big">{% if stats.top_ticker %}<a href="{{ base }}/stocks/{{ stats.top_ticker_slug }}/" class="plain">{{ stats.top_ticker }}</a>{% else %}–{% endif %}</dd></div>
 </dl>
@@ -53,7 +53,7 @@
 <section class="card" aria-labelledby="late-h">
 <div class="card-head">
 <div class="titles">
-<h2 id="late-h">How long senators take to file</h2>
+<h2 id="late-h">How long members take to file</h2>
 <p class="muted">Reports from the last 12 months, by days from the oldest trade in each to its filing. The law allows 45 days.</p>
 </div>
 <div class="legend muted">
@@ -74,19 +74,19 @@
 <h2 id="latest-h">Latest trades</h2>
 <a href="{{ base }}/trades/" class="muted" style="line-height: 44px">See all trades</a>
 </div>
-<div class="list-head" aria-hidden="true"><span>Senator</span><span>Stock</span><span>Trade</span><span class="r">Days</span></div>
+<div class="list-head" aria-hidden="true"><span>Member</span><span>Stock</span><span>Trade</span><span class="r">Days</span></div>
 {% for t in latest %}
 <div class="list-row{% if loop.first %} is-selected{% endif %}" data-trade='{{ trade_json(t) }}'>
 <div>
 <button type="button" class="link-btn" data-pick aria-pressed="{{ 'true' if loop.first else 'false' }}">{{ t.filer.name if t.filer else "Unknown" }}</button>
 <div class="muted">{{ t.filer.party_state if t.filer else "" }}</div>
 </div>
-<div>{% if t.is_stock %}<a href="{{ base }}/stocks/{{ t.stock_slug }}/" class="plain">{{ t.ticker }}</a>{% else %}<span class="muted">{{ (t.asset_type or "Other") }}</span>{% endif %}</div>
+<div>{% if t.is_stock %}<a href="{{ base }}/stocks/{{ t.stock_slug }}/" class="plain">{{ t.ticker_text }}</a>{% else %}<span class="muted">{{ short_asset(t.asset_type) }}</span>{% endif %}</div>
 <span>{{ t.label }}</span>
 <span class="days">{% if t.late %}{{ clock("Late") }}{% endif %}{{ t.days if t.days is not none else "–" }}</span>
 </div>
 {% endfor %}
-<p class="muted late-note" style="padding-top: 10px">{{ clock("") }}Disclosed after the 45-day legal limit. Click a senator’s name to see the trade.</p>
+<p class="muted late-note" style="padding-top: 10px">{{ clock("") }}Disclosed after the 45-day legal limit. Click a name to see the trade.</p>
 </section>
 
 <section class="card detail" aria-labelledby="detail-h" id="detail">
@@ -96,7 +96,7 @@
 <p data-f="sub">{% if latest %}{{ latest[0].asset_name or "" }}{% if latest[0].asset_name %} · {% endif %}{{ latest[0].label }}{% endif %}</p>
 </div>
 <dl>
-<dt class="muted">Senator</dt><dd data-f="who">{% if latest and latest[0].filer %}{{ latest[0].filer.description }}{% endif %}</dd>
+<dt class="muted">Member</dt><dd data-f="who">{% if latest and latest[0].filer %}{{ latest[0].filer.description }}{% endif %}</dd>
 <dt class="muted">Traded</dt><dd data-f="traded">{% if latest %}{{ fmt_date(latest[0].traded) }}{% endif %}</dd>
 <dt class="muted">Disclosed</dt><dd data-f="received">{% if latest %}{{ fmt_date(latest[0].received) }}{% endif %}</dd>
 <dt class="muted">Days to disclose</dt><dd data-f="days">{% if latest %}{{ days_text(latest[0]) }}{% endif %}</dd>

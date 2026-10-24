@@ -136,7 +136,7 @@ def histogram_svg(hist):
 
 
 def yearly_bars_svg(counts_by_year, title):
-    """Trades per year for one senator or one stock (840 x 260)."""
+    """Trades per year for one member of Congress or one stock (840 x 260)."""
     years = sorted(counts_by_year)
     if not years:
         return ""

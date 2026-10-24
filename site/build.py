@@ -39,7 +39,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape   # noqa: E4
 NAV = [
     ("home", "/", "Overview", '<rect x="2" y="2" width="5" height="5"></rect><rect x="9" y="2" width="5" height="5"></rect><rect x="2" y="9" width="5" height="5"></rect><rect x="9" y="9" width="5" height="5"></rect>'),
     ("trades", "/trades/", "Trades", '<path d="M2 5.5h10M9.5 3l2.5 2.5L9.5 8"></path><path d="M14 10.5H4M6.5 8L4 10.5 6.5 13"></path>'),
-    ("senators", "/senators/", "Senators", '<circle cx="8" cy="5.5" r="3"></circle><path d="M2.5 14c.6-3 2.7-4.5 5.5-4.5s4.9 1.5 5.5 4.5"></path>'),
+    ("congress", "/congress/", "Congress", '<circle cx="8" cy="5.5" r="3"></circle><path d="M2.5 14c.6-3 2.7-4.5 5.5-4.5s4.9 1.5 5.5 4.5"></path>'),
     ("stocks", "/stocks/", "Stocks", '<path d="M2 13.5l3.5-4 3 2.5L14 5"></path><path d="M10.5 5H14v3.5"></path>'),
     ("portfolios", "/portfolios/", "Portfolios", '<rect x="2" y="5" width="12" height="8.5" rx="1"></rect><path d="M5.5 5V3.5A1.5 1.5 0 0 1 7 2h2a1.5 1.5 0 0 1 1.5 1.5V5M2 9h12"></path>'),
     ("late", "/late/", "Late filings", '<circle cx="8" cy="8" r="6.5"></circle><path d="M8 4.5V8l2.5 1.5"></path>'),
@@ -48,7 +48,7 @@ NAV = [
 ]
 ICON = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" class="icon">{}</svg>'
 LATEST_ON_HOME = 12
-TOP_STOCKS_ON_SENATOR_PAGE = 10
+TOP_STOCKS_ON_MEMBER_PAGE = 10
 FEED_ENTRIES = 50
 
 
@@ -66,6 +66,19 @@ def headline(trade):
         what = {"corporate bond": "a bond", "municipal security": "a municipal bond",
                 "mutual fund": "a fund", "stock option": "stock options"}.get(what, what)
     return f"{name} {verb} {what}"
+
+
+SHORT_ASSET_TYPES = {   # for the narrow "Stock" column of the home page's latest trades
+    "government security": "Gov. bond", "corporate bond": "Bond", "municipal security": "Muni bond",
+    "mutual fund": "Fund", "exchange traded fund": "ETF", "non-public stock": "Private stock",
+    "business interest": "Business", "ownership interest": "Business", "stock option": "Options",
+    "private fund": "Private fund", "cryptocurrency": "Crypto", "other securities": "Other",
+    "asset-backed security": "Bond", "real property": "Property",
+}
+
+
+def short_asset(asset_type):
+    return SHORT_ASSET_TYPES.get((asset_type or "").lower(), asset_type or "Other")
 
 
 def days_text(trade):
@@ -92,6 +105,7 @@ def trade_record(trade):
         "am": trade.amount, "mn": trade.amount_min, "mx": trade.amount_max,
         "o": trade.owner, "dy": trade.days, "l": 1 if trade.late else 0,
         "x": 1 if trade.is_amendment else 0, "u": trade.report_url, "c": trade.comment,
+        "ch": "H" if trade.chamber == "house" else "S",
     }
 
 
@@ -141,12 +155,17 @@ class Builder:
             "nav": [{"id": i, "href": h, "label": l, "icon": ICON.format(svg)} for i, h, l, svg in NAV],
             "fmt_date": sitedata.fmt_date, "fmt_number": sitedata.fmt_number,
             "headline": headline, "days_text": days_text, "trade_json": home_trade_json,
+            "short_asset": short_asset,
         })
 
     def write(self, path, text):
         target = self.out / path.lstrip("/")
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(text, encoding="utf-8")
+
+    def redirect(self, path, to):
+        """A small page that sends visitors (and search engines) to a page's new address."""
+        self.write(path, self.env.get_template("redirect.html").render(to=self.base + to))
 
     def page(self, template, path, **context):
         html = self.env.get_template(template).render(page=context.pop("page", None), **context)
@@ -166,7 +185,7 @@ class Builder:
 
         self.build_home()
         self.build_trades()
-        self.build_senators()
+        self.build_members()
         self.build_stocks()
         self.build_late()
         self.page("portfolios.html", "/portfolios/index.html", page="portfolios")
@@ -193,13 +212,17 @@ class Builder:
         filers = sorted((f for f in ds.filers.values() if f.trades), key=lambda f: f.name)
         self.page("trades.html", "/trades/index.html", page="trades", years=ds.years(), filers=filers)
 
-    def build_senators(self):
+    def build_members(self):
         ds = self.ds
         with_stats = [(f, f.stats()) for f in ds.filers.values()]
-        senators = sorted((x for x in with_stats if x[0].is_senator), key=lambda x: (-x[1]["trades"], x[0].name))
-        candidates = sorted((x for x in with_stats if not x[0].is_senator), key=lambda x: (-x[1]["trades"], x[0].name))
-        self.page("senators.html", "/senators/index.html", page="senators",
-                  senators=senators, candidates=candidates)
+        members = sorted((x for x in with_stats if x[0].is_member), key=lambda x: (-x[1]["trades"], x[0].name))
+        others = sorted((x for x in with_stats if not x[0].is_member), key=lambda x: (-x[1]["trades"], x[0].name))
+        self.page("congress.html", "/congress/index.html", page="congress",
+                  members=members, candidates=others,
+                  senate_count=sum(1 for f, _ in members if not f.in_house),
+                  house_count=sum(1 for f, _ in members if f.in_house))
+        # The pages used to live under /senators/: keep those links working
+        self.redirect("/senators/index.html", "/congress/")
         for filer, stats in with_stats:
             by_year = Counter(t.received.year for t in filer.counted_trades if t.received)
             per_stock = defaultdict(lambda: {"trades": 0, "buys": 0, "sells": 0, "last": None})
@@ -210,12 +233,16 @@ class Builder:
                     s["trades"] += 1
                     s["buys"] += t.group == "buy"
                     s["sells"] += t.group == "sell"
-                    if t.received and (s["last"] is None or t.received > s["last"]):
-                        s["last"] = t.received
-            top = sorted(per_stock.values(), key=lambda s: (-s["trades"], s["ticker"]))[:TOP_STOCKS_ON_SENATOR_PAGE]
-            self.page("senator.html", f"/senators/{filer.slug}/index.html", page="senators",
+                    when = t.traded or t.received
+                    if when and (s["last"] is None or when > s["last"]):
+                        s["last"] = when
+            top = sorted(per_stock.values(), key=lambda s: (-s["trades"], s["ticker"]))[:TOP_STOCKS_ON_MEMBER_PAGE]
+            self.page("member.html", f"/congress/{filer.slug}/index.html", page="congress",
                       filer=filer, stats=stats, top_stocks=top,
+                      chambers=sorted({r.chamber for r in filer.reports}),
                       yearly_svg=charts.yearly_bars_svg(by_year, filer.name) if len(by_year) > 1 else "")
+            if any(r.chamber == "senate" for r in filer.reports):
+                self.redirect(f"/senators/{filer.slug}/index.html", f"/congress/{filer.slug}/")
 
     def build_stocks(self):
         ds = self.ds
@@ -231,8 +258,9 @@ class Builder:
                 row["trades"] += 1
                 row["buys"] += t.group == "buy"
                 row["sells"] += t.group == "sell"
-                if t.received and (row["last"] is None or t.received > row["last"]):
-                    row["last"] = t.received
+                when = t.traded or t.received
+                if when and (row["last"] is None or when > row["last"]):
+                    row["last"] = when
             self.page("stock.html", f"/stocks/{stock['slug']}/index.html", page="stocks", stock=stock,
                       by_filer=sorted(rows.values(), key=lambda r: (-r["trades"], r["filer"].name)),
                       yearly_svg=charts.yearly_bars_svg(by_year, stock["ticker"]) if len(by_year) > 1 else "")
@@ -267,8 +295,8 @@ class Builder:
         search = []
         for filer in sorted(ds.filers.values(), key=lambda f: f.name):
             if filer.trades:
-                search.append({"t": "senator", "n": filer.name, "s": filer.party_state or filer.filer_type,
-                               "u": f"/senators/{filer.slug}/"})
+                search.append({"t": "member", "n": filer.name, "s": filer.party_state or filer.filer_type,
+                               "u": f"/congress/{filer.slug}/"})
         for stock in sorted((s for s in ds.stocks.values() if s["count"]), key=lambda s: -s["count"]):
             search.append({"t": "stock", "n": stock["ticker"], "k": stock["name"], "s": stock["name"],
                            "u": f"/stocks/{stock['slug']}/"})
@@ -306,7 +334,7 @@ class Builder:
             entries.append({
                 "title": f"{who}: {len(trades)} trade{'s' if len(trades) != 1 else ''} disclosed "
                          f"{sitedata.fmt_date(report.received)}",
-                "link": f"{self.site_url}/senators/{filer.slug}/" if filer else report.url,
+                "link": f"{self.site_url}/congress/{filer.slug}/" if filer else report.url,
                 "id": f"{self.site_url}/reports/{report.path.strip('/').rsplit('/', 1)[-1]}",
                 "updated": rfc3339(report.first_seen or report.received),
                 "published": rfc3339(report.received),
@@ -370,7 +398,8 @@ def main(argv=None, conn=None, legislators=None):
     dataset.apply_people(matcher)
     log(f"  {matcher.matched} filers matched")
     if matcher.unmatched:
-        log(f"  {len(matcher.unmatched)} senators without party/state (add them to site/overrides.json):")
+        log(f"  {len(matcher.unmatched)} members of Congress without party/state "
+            "(add them to site/overrides.json):")
         for filer in matcher.unmatched:
             log(f"    {filer.key!r}: {filer.match_note}")
 

@@ -1,18 +1,20 @@
 """
-people.py - adds party and state to the people who file reports.
+people.py - adds party, state and official names to the people who file reports.
 
-eFD only gives names ("Fetterman, John (Senator)"). Party and state come from
-the public-domain congress-legislators dataset maintained by the
-@unitedstates project. The two files (current and historical members) are
-downloaded once a week and cached. If they can't be downloaded and there is
-no cache, the site is still built, just without party and state.
+eFD only gives names ("Fetterman, John (Senator)"); the House gives names plus
+state and district ("CA11"). Party and state come from the public-domain
+congress-legislators dataset maintained by the @unitedstates project. The two
+files (current and historical members) are downloaded once a week and cached.
+If they can't be downloaded and there is no cache, the site is still built,
+just without party and state.
 
-Matching is by last name plus first name. Anything ambiguous is left
-unmatched and listed in the build log, so it can be fixed by hand in
-site/overrides.json, like this:
-    {"McConnell, Jr.|A. Mitchell": "M000355"}
-(the key is the filer's "last|first" exactly as eFD writes it, the value a
-bioguide ID).
+Senate filers are matched to senators by last name plus first name; House
+filers to representatives by last name, state and first name (and district if
+needed). Anything ambiguous is left unmatched and listed in the build log, so
+it can be fixed by hand in site/overrides.json, like this:
+    {"senate|McConnell, Jr.|A. Mitchell": "M000355",
+     "house|Pelosi|Nancy|CA": "P000197"}
+(the key is the filer's key as the build log prints it, the value a bioguide ID).
 """
 
 import json
@@ -71,12 +73,41 @@ class Legislator:
         self.nickname = name.get("nickname", "") or ""
         self.suffix = name.get("suffix", "") or ""
         self.official = name.get("official_full") or f"{self.first} {self.last}".strip()
-        self.terms = [t for t in record.get("terms", []) if t.get("type") == "sen"]
-        self.last_term = max(self.terms, key=lambda t: t.get("end", ""), default=None)
+        terms = record.get("terms", [])
+        self.sen_terms = [t for t in terms if t.get("type") == "sen"]
+        self.rep_terms = [t for t in terms if t.get("type") == "rep"]
+        self.terms = self.sen_terms + self.rep_terms
+        self.last_term = max(self.terms, key=lambda t: t.get("end", ""), default=None)   # latest seat
 
     @property
     def served_recently(self):
         return self.last_term is not None and self.last_term.get("end", "") >= SINCE.isoformat()
+
+    def served_in(self, chamber):
+        """Served in this chamber ("senate" or "house") since 2011."""
+        terms = self.sen_terms if chamber == "senate" else self.rep_terms
+        return any(t.get("end", "") >= SINCE.isoformat() for t in terms)
+
+    @property
+    def serving(self):
+        return (self.last_term or {}).get("end", "") >= date.today().isoformat()
+
+    @property
+    def role(self):
+        """Senator, Former Senator, Representative or Former Representative (their latest seat)."""
+        kind = "Senator" if (self.last_term or {}).get("type") == "sen" else "Representative"
+        return kind if self.serving else f"Former {kind}"
+
+    @property
+    def district(self):
+        """The latest House seat as the House writes it (CA11; 00 = at large), if the latest seat is there."""
+        term = self.last_term or {}
+        if term.get("type") != "rep" or not term.get("state"):
+            return ""
+        try:
+            return f"{term['state']}{int(term.get('district') or 0):02d}"
+        except (TypeError, ValueError):
+            return ""
 
     @property
     def party(self):
@@ -99,10 +130,11 @@ class Legislator:
 class Matcher:
     def __init__(self, legislators, overrides=None, log=print):
         self.by_bioguide = {l.bioguide: l for l in legislators if l.bioguide}
-        self.by_last = {}
+        self.by_last = {"senate": {}, "house": {}}   # last name -> people who served in that chamber
         for leg in legislators:
-            if leg.terms and leg.served_recently:
-                self.by_last.setdefault(squash(leg.last), []).append(leg)
+            for chamber in ("senate", "house"):
+                if leg.served_in(chamber):
+                    self.by_last[chamber].setdefault(squash(leg.last), []).append(leg)
         self.overrides = overrides or {}
         self.log = log
         self.unmatched = []
@@ -119,7 +151,7 @@ class Matcher:
             leg, note = self.find(filer)
             filer.match_note = note
         if leg is None:
-            if filer.is_senator:          # candidates are not expected in the list
+            if filer.is_member:           # candidates are not expected in the list
                 self.unmatched.append(filer)
             return
         self.matched += 1
@@ -128,15 +160,24 @@ class Matcher:
         filer.state = leg.state
         filer.name = leg.official
         filer.slug = slugify(leg.official)
-        if not filer.filer_type:      # eFD leaves the type out for some paper filings
-            still_serving = (leg.last_term or {}).get("end", "") >= date.today().isoformat()
-            filer.filer_type = "Senator" if still_serving else "Former Senator"
+        if filer.chamber == "house" or not filer.filer_type:
+            # The House doesn't say whether someone still serves (and eFD leaves the type out of
+            # some paper filings): use their latest seat, which may now be in the Senate.
+            filer.filer_type = leg.role
+        if leg.district:
+            filer.district = leg.district
 
     def find(self, filer):
+        chamber = "house" if filer.chamber == "house" else "senate"
+        people = "representatives" if chamber == "house" else "senators"
         last = squash(last_name_core(filer.last_name))
-        candidates = self.by_last.get(last, [])
+        candidates = self.by_last[chamber].get(last, [])
         if not candidates:
-            return None, "no senator with this last name"
+            return None, f"no {people[:-1]} with this last name"
+        state = (filer.district or "")[:2] if chamber == "house" else ""
+        if state:   # the House gives the state: keep those who served for it, if any did
+            in_state = [leg for leg in candidates if any(t.get("state") == state for t in leg.rep_terms)]
+            candidates = in_state or candidates
         first_tokens = {squash(t) for t in filer.first_name.replace("-", " ").split()}
         first_tokens = {t for t in first_tokens if t}
 
@@ -152,7 +193,13 @@ class Matcher:
             initials = [leg for leg in good if any(t[0] == squash(filer.first_name)[:1] for t in leg.first_tokens)]
             if len(initials) == 1:
                 return initials[0], "matched by last name and first initial"
-        return None, f"ambiguous: {len(candidates)} senators share this last name"
+            if state and filer.district[2:].isdigit():
+                district = int(filer.district[2:])
+                same_seat = [leg for leg in good if any(t.get("state") == state and int(t.get("district") or 0) == district
+                                                        for t in leg.rep_terms)]
+                if len(same_seat) == 1:
+                    return same_seat[0], "matched by last name, first name and district"
+        return None, f"ambiguous: {len(candidates)} {people} share this last name"
 
 
 def load_legislators(cache_dir, offline=False, log=print):

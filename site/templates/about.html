@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block title %}About · Insider Tracking{% endblock %}
-{% block description %}How Insider Tracking collects U.S. senators' trade reports, what the numbers mean, and how to get in touch.{% endblock %}
+{% block description %}How Insider Tracking collects the trade reports of U.S. senators and representatives, what the numbers mean, and how to get in touch.{% endblock %}
 {% block content %}
 <section class="page-head">
 <div class="hero-text">
 <h1>About Insider Tracking</h1>
-<p class="lead">A free, independent record of the stock trades U.S. senators report, built from the Senate’s own disclosure site.</p>
+<p class="lead">A free, independent record of the stock trades members of Congress report, built from the official disclosure sites of the Senate and the House.</p>
 </div>
 {% include "_search.html" %}
 </section>
@@ -13,9 +13,9 @@
 <section class="section" id="how">
 <div class="prose">
 <h2>How it works</h2>
-<p>Under the STOCK Act of 2012, senators must report trades of stocks, bonds and other securities worth more than $1,000 within 45 days. The reports are public on the Senate’s Financial Disclosure site, but they are hard to browse there: one report at a time, behind a click-through agreement.</p>
-<p>Every three hours, a small program reads the Senate site, saves new reports in a database, and rebuilds this website from it. Nothing is typed in by hand, and nothing is left out on purpose: if it is in an electronic report, it is here.</p>
-<p>Insider Tracking is non-commercial and carries no advertising. It is not affiliated with the U.S. Senate or any senator.</p>
+<p>Under the STOCK Act of 2012, senators and representatives must report trades of stocks, bonds and other securities worth more than $1,000 within 45 days. The reports are public, but they are hard to browse: the Senate shows one report at a time behind a click-through agreement, and the House publishes each report as a PDF file.</p>
+<p>Every three hours, two small programs read the Senate and House sites, save new reports in a database, and rebuild this website from it. Nothing is typed in by hand, and nothing is left out on purpose: if it is in an electronic report, it is here.</p>
+<p>Insider Tracking is non-commercial and carries no advertising. It is not affiliated with Congress or any of its members.</p>
 </div>
 </section>
 
@@ -23,14 +23,14 @@
 <div class="prose">
 <h2>Data and methods</h2>
 <ul>
-<li><strong>Source.</strong> U.S. Senate Financial Disclosures, <a href="https://efdsearch.senate.gov/search/home/" rel="noopener">efdsearch.senate.gov</a>, Periodic Transaction Reports filed since 2012. Every trade links to its report there.</li>
-<li><strong>Amounts.</strong> Senators report value ranges, such as $15,001–$50,000, not exact amounts or numbers of shares. The site shows the ranges as filed. Filters on amount use the lower end of the range.</li>
-<li><strong>Days to disclose.</strong> For a trade, the number of days between the trade and the day the Senate received the report. The law allows 45 days; trades past that are marked with a clock.</li>
+<li><strong>Sources.</strong> Senate: U.S. Senate Financial Disclosures, <a href="https://efdsearch.senate.gov/search/home/" rel="noopener">efdsearch.senate.gov</a>, Periodic Transaction Reports filed since 2012. House: the Clerk of the House, <a href="https://disclosures-clerk.house.gov/FinancialDisclosure" rel="noopener">disclosures-clerk.house.gov</a>, Periodic Transaction Reports filed since 2013; its electronic reports are PDF files, and the program reads the table in each one. Every trade links to its report.</li>
+<li><strong>Amounts.</strong> Members report value ranges, such as $15,001–$50,000, not exact amounts or numbers of shares. The site shows the ranges as filed. Filters on amount use the lower end of the range.</li>
+<li><strong>Days to disclose.</strong> For a trade, the number of days between the trade and the day the Senate or the House received the report. The law allows 45 days; trades past that are marked with a clock.</li>
 <li><strong>Late reports.</strong> Late filing is counted per report, not per trade, so one large report doesn’t weigh more than a small one: a report is late when the oldest trade in it is more than 45 days old on the day it is filed.</li>
-<li><strong>Amendments.</strong> A senator can correct an earlier report, and the amendment usually lists every trade again. Those rows are shown and labelled, but they are left out of totals, charts and the late-filing counts, so a corrected trade isn’t counted twice.</li>
-<li><strong>Paper filings.</strong> Some reports are filed on paper and scanned. They are counted as reports but their trades can’t be read automatically yet, so they aren’t in the trade lists.</li>
-<li><strong>Who is who.</strong> The Senate site gives names only. Party and state come from the public-domain <a href="https://github.com/unitedstates/congress-legislators" rel="noopener">congress-legislators</a> dataset. Candidates who never served aren’t in that dataset, so they appear without party or state.</li>
-<li><strong>What is not here.</strong> Trades by members of the House of Representatives, trades under $1,000, and holdings from yearly financial reports.</li>
+<li><strong>Amendments.</strong> A member can correct an earlier report, and the amendment usually lists every trade again. Those rows are shown and labelled, but they are left out of totals, charts and the late-filing counts, so a corrected trade isn’t counted twice.</li>
+<li><strong>Paper filings.</strong> Some reports are filed on paper and scanned (about one in ten in the House). They are listed on each member’s page, but their trades can’t be read automatically yet, so they aren’t in the trade lists.</li>
+<li><strong>Who is who.</strong> The Senate site gives names only; the House gives names, states and districts. Party, state and district come from the public-domain <a href="https://github.com/unitedstates/congress-legislators" rel="noopener">congress-legislators</a> dataset. Candidates who never served aren’t in that dataset, so they appear without party or state.</li>
+<li><strong>What is not here.</strong> Trades under $1,000, trades in scanned paper reports, and holdings from yearly financial reports.</li>
 </ul>
 </div>
 </section>

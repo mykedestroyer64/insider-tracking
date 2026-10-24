@@ -1,6 +1,6 @@
 # insider-tracking
 
-**insider-tracking** is a free, non-commercial website about US senators' stock trades, built from the Senate's official financial disclosure site, [eFD](https://efdsearch.senate.gov). This repository holds the collector, which saves the reports and trades in a database, and the website, which is built from that database and published on GitHub Pages.
+**insider-tracking** is a free, non-commercial website about the stock trades of US senators and representatives, built from the official financial disclosure sites of the Senate ([eFD](https://efdsearch.senate.gov)) and the House ([the Clerk's site](https://disclosures-clerk.house.gov/FinancialDisclosure)). This repository holds the two collectors, which save the reports and trades in a database, and the website, which is built from that database and published on GitHub Pages.
 
 | File | What it does |
 |---|---|
@@ -12,19 +12,19 @@
 | `database.py` | creates the tables and saves the data |
 | `site/build.py` | builds the website from the database (with `site/data.py`, `site/people.py`, `site/charts.py`) |
 | `site/templates/`, `site/static/` | the pages' templates, the stylesheet, the fonts and the small amount of JavaScript |
-| `site/overrides.json` | fixes for senators whose party and state the build can't work out by name |
+| `site/overrides.json` | fixes for members of Congress whose party and state the build can't work out by name |
 | `.github/workflows/collect.yml`, `.github/workflows/collect-house.yml` | run the two collectors every 3 hours |
 | `.github/workflows/site.yml` | builds and publishes the website after every collector run |
 | `efd_check.py` and `.github/workflows/efd-check.yml` | the step 1 access test, still handy for checking eFD by hand |
 | `house_check.py`, `sec_check.py` and `.github/workflows/new-sources-check.yml` | access tests for the next sources: House members' trade reports and company insiders' Form 4 filings (results go to the `check-results` branch) |
 | `requirements.txt` | the Python libraries needed |
-| `status/heartbeat.txt` | a date the collector saves once a week (see "Good to know") |
+| `status/heartbeat.txt` | a date the Senate collector saves once a week (see "Good to know") |
 
 ## The website
 
-After every successful collector run, GitHub builds the website from the database and publishes it to GitHub Pages at `https://<your GitHub name>.github.io/insider-tracking/`. Visitors never touch the database: the site is plain pages, so it is fast and free to host.
+After every successful collector run (Senate or House), GitHub builds the website from the database and publishes it to GitHub Pages at `https://<your GitHub name>.github.io/insider-tracking/`. Visitors never touch the database: the site is plain pages, so it is fast and free to host.
 
-Pages: an overview with charts and the latest trades, every trade with filters, a page per senator, a page per stock, late filings, and a feed (`feed.xml`) that any news reader can follow. Party and state come from the public-domain [congress-legislators](https://github.com/unitedstates/congress-legislators) dataset; senators the build can't match by name are listed in the build log and can be added to `site/overrides.json`.
+Pages: an overview with charts and the latest trades, every trade with filters (including Senate or House), a Congress page listing every member who reported a trade, a page per member, a page per stock, late filings, and a feed (`feed.xml`) that any news reader can follow. Party, state and House district come from the public-domain [congress-legislators](https://github.com/unitedstates/congress-legislators) dataset; members the build can't match by name are listed in the build log and can be added to `site/overrides.json`.
 
 ### Switching it on (once)
 
@@ -46,7 +46,7 @@ Open `_site/index.html` in a browser. Links assume the site lives under `/inside
 
 Every color is defined once, at the top of `site/static/site.css`. The fonts (Libre Franklin and Newsreader, both under the SIL Open Font License) are served from `site/static/fonts/`, so no outside service is contacted when someone visits.
 
-## How the collector works
+## How the Senate collector works
 
 Every run:
 
@@ -71,6 +71,19 @@ The last line of every run is the **verdict**:
 | `DB_ERROR` | The database couldn't be reached or written to. Check the secrets and the Supabase project. |
 | `ERROR` | Something unexpected happened. The log has the details. |
 | `NOT_RUN` | A secret is missing, so nothing was done. |
+
+## How the House collector works
+
+`collect_house.py` runs every 3 hours, half an hour after the Senate collector, with the same three secrets (nothing new to set up). Every run:
+
+1. connects to the database (the first run adds a `chamber` column, so every report says `senate` or `house`)
+2. downloads this year's and last year's lists of House filings, but only if they changed since the last run
+3. reads older yearly lists, three years per run, back to 2013
+4. downloads electronic trade reports that haven't been read yet (PDF files), newest first, reads the table in each one and saves its transactions
+
+Scanned paper reports (about one in ten) are saved with the status `not_read`, like the Senate's. Each run sends at most 200 requests to the House site, 1.5-2.5 seconds apart. The verdict line works the same way as the Senate collector's.
+
+To start it by hand: **Actions > insider-tracking House collector > Run workflow**.
 
 ## Setting up the collector (once)
 
@@ -125,10 +138,10 @@ From now on the collector runs by itself every 3 hours. The history back to 2012
 - **Failure emails:** when a scheduled run fails, GitHub emails you.
 - **Heartbeat:** GitHub switches off scheduled workflows in public repositories after 60 days without any change, so once a week the collector saves today's date in `status/heartbeat.txt`. Those small commits are expected.
 - **Supabase free plan:** Supabase pauses a free project after a week without activity. Runs every 3 hours keep it awake, and the data fits easily in the free 500 MB.
-- **Who can see the data:** nobody yet. Row Level Security is switched on for every table and no read access is granted. The website step will open read-only access to the reports and trades.
-- **Reading failed reports again** (after the collector has been fixed): run this in Supabase's **SQL Editor**:
+- **Who can see the database:** only you, in Supabase. Row Level Security is switched on for every table and no read access is granted; the website build connects with your password and publishes plain pages, so visitors never reach the database.
+- **Reading failed reports again** (after a collector has been fixed): run this in Supabase's **SQL Editor** (use `'house'` for House reports):
   ```sql
-  update reports set status = 'to_read', note = null where status = 'failed';
+  update reports set status = 'to_read', note = null where status = 'failed' and chamber = 'senate';
   ```
 - **Changing the pace:** `MAX_REQUESTS` in `collect.py` sets the requests per run, and the `cron` line in `collect.yml` sets how often it runs.
 
