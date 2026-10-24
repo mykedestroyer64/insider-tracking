@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_insider_macros.html" import insider_table %}
+{% block title %}{{ stock.ticker }}: all insider trades · Insider Tracking{% endblock %}
+{% block description %}Every open-market buy and sell of {{ stock.ticker }} ({{ stock.name }}) by the company's officers and directors, from SEC Form 4 filings since 2021.{% endblock %}
+{% block content %}
+<section class="page-head">
+<div class="hero-text">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="{{ base }}/stocks/">Stocks</a> › <a href="{{ base }}/stocks/{{ stock.slug }}/">{{ stock.ticker }}</a> › Insiders</nav>
+<h1>{{ stock.ticker }}: insider trades</h1>
+<p class="lead">{{ stock.name }}. Every open-market buy and sell by its officers and directors since 2021, newest filing first.</p>
+</div>
+{% include "_search.html" %}
+</section>
+<section class="section">
+{{ insider_table(insider_trades, base, insider_people, show_company=False, caption="All insider trades in " ~ stock.ticker) }}
+</section>
+{% endblock %}

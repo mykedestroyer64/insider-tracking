@@ -1,0 +1,48 @@
+{% macro insider_cell(t, base, people) -%}
+{% set p = people.get(t.insider_cik) %}
+{% if p %}<a href="{{ base }}/insiders/{{ p.slug }}/" class="plain cell-main">{{ t.insider_name }}</a>{% else %}<span class="cell-main">{{ t.insider_name }}</span>{% endif %}<div class="muted">{{ t.role_text }}</div>
+{%- endmacro %}
+
+{% macro company_cell(t, base) -%}
+<a href="{{ base }}/stocks/{{ t.stock_slug }}/" class="plain cell-main">{{ t.ticker }}</a><div class="muted">{{ t.filing.company_name }}</div>
+{%- endmacro %}
+
+{% macro kind_cell(t) -%}
+<span class="nowrap">{{ t.label }}</span>{% if t.filing.is_amendment %}<div class="muted">amendment</div>{% elif t.suspect %}<div class="muted">not counted: {{ t.suspect_reason }}</div>{% elif t.filing.plan %}<div class="muted">pre-set plan</div>{% endif %}
+{%- endmacro %}
+
+{% macro insider_table(trades, base, people, show_insider=True, show_company=True, caption=None) -%}
+<div class="table-wrap">
+<table class="trades">
+{% if caption %}<caption class="visually-hidden">{{ caption }}</caption>{% endif %}
+<thead>
+<tr>
+{% if show_insider %}<th scope="col">Insider</th>{% endif %}
+{% if show_company %}<th scope="col">Company</th>{% endif %}
+<th scope="col">Trade</th>
+<th scope="col" class="r">Shares</th>
+<th scope="col" class="r">Price</th>
+<th scope="col" class="r">Value</th>
+<th scope="col">Traded</th>
+<th scope="col">Filed</th>
+<th scope="col">Source</th>
+</tr>
+</thead>
+<tbody>
+{% for t in trades %}
+<tr>
+{% if show_insider %}<td>{{ insider_cell(t, base, people) }}</td>{% endif %}
+{% if show_company %}<td>{{ company_cell(t, base) }}</td>{% endif %}
+<td>{{ kind_cell(t) }}</td>
+<td class="r num">{{ fmt_shares(t.shares) }}{% if not t.direct %}<div class="muted">{{ t.nature or "indirect" }}</div>{% endif %}</td>
+<td class="r num">{{ fmt_price(t.price) }}</td>
+<td class="r num">{{ fmt_money(t.value) }}</td>
+<td class="num nowrap">{{ fmt_date(t.traded) or "–" }}</td>
+<td class="num nowrap">{{ fmt_date(t.filing.filed) or "–" }}</td>
+<td class="nowrap"><a href="{{ t.filing.url }}" rel="noopener">Form {{ t.filing.form }}</a></td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{%- endmacro %}

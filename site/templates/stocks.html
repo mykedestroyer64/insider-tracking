@@ -5,7 +5,7 @@
 <section class="page-head">
 <div class="hero-text">
 <h1>Stocks</h1>
-<p class="lead">{{ fmt_number(stocks | length) }} stocks with a ticker symbol in the trade reports of members of Congress. Bonds, funds and other assets without a ticker appear on each member’s page.</p>
+<p class="lead">{{ fmt_number(stocks | length) }} stocks with a ticker symbol in the trade reports of members of Congress. Bonds, funds and other assets without a ticker appear on each member’s page.{% if insider_only %} Another {{ fmt_number(insider_only) }} companies were traded only by their own insiders; find them with the search box.{% endif %}</p>
 </div>
 {% include "_search.html" %}
 </section>

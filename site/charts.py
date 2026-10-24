@@ -20,7 +20,7 @@ TICK_XS = [48, 201.6, 355.2, 508.8, 662.4, 816]
 def nice_max(value):
     """A round number a little above the highest value, for the top of the y axis."""
     value = max(value, 4)
-    for step in (4, 8, 10, 20, 40, 60, 80, 100, 120, 160, 200, 240, 300, 400, 500, 600, 800, 1000):
+    for step in (4, 8, 12, 20, 40, 60, 80, 100, 120, 160, 200, 240, 300, 400, 500, 600, 800, 1000):
         if step >= value * 1.05:
             return step
     return math.ceil(value * 1.05 / 400) * 400
@@ -171,6 +171,43 @@ def yearly_bars_svg(counts_by_year, title):
         if (n - 1 - i) % step == 0:
             parts.append(f'<text x="{cx:.1f}" y="232" text-anchor="middle" class="chart-label">{year}</text>')
     label = f"{title}: trades per year from {years[0]} to {years[-1]}. Most in {years[peak]} with {counts[peak]}."
+    return ('<div class="chart-wrap">'
+            f'<svg viewBox="0 0 840 260" role="img" aria-label="{escape(label)}" class="chart">'
+            + "".join(parts) + "</svg></div>")
+
+
+def buys_sells_svg(weekly):
+    """Insiders' buys (grey) and sells (black) per week, side by side (840 x 260)."""
+    if not weekly:
+        return ""
+    n = len(weekly)
+    top = nice_max(max(max(b, s) for _, b, s in weekly))
+    slot = (RIGHT - LEFT) / n
+    base, plot_top = 212, 24
+    scale = (base - plot_top) / top
+    width = max(3, (slot - 6) / 2)
+    parts = []
+    for g in (0, 0.25, 0.5, 0.75, 1):
+        y = base - g * (base - plot_top)
+        color = "#C4C4C4" if g == 0 else "#EBEBEB"
+        parts.append(f'<line x1="{LEFT}" x2="{RIGHT}" y1="{y:.1f}" y2="{y:.1f}" '
+                     f'style="stroke: {color}; stroke-width: 1"></line>')
+        parts.append(f'<text x="40" y="{y + 4:.1f}" text-anchor="end" class="chart-label">{fmt_tick(top * g)}</text>')
+    step = max(1, math.ceil(n / 9))
+    for i, (start, buys, sells) in enumerate(weekly):
+        cx = LEFT + slot * (i + 0.5)
+        for offset, count, fill, what in ((-width, buys, "#8A8A8A", "buys"), (0, sells, "#111111", "sells")):
+            if count > 0:
+                y = min(base - count * scale, base - 2)
+                x = cx + offset
+                parts.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{width:.1f}" height="{base - y:.1f}" rx="2" '
+                             f'style="fill: {fill}"><title>week of {MONTHS[start.month - 1]} {start.day}: {count} {what}</title></rect>')
+        if (n - 1 - i) % step == 0:
+            parts.append(f'<text x="{cx:.1f}" y="232" text-anchor="middle" class="chart-label">'
+                         f'{MONTHS[start.month - 1]} {start.day}</text>')
+    total_b, total_s = sum(b for _, b, _ in weekly), sum(s for _, _, s in weekly)
+    label = (f"Bar chart of insiders' buys and sells per week over the last {n} weeks: "
+             f"{total_b} buys and {total_s} sells in all.")
     return ('<div class="chart-wrap">'
             f'<svg viewBox="0 0 840 260" role="img" aria-label="{escape(label)}" class="chart">'
             + "".join(parts) + "</svg></div>")

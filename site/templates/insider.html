@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_insider_macros.html" import insider_table %}
+{% block title %}{{ person.name }}: insider trades · Insider Tracking{% endblock %}
+{% block description %}{{ person.name }} ({{ person.description }}): open-market buys and sells of company stock reported to the SEC on Form 4.{% endblock %}
+{% block content %}
+<section class="page-head">
+<div class="hero-text">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="{{ base }}/insiders/">Insiders</a> › {{ person.name }}</nav>
+<h1>{{ person.name }}</h1>
+<p class="lead">{% for c in person.companies %}{% if not loop.first %} · {% endif %}{{ c.title }}, <a href="{{ base }}/stocks/{{ c.slug }}/">{{ c.name }}</a> ({{ c.ticker }}){% endfor %}</p>
+</div>
+{% include "_search.html" %}
+</section>
+
+<section class="section">
+<dl class="tiles on-white" aria-label="Summary">
+<div class="tile"><dt class="muted">Buys</dt><dd class="big">{{ fmt_number(stats.buys) }}<span class="of"> {{ fmt_money_short(stats.bought) }}</span></dd></div>
+<div class="tile"><dt class="muted">Sells</dt><dd class="big">{{ fmt_number(stats.sells) }}<span class="of"> {{ fmt_money_short(stats.sold) }}</span></dd></div>
+<div class="tile"><dt class="muted">First trade</dt><dd class="big">{{ fmt_date(stats.first) or "–" }}</dd></div>
+<div class="tile"><dt class="muted">Last trade</dt><dd class="big">{{ fmt_date(stats.last) or "–" }}</dd></div>
+</dl>
+{% if stats.amendments or stats.suspect %}<p class="muted">{% if stats.amendments %}{{ stats.amendments }} row{{ 's' if stats.amendments != 1 }} come{{ 's' if stats.amendments == 1 }} from amendments, which re-file earlier reports; {{ 'they are' if stats.amendments != 1 else 'it is' }} listed but not counted. {% endif %}{% if stats.suspect %}{{ stats.suspect }} row{{ 's' if stats.suspect != 1 }} carr{{ 'y' if stats.suspect != 1 else 'ies' }} impossible numbers as filed and {{ 'are' if stats.suspect != 1 else 'is' }} not counted.{% endif %}</p>{% endif %}
+</section>
+
+<section class="section" aria-labelledby="all-h">
+<div class="titles"><h2 id="all-h">All trades</h2><p class="muted">Newest filing first. Open-market buys and sells only; stock awards, option exercises and gifts aren’t trades and aren’t listed.</p></div>
+{{ insider_table(trades, base, {}, show_insider=False, caption="All trades by " ~ person.name) }}
+</section>
+{% endblock %}

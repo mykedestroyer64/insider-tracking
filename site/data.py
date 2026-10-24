@@ -454,7 +454,9 @@ class Dataset:
                 if trade.asset_name and len(trade.tickers) == 1:
                     stock["names"][trade.asset_name] += 1
         for stock in stocks.values():
-            stock["name"] = stock["names"].most_common(1)[0][0] if stock["names"] else stock["ticker"]
+            name = stock["names"].most_common(1)[0][0] if stock["names"] else stock["ticker"]
+            # some reports name the option rather than the company: "NVIDIA Corp Option Type: Call ..."
+            stock["name"] = re.split(r"\s+(?:Option Type|Call Option|Put Option|Strike price)\b", name, 1)[0].strip(" -,") or name
             stock["trades"].sort(key=lambda t: (t.received or date.min, t.traded or date.min), reverse=True)
             counted = [t for t in stock["trades"] if t.counted]
             stock["count"] = len(counted)

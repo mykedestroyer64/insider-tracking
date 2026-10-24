@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% from "_insider_macros.html" import insider_table, insider_cell, company_cell %}
+{% block title %}Company insiders · Insider Tracking{% endblock %}
+{% block description %}Open-market stock buys and sells by company officers and directors, from their SEC Form 4 filings: the latest trades, the biggest of the month and the most active companies.{% endblock %}
+{% block content %}
+<section class="page-head">
+<div class="hero-text">
+<h1>Company insiders</h1>
+<p class="lead">Officers and directors must report trades in their own company’s stock to the SEC within two business days. This is what they bought and sold on the open market since 2021, from those filings.</p>
+</div>
+{% include "_search.html" %}
+</section>
+
+{% if not has_insiders %}
+<section class="section"><p class="lead">The first insider filings are being collected. This page fills in after the next update.</p></section>
+{% else %}
+<section class="section">
+<dl class="tiles on-white" aria-label="Last 30 days">
+<div class="tile"><dt class="muted">Buys, last 30 days</dt><dd class="big">{{ fmt_number(stats.buys_30d) }}<span class="of"> {{ fmt_money_short(stats.bought_30d) }}</span></dd></div>
+<div class="tile"><dt class="muted">Sells, last 30 days</dt><dd class="big">{{ fmt_number(stats.sells_30d) }}<span class="of"> {{ fmt_money_short(stats.sold_30d) }}</span></dd></div>
+<div class="tile"><dt class="muted">Companies, last 30 days</dt><dd class="big">{{ fmt_number(stats.companies_30d) }}</dd></div>
+<div class="tile"><dt class="muted">Insiders, last 30 days</dt><dd class="big">{{ fmt_number(stats.insiders_30d) }}</dd></div>
+<div class="tile"><dt class="muted">Trades since 2021</dt><dd class="big">{{ fmt_number(stats.trades_total) }}</dd></div>
+</dl>
+</section>
+
+<section class="section" aria-labelledby="find-h">
+<div class="card-head">
+<div class="titles"><h2 id="find-h">Find an insider</h2><p class="muted">By name. Companies are found with the search box above.</p></div>
+<div class="field"><label for="insider-search" class="muted">Insider’s name</label><input id="insider-search" type="search" data-insider-search="{{ base }}/data/insiders-{letter}.json" placeholder="e.g. Cook" autocomplete="off"></div>
+</div>
+<ul class="search-results insider-results" id="insider-results" hidden></ul>
+</section>
+
+{% if weekly_svg %}
+<section class="section" aria-labelledby="weeks-h">
+<div class="card-head">
+<div class="titles"><h2 id="weeks-h">Buys and sells per week</h2><p class="muted">Last 26 weeks, by trade date.</p></div>
+<div class="legend muted">
+<span><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="10" rx="2" style="fill: #8A8A8A"></rect></svg>Buys</span>
+<span><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="10" rx="2" style="fill: #111111"></rect></svg>Sells</span>
+</div>
+</div>
+{{ weekly_svg | safe }}
+</section>
+{% endif %}
+
+<section class="section" aria-labelledby="big-h">
+<div class="titles"><h2 id="big-h">Biggest trades of the last 30 days</h2><p class="muted">By value (shares × price), as reported.</p></div>
+<div class="two-col">
+<div>
+<h3>Buys</h3>
+<div class="table-wrap"><table>
+<thead><tr><th scope="col">Insider</th><th scope="col">Company</th><th scope="col" class="r">Value</th><th scope="col">Traded</th></tr></thead>
+<tbody>
+{% for t in biggest_buys %}<tr><td>{{ insider_cell(t, base, people) }}</td><td>{{ company_cell(t, base) }}</td><td class="r num">{{ fmt_money(t.value) }}</td><td class="num nowrap">{{ fmt_date(t.traded) }}</td></tr>
+{% else %}<tr><td colspan="4" class="muted">No buys in the last 30 days.</td></tr>{% endfor %}
+</tbody></table></div>
+</div>
+<div>
+<h3>Sells</h3>
+<div class="table-wrap"><table>
+<thead><tr><th scope="col">Insider</th><th scope="col">Company</th><th scope="col" class="r">Value</th><th scope="col">Traded</th></tr></thead>
+<tbody>
+{% for t in biggest_sells %}<tr><td>{{ insider_cell(t, base, people) }}</td><td>{{ company_cell(t, base) }}</td><td class="r num">{{ fmt_money(t.value) }}</td><td class="num nowrap">{{ fmt_date(t.traded) }}</td></tr>
+{% else %}<tr><td colspan="4" class="muted">No sells in the last 30 days.</td></tr>{% endfor %}
+</tbody></table></div>
+</div>
+</div>
+</section>
+
+<section class="section" aria-labelledby="active-h">
+<div class="titles"><h2 id="active-h">Most active companies, last 30 days</h2><p class="muted">Companies whose officers and directors traded most often.</p></div>
+<div class="table-wrap">
+<table>
+<thead><tr><th scope="col">Company</th><th scope="col" class="r">Trades</th><th scope="col" class="r">Buys</th><th scope="col" class="r">Sells</th><th scope="col" class="r">Bought</th><th scope="col" class="r">Sold</th><th scope="col" class="r">Insiders</th></tr></thead>
+<tbody>
+{% for company, s in most_active %}
+<tr><td><a href="{{ base }}/stocks/{{ company.slug }}/" class="plain cell-main">{{ company.ticker }}</a><div class="muted">{{ company.name }}</div></td><td class="r num">{{ s.trades }}</td><td class="r num">{{ s.buys }}</td><td class="r num">{{ s.sells }}</td><td class="r num">{{ fmt_money_short(s.bought) }}</td><td class="r num">{{ fmt_money_short(s.sold) }}</td><td class="r num">{{ s.insiders }}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+
+<section class="section" aria-labelledby="latest-h">
+<div class="titles"><h2 id="latest-h">Latest filings</h2><p class="muted">The {{ latest | length }} most recently filed buys and sells.</p></div>
+{{ insider_table(latest, base, people, caption="Latest insider buys and sells") }}
+</section>
+{% endif %}
+{% endblock %}

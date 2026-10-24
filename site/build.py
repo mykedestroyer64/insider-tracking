@@ -33,6 +33,7 @@ sys.path.insert(0, str(HERE.parent))            # for database.py in the reposit
 
 import charts                                    # noqa: E402
 import data as sitedata                          # noqa: E402
+import insiders as insiderdata                   # noqa: E402
 import people                                    # noqa: E402
 from jinja2 import Environment, FileSystemLoader, select_autoescape   # noqa: E402
 
@@ -41,6 +42,7 @@ NAV = [
     ("trades", "/trades/", "Trades", '<path d="M2 5.5h10M9.5 3l2.5 2.5L9.5 8"></path><path d="M14 10.5H4M6.5 8L4 10.5 6.5 13"></path>'),
     ("congress", "/congress/", "Congress", '<circle cx="8" cy="5.5" r="3"></circle><path d="M2.5 14c.6-3 2.7-4.5 5.5-4.5s4.9 1.5 5.5 4.5"></path>'),
     ("stocks", "/stocks/", "Stocks", '<path d="M2 13.5l3.5-4 3 2.5L14 5"></path><path d="M10.5 5H14v3.5"></path>'),
+    ("insiders", "/insiders/", "Insiders", '<path d="M3 14V3.5A1.5 1.5 0 0 1 4.5 2h5A1.5 1.5 0 0 1 11 3.5V14M11 7h2a1 1 0 0 1 1 1v6M2 14h13"></path><path d="M5.5 5h3M5.5 8h3M5.5 11h3"></path>'),
     ("portfolios", "/portfolios/", "Portfolios", '<rect x="2" y="5" width="12" height="8.5" rx="1"></rect><path d="M5.5 5V3.5A1.5 1.5 0 0 1 7 2h2a1.5 1.5 0 0 1 1.5 1.5V5M2 9h12"></path>'),
     ("late", "/late/", "Late filings", '<circle cx="8" cy="8" r="6.5"></circle><path d="M8 4.5V8l2.5 1.5"></path>'),
     ("alerts", "/alerts/", "Alerts", '<path d="M4 11V7.5a4 4 0 0 1 8 0V11l1 1.5H3L4 11z"></path><path d="M6.5 14h3"></path>'),
@@ -140,8 +142,9 @@ def site_defaults():
 # --------------------------------------------------------------------- build
 
 class Builder:
-    def __init__(self, dataset, out, base, site_url, repo):
+    def __init__(self, dataset, out, base, site_url, repo, insiders=None):
         self.ds = dataset
+        self.ins = insiders if insiders is not None else insiderdata.InsiderData([], [], dataset.today)
         self.out = Path(out)
         self.base = base
         self.site_url = site_url
@@ -158,7 +161,9 @@ class Builder:
             "nav": [{"id": i, "href": h, "label": l, "icon": ICON.format(svg)} for i, h, l, svg in NAV],
             "fmt_date": sitedata.fmt_date, "fmt_number": sitedata.fmt_number,
             "headline": headline, "days_text": days_text, "trade_json": home_trade_json,
-            "short_asset": short_asset,
+            "short_asset": short_asset, "fmt_money": insiderdata.fmt_money,
+            "fmt_money_short": insiderdata.fmt_money_short, "fmt_shares": insiderdata.fmt_shares,
+            "fmt_price": insiderdata.fmt_price, "has_insiders": bool(self.ins.trades),
         })
 
     def write(self, path, text):
@@ -190,6 +195,7 @@ class Builder:
         self.build_trades()
         self.build_members()
         self.build_stocks()
+        self.build_insiders()
         self.build_late()
         self.page("portfolios.html", "/portfolios/index.html", page="portfolios")
         self.page("alerts.html", "/alerts/index.html", page="alerts")
@@ -199,7 +205,8 @@ class Builder:
         self.build_feed()
         self.build_sitemap()
         log(f"  {len(self.pages)} pages, {len(ds.trades)} trades, {len(ds.filers)} filers, "
-            f"{len(ds.stocks)} stocks")
+            f"{len(ds.stocks)} stocks, {len(self.ins.trades)} insider trades by {len(self.ins.people)} insiders "
+            f"at {len(self.ins.companies)} companies")
 
     def build_home(self):
         ds = self.ds
@@ -208,7 +215,8 @@ class Builder:
         self.page("index.html", "/index.html", page="home",
                   stats=ds.overview_stats(), charts=activity,
                   charts_json=json.dumps(activity, separators=(",", ":")),
-                  histogram_svg=charts.histogram_svg(ds.delay_histogram()), latest=latest)
+                  histogram_svg=charts.histogram_svg(ds.delay_histogram()), latest=latest,
+                  insider_latest=self.ins.latest(8), insider_stats=self.ins.overview())
 
     def build_trades(self):
         ds = self.ds
@@ -248,10 +256,22 @@ class Builder:
                 self.redirect(f"/senators/{filer.slug}/index.html", f"/congress/{filer.slug}/")
 
     def build_stocks(self):
-        ds = self.ds
-        stocks = sorted(ds.stocks.values(), key=lambda s: (-s["count"], s["ticker"]))
-        self.page("stocks.html", "/stocks/index.html", page="stocks", stocks=[s for s in stocks if s["count"]])
-        for stock in stocks:
+        ds, ins = self.ds, self.ins
+        stocks = dict(ds.stocks)
+        for slug, company in ins.companies.items():       # companies only insiders traded get a page too
+            if slug not in stocks:
+                stocks[slug] = {"ticker": company.ticker, "slug": slug, "name": company.name, "names": Counter(),
+                                "trades": [], "count": 0, "filers": [], "buys": 0, "sells": 0, "last_received": None}
+        for slug, stock in stocks.items():
+            company = ins.companies.get(slug)
+            stock["company"] = company
+            stock["insider_stats"] = company.stats() if company else None
+            if company and not ds.stocks.get(slug):
+                stock["name"] = company.name
+        listed = sorted((s for s in stocks.values() if s["count"]), key=lambda s: (-s["count"], s["ticker"]))
+        self.page("stocks.html", "/stocks/index.html", page="stocks", stocks=listed,
+                  insider_only=sum(1 for s in stocks.values() if not s["count"]))
+        for stock in stocks.values():
             by_year = Counter(t.received.year for t in stock["trades"] if t.received and t.counted)
             rows = {}
             for t in stock["trades"]:
@@ -264,9 +284,60 @@ class Builder:
                 when = t.traded_ok or t.received
                 if when and (row["last"] is None or when > row["last"]):
                     row["last"] = when
+            company = stock["company"]
+            insider_trades = company.trades if company else []
+            insider_rows = self.insider_rows(insider_trades)
             self.page("stock.html", f"/stocks/{stock['slug']}/index.html", page="stocks", stock=stock,
                       by_filer=sorted(rows.values(), key=lambda r: (-r["trades"], r["filer"].name)),
-                      yearly_svg=charts.yearly_bars_svg(by_year, stock["ticker"]) if len(by_year) > 1 else "")
+                      yearly_svg=charts.yearly_bars_svg(by_year, stock["ticker"]) if len(by_year) > 1 else "",
+                      insider_trades=insider_trades[:insiderdata.ON_STOCK_PAGE], insider_total=len(insider_trades),
+                      insider_rows=insider_rows, insider_people=self.ins.people)
+            if len(insider_trades) > insiderdata.ON_STOCK_PAGE:
+                self.page("stock_insiders.html", f"/stocks/{stock['slug']}/insiders/index.html", page="stocks",
+                          stock=stock, insider_trades=insider_trades, insider_people=self.ins.people)
+
+    @staticmethod
+    def insider_rows(trades):
+        """Per-person summary of a company's insider trades (counted ones)."""
+        rows = {}
+        for t in trades:
+            if not t.counted:
+                continue
+            row = rows.setdefault(t.insider_cik, {"cik": t.insider_cik, "name": t.insider_name, "title": t.role_text,
+                                                  "trades": 0, "buys": 0, "sells": 0, "bought": 0.0, "sold": 0.0, "last": None})
+            row["trades"] += 1
+            row["buys"] += t.kind == "buy"
+            row["sells"] += t.kind == "sell"
+            if t.kind == "buy":
+                row["bought"] += t.value or 0
+            else:
+                row["sold"] += t.value or 0
+            if t.traded and (row["last"] is None or t.traded > row["last"]):
+                row["last"] = t.traded
+        return sorted(rows.values(), key=lambda r: (-r["trades"], r["name"]))
+
+    def build_insiders(self):
+        ins = self.ins
+        self.page("insiders.html", "/insiders/index.html", page="insiders", stats=ins.overview(),
+                  latest=ins.latest(), biggest_buys=ins.biggest("buy"), biggest_sells=ins.biggest("sell"),
+                  most_active=ins.most_active(), weekly=ins.weekly_counts(),
+                  weekly_svg=charts.buys_sells_svg(ins.weekly_counts()) if ins.trades else "",
+                  people=ins.people)
+        for person in ins.people.values():
+            trades = sorted(person.trades, key=lambda t: (t.filing.filed or date.min, t.traded or date.min), reverse=True)
+            self.page("insider.html", f"/insiders/{person.slug}/index.html", page="insiders", person=person,
+                      stats=person.stats(), trades=trades)
+        # per-letter name index for the Insiders page search
+        by_letter = defaultdict(list)
+        for person in sorted(ins.people.values(), key=lambda p: p.name):
+            words = person.name.split()
+            for word in {words[-1], words[0]} if words else set():
+                first = word[:1].lower()
+                if first.isalpha():
+                    by_letter[first].append({"n": person.name, "s": person.description[:80], "u": f"/insiders/{person.slug}/"})
+        for letter, rows in by_letter.items():
+            unique = {r["u"]: r for r in rows}
+            self.write(f"/data/insiders-{letter}.json", json.dumps(list(unique.values()), ensure_ascii=False, separators=(",", ":")))
 
     def build_late(self):
         ds = self.ds
@@ -303,6 +374,11 @@ class Builder:
         for stock in sorted((s for s in ds.stocks.values() if s["count"]), key=lambda s: -s["count"]):
             search.append({"t": "stock", "n": stock["ticker"], "k": stock["name"], "s": stock["name"],
                            "u": f"/stocks/{stock['slug']}/"})
+        listed = {s["slug"] for s in ds.stocks.values() if s["count"]}
+        for company in sorted(self.ins.companies.values(), key=lambda c: -len(c.trades)):
+            if company.slug not in listed:
+                search.append({"t": "stock", "n": company.ticker, "k": company.name, "s": company.name,
+                               "u": f"/stocks/{company.slug}/"})
         self.write("/data/search.json", json.dumps(search, ensure_ascii=False, separators=(",", ":")))
         by_year = defaultdict(list)
         for t in ds.trades_sorted():
@@ -388,11 +464,12 @@ def main(argv=None, conn=None, legislators=None):
     try:
         log("Reading the database…")
         dataset = sitedata.load(conn)
+        insiders = insiderdata.load(conn, dataset.today)
     finally:
         if close:
             close()
     log(f"  {len(dataset.reports)} reports, {len(dataset.trades)} trades, "
-        f"{len(dataset.filers)} filers; data updated {dataset.updated or 'never'}")
+        f"{len(dataset.filers)} filers; {len(insiders.trades)} insider trades; data updated {dataset.updated or 'never'}")
 
     log("Matching names to the legislators list…")
     if legislators is None:
@@ -407,7 +484,7 @@ def main(argv=None, conn=None, legislators=None):
             log(f"    {filer.key!r}: {filer.match_note}")
 
     log("Writing pages…")
-    Builder(dataset, args.out, base, site_url, repo).build()
+    Builder(dataset, args.out, base, site_url, repo, insiders).build()
     log(f"Done in {time.time() - started:.1f} s")
     return 0
 

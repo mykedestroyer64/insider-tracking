@@ -241,6 +241,35 @@
     apply();
   })();
 
+  /* 6. the Insiders page: find a person by name (one small file per first letter) */
+  (function () {
+    var input = $("input[data-insider-search]"), list = $("#insider-results");
+    if (!input || !list) { return; }
+    var template = input.getAttribute("data-insider-search"), files = {};
+    function load(letter) {
+      if (!files[letter]) {
+        files[letter] = fetch(template.replace("{letter}", letter)).then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; });
+      }
+      return files[letter];
+    }
+    function search() {
+      var q = input.value.trim().toLowerCase();
+      var letter = q.charAt(0);
+      if (!/[a-z]/.test(letter)) { list.hidden = true; list.innerHTML = ""; return; }
+      load(letter).then(function (items) {
+        if (input.value.trim().toLowerCase() !== q) { return; }   // the person kept typing
+        var hits = items.filter(function (it) {
+          return it.n.toLowerCase().split(/\s+/).some(function (w) { return w.indexOf(q) === 0; }) || it.n.toLowerCase().indexOf(q) === 0;
+        }).slice(0, 12);
+        list.innerHTML = hits.map(function (it) {
+          return '<li><a href="' + esc(base + it.u) + '"><span>' + esc(it.n) + '</span><span class="muted">' + esc(it.s || "") + '</span></a></li>';
+        }).join("") || '<li><span class="muted" style="display:block;padding:10px 14px">No insider with that name.</span></li>';
+        list.hidden = false;
+      });
+    }
+    input.addEventListener("input", search);
+  })();
+
   /* 5. quick filter on index tables, and the Senate/House buttons ------ */
   function filterTable(table) {
     // every word typed must start one of the row's words (name, party letter, state code or name, ticker...)

@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% from "macros.html" import clock %}
-{% block title %}Insider Tracking: what members of Congress buy and sell{% endblock %}
+{% block title %}Insider Tracking: what members of Congress and company insiders buy and sell{% endblock %}
 {% block content %}
 <section class="hero">
 <div class="hero-text">
-<h1>See what members of Congress buy and sell</h1>
-<p class="lead">Senators and representatives vote on laws that affect the companies they invest in. Insider Tracking lists the stock trades they report, updated every three hours, for voters, reporters and anyone who wants to check.</p>
+<h1>See what members of Congress and company insiders buy and sell</h1>
+<p class="lead">Senators and representatives vote on laws that affect the companies they invest in; executives and directors know their companies from the inside. Insider Tracking lists the stock trades both must report, updated every three hours, for voters, reporters and anyone who wants to check.</p>
 </div>
 {% include "_search.html" %}
 </section>
@@ -109,6 +109,28 @@
 
 </div>
 </section>
+
+{% if has_insiders %}
+<section class="section" aria-labelledby="ins-h">
+<div class="card-head">
+<div class="titles">
+<h2 id="ins-h">Company insiders</h2>
+<p class="muted">What officers and directors bought and sold in their own companies: {{ fmt_number(insider_stats.buys_30d) }} buys and {{ fmt_number(insider_stats.sells_30d) }} sells in the last 30 days.</p>
+</div>
+<a href="{{ base }}/insiders/" class="more">See all insider trades</a>
+</div>
+<div class="table-wrap">
+<table>
+<thead><tr><th scope="col">Insider</th><th scope="col">Company</th><th scope="col">Trade</th><th scope="col" class="r">Value</th><th scope="col">Traded</th></tr></thead>
+<tbody>
+{% for t in insider_latest %}
+<tr><td><span class="cell-main">{{ t.insider_name }}</span><div class="muted">{{ t.role_text }}</div></td><td><a href="{{ base }}/stocks/{{ t.stock_slug }}/" class="plain cell-main">{{ t.ticker }}</a><div class="muted">{{ t.filing.company_name }}</div></td><td class="nowrap">{{ t.label }}</td><td class="r num">{{ fmt_money(t.value) }}</td><td class="num nowrap">{{ fmt_date(t.traded) }}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+{% endif %}
 
 <section class="section" id="alerts" aria-labelledby="alerts-h">
 <div class="card-head">

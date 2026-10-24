@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% from "macros.html" import trade_table %}
-{% block title %}{{ stock.ticker }}: trades by members of Congress · Insider Tracking{% endblock %}
-{% block description %}{{ stock.ticker }} ({{ stock.name }}): {{ stock.count }} trades reported by {{ stock.filers | length }} members of Congress, with dates, amounts and late filings.{% endblock %}
+{% from "_insider_macros.html" import insider_table %}
+{% block title %}{{ stock.ticker }}: trades by members of Congress{% if insider_total %} and company insiders{% endif %} · Insider Tracking{% endblock %}
+{% block description %}{{ stock.ticker }} ({{ stock.name }}): {% if stock.count %}{{ stock.count }} trades reported by {{ stock.filers | length }} members of Congress{% endif %}{% if stock.count and insider_total %}, and {% endif %}{% if insider_total %}{{ insider_total }} open-market trades by the company's own officers and directors{% endif %}.{% endblock %}
 {% block content %}
 <section class="page-head">
 <div class="hero-text">
@@ -12,8 +13,10 @@
 {% include "_search.html" %}
 </section>
 
-<section class="section">
-<dl class="tiles on-white" aria-label="Summary">
+{% if stock.count or not insider_total %}
+<section class="section" aria-labelledby="congress-h">
+<h2 id="congress-h" class="section-h">Members of Congress</h2>
+<dl class="tiles on-white" aria-label="Congress summary">
 <div class="tile"><dt class="muted">Trades reported</dt><dd class="big">{{ fmt_number(stock.count) }}</dd></div>
 <div class="tile"><dt class="muted">Members who traded it</dt><dd class="big">{{ stock.filers | length }}</dd></div>
 <div class="tile"><dt class="muted">Buys</dt><dd class="big">{{ fmt_number(stock.buys) }}</dd></div>
@@ -24,13 +27,14 @@
 
 {% if yearly_svg %}
 <section class="section" aria-labelledby="years-h">
-<div class="titles"><h2 id="years-h">Trades per year</h2><p class="muted">By the year the trade was reported.</p></div>
+<div class="titles"><h2 id="years-h">Congress trades per year</h2><p class="muted">By the year the trade was reported.</p></div>
 {{ yearly_svg | safe }}
 </section>
 {% endif %}
 
+{% if by_filer %}
 <section class="section" aria-labelledby="who-h">
-<h2 id="who-h">Who traded it</h2>
+<h2 id="who-h">Who traded it in Congress</h2>
 <div class="table-wrap">
 <table>
 <thead><tr><th scope="col">Member</th><th scope="col" class="r">Trades</th><th scope="col" class="r">Buys</th><th scope="col" class="r">Sells</th><th scope="col">Last trade</th></tr></thead>
@@ -43,8 +47,47 @@
 </div>
 </section>
 
-<section class="section" aria-labelledby="all-h">
-<div class="titles"><h2 id="all-h">All trades</h2><p class="muted">Newest disclosure first.</p></div>
-{{ trade_table(stock.trades, base, show_asset=False, caption="All trades in " ~ stock.ticker) }}
+{% endif %}
+{% endif %}
+
+{% if insider_total %}
+{% set s = stock.insider_stats %}
+<section class="section" aria-labelledby="ins-h">
+<h2 id="ins-h" class="section-h">Company insiders</h2>
+<p class="muted">Open-market buys and sells by {{ stock.name }}’s own officers and directors, reported to the SEC on Form 4 (since 2021).</p>
+<dl class="tiles on-white" aria-label="Insider summary">
+<div class="tile"><dt class="muted">Insider buys</dt><dd class="big">{{ fmt_number(s.buys) }}<span class="of"> {{ fmt_money_short(s.bought) }}</span></dd></div>
+<div class="tile"><dt class="muted">Insider sells</dt><dd class="big">{{ fmt_number(s.sells) }}<span class="of"> {{ fmt_money_short(s.sold) }}</span></dd></div>
+<div class="tile"><dt class="muted">Insiders who traded</dt><dd class="big">{{ fmt_number(s.insiders) }}</dd></div>
+<div class="tile"><dt class="muted">Last insider trade</dt><dd class="big">{{ fmt_date(s.last) or "–" }}</dd></div>
+</dl>
 </section>
+
+<section class="section" aria-labelledby="inswho-h">
+<h2 id="inswho-h">Which insiders</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th scope="col">Insider</th><th scope="col" class="r">Trades</th><th scope="col" class="r">Buys</th><th scope="col" class="r">Sells</th><th scope="col" class="r">Bought</th><th scope="col" class="r">Sold</th><th scope="col">Last trade</th></tr></thead>
+<tbody>
+{% for row in insider_rows %}
+{% set p = insider_people.get(row.cik) %}
+<tr><td>{% if p %}<a href="{{ base }}/insiders/{{ p.slug }}/" class="plain cell-main">{{ row.name }}</a>{% else %}<span class="cell-main">{{ row.name }}</span>{% endif %}<div class="muted">{{ row.title }}</div></td><td class="r num">{{ row.trades }}</td><td class="r num">{{ row.buys }}</td><td class="r num">{{ row.sells }}</td><td class="r num">{{ fmt_money_short(row.bought) }}</td><td class="r num">{{ fmt_money_short(row.sold) }}</td><td class="num nowrap">{{ fmt_date(row.last) }}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+
+<section class="section" aria-labelledby="insall-h">
+<div class="titles"><h2 id="insall-h">{% if insider_total > insider_trades | length %}Latest {{ insider_trades | length }} insider trades{% else %}All insider trades{% endif %}</h2><p class="muted">Newest filing first.{% if insider_total > insider_trades | length %} <a href="{{ base }}/stocks/{{ stock.slug }}/insiders/">See all {{ fmt_number(insider_total) }}</a>.{% endif %}</p></div>
+{{ insider_table(insider_trades, base, insider_people, show_company=False, caption="Insider trades in " ~ stock.ticker) }}
+</section>
+{% endif %}
+
+{% if by_filer %}
+<section class="section" aria-labelledby="all-h">
+<div class="titles"><h2 id="all-h">All trades by members of Congress</h2><p class="muted">Newest disclosure first.</p></div>
+{{ trade_table(stock.trades, base, show_asset=False, caption="All trades in " ~ stock.ticker ~ " by members of Congress") }}
+</section>
+{% endif %}
 {% endblock %}
