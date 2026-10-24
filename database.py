@@ -461,8 +461,9 @@ def remove_entity_insiders(conn, pattern):
 
     `pattern` is a PostgreSQL regular expression; returns how many trades went."""
     cursor = conn.cursor()
-    cursor.execute("delete from insider_trades where insider_name ~* %s or insider_name ~ '^\\d'", (pattern,))
-    removed = cursor.rowcount
+    cursor.execute("delete from insider_trades where insider_name ~* %s or insider_name ~ '^\\d' returning 1",
+                   (pattern,))
+    removed = len(cursor.fetchall())
     cursor.execute("delete from insider_filings f where not exists "
                    "(select 1 from insider_trades t where t.accession = f.accession)")
     conn.commit()
