@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}Insider Tracking{% endblock %}</title>
-<meta name="description" content="{% block description %}Stock trades reported by U.S. senators, collected from the Senate's official disclosure site and updated every three hours.{% endblock %}">
+<meta name="description" content="{% block description %}Stock trades reported by U.S. senators and representatives, collected from the official disclosure sites of Congress and updated every three hours.{% endblock %}">
 <link rel="stylesheet" href="{{ base }}/static/site.css?v={{ build_id }}">
 <link rel="icon" href="{{ base }}/static/icon.svg" type="image/svg+xml">
 <link rel="alternate" type="application/atom+xml" title="Insider Tracking: new trade reports" href="{{ base }}/feed.xml">
@@ -31,8 +31,8 @@ try{var p=localStorage.getItem("menu-pinned");if(p===null?window.innerWidth>=120
 <div class="grow"></div>
 <footer class="site-footer">
 <div class="notes muted">
-<p>Insider Tracking is independent and non-commercial. It is not affiliated with the U.S. Senate.</p>
-<p>Source: U.S. Senate Financial Disclosures (efdsearch.senate.gov), checked every three hours.{% if updated %} Data updated {{ updated }}.{% endif %} Reports filed on paper are listed, but their trades aren’t read yet.</p>
+<p>Insider Tracking is independent and non-commercial. It is not affiliated with Congress.</p>
+<p>Sources: U.S. Senate Financial Disclosures (efdsearch.senate.gov) and the Clerk of the House (disclosures-clerk.house.gov), checked every three hours.{% if updated %} Data updated {{ updated }}.{% endif %} Reports filed on paper are listed, but their trades aren’t read yet.</p>
 <p>Federal law forbids using these reports for commercial purposes, credit ratings or fundraising (5 U.S.C. § 13107).</p>
 </div>
 <nav aria-label="Footer" class="muted">

@@ -1,7 +1,8 @@
 """
 data.py - reads the collector's tables and turns them into the objects the
-website is built from: filers (senators and candidates), their trades, and
-the statistics shown on the pages.
+website is built from: filers (members of Congress, and Senate candidates),
+their trades, and the statistics shown on the pages. Reports come from both
+chambers: the Senate's eFD and the House Clerk.
 
 Every query asks the database for text, so the same code works with any
 driver and in tests. Dates and numbers are parsed here, in one place.
@@ -108,6 +109,7 @@ class Trade:
     received: date | None = None
     report_url: str = ""
     is_amendment: bool = False
+    chamber: str = "senate"
     filer: "Filer | None" = None
 
     @property
@@ -173,6 +175,8 @@ class Report:
     url: str
     transaction_count: int
     first_seen: datetime | None
+    chamber: str = "senate"
+    state_district: str = ""      # House only, e.g. CA11 (00 = the state's single, at-large seat)
     trades: list = field(default_factory=list)
 
     @property
@@ -194,12 +198,14 @@ class Report:
 
 @dataclass
 class Filer:
-    key: str                      # "last|first" exactly as eFD writes it
+    key: str                      # "chamber|last|first" as the source writes it (plus the state for the House)
     first_name: str
     last_name: str
     name: str                     # display name
     slug: str
-    filer_type: str               # Senator, Former Senator, Candidate, ...
+    filer_type: str               # Senator, Former Senator, Representative, Former Representative, Candidate
+    chamber: str = "senate"       # the chamber of the newest report
+    district: str = ""            # House district of the newest House report, e.g. CA11
     party: str | None = None      # D, R, I
     state: str | None = None      # two letters
     bioguide: str | None = None
@@ -208,12 +214,38 @@ class Filer:
     trades: list = field(default_factory=list)
 
     @property
+    def is_member(self):
+        """A senator or representative, now or in the past (not a candidate)."""
+        kind = (self.filer_type or "").lower()
+        return "senator" in kind or "representative" in kind
+
+    @property
     def is_senator(self):
         return "senator" in (self.filer_type or "").lower()
 
     @property
+    def in_house(self):
+        """Their latest seat is in the House."""
+        return "representative" in (self.filer_type or "").lower()
+
+    @property
+    def chamber_label(self):
+        return "House" if self.in_house else "Senate"
+
+    @property
+    def district_label(self):
+        """'CA-11', or 'AK-AL' for a state's single (at-large) seat."""
+        match = re.fullmatch(r"([A-Z]{2})(\d{1,2})", self.district or "")
+        if not self.in_house or not match:
+            return ""
+        number = int(match.group(2))
+        return f"{match.group(1)}-{number}" if number else f"{match.group(1)}-AL"
+
+    @property
     def party_state(self):
-        parts = [part for part in (self.party, self.state) if part]
+        """'R · AR' for a senator, 'D · CA-11' for a representative."""
+        place = self.district_label or self.state
+        parts = [part for part in (self.party, place) if part]
         return " · ".join(parts)
 
     @property
@@ -222,9 +254,12 @@ class Filer:
 
     @property
     def description(self):
-        """'D · Pennsylvania · Senator', with whatever is known."""
+        """'Democrat · Pennsylvania · Senator', or '... · Representative, CA-11', with whatever is known."""
         party = {"D": "Democrat", "R": "Republican", "I": "Independent"}.get(self.party or "", self.party)
-        parts = [part for part in (party, self.state_name, self.filer_type) if part]
+        role = self.filer_type
+        if role and self.district_label:
+            role = f"{role}, {self.district_label}"
+        parts = [part for part in (party, self.state_name, role) if part]
         return " · ".join(parts)
 
     @property
@@ -266,10 +301,13 @@ select report_path, kind, status, coalesce(first_name, ''), coalesce(last_name, 
        coalesce(filer_name, ''), coalesce(filer_type, ''), coalesce(title, ''),
        is_amendment::int::text, to_char(date_received, 'YYYY-MM-DD'), url,
        coalesce(transaction_count, 0)::text,
-       to_char(first_seen_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS')
+       to_char(first_seen_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS'),
+       chamber, coalesce(state_district, '')
 from reports
 order by date_received desc nulls last, report_path
 """
+# Before the first House collector run the database has no chamber columns yet
+REPORT_SQL_SENATE_ONLY = REPORT_SQL.replace("chamber, coalesce(state_district, '')", "'senate', ''")
 
 TRADE_SQL = """
 select report_path, row_number::text, to_char(transaction_date, 'YYYY-MM-DD'), owner, ticker,
@@ -302,15 +340,14 @@ where table_name = 'reports' and column_name = 'chamber'
 def load(conn):
     """Read everything the site needs. Returns a Dataset."""
     reports = {}
-    report_sql = REPORT_SQL
-    if fetch_all(conn, HAS_CHAMBER_SQL)[0][0] != "0":   # until the pages show the House, Senate only
-        report_sql = REPORT_SQL.replace("from reports", "from reports where chamber = 'senate'")
-    for row in fetch_all(conn, report_sql):
+    has_chamber = fetch_all(conn, HAS_CHAMBER_SQL)[0][0] != "0"
+    for row in fetch_all(conn, REPORT_SQL if has_chamber else REPORT_SQL_SENATE_ONLY):
         report = Report(
             path=row[0], kind=row[1], status=row[2], first_name=row[3], last_name=row[4],
             filer_name=row[5], filer_type=row[6], title=row[7], is_amendment=row[8] == "1",
             received=parse_date(row[9]), url=row[10], transaction_count=parse_int(row[11]) or 0,
             first_seen=datetime.fromisoformat(row[12]) if row[12] else None,
+            chamber=row[13] or "senate", state_district=row[14] or "",
         )
         reports[report.path] = report
 
@@ -325,6 +362,7 @@ def load(conn):
             transaction_type=row[7], trade_type=row[8], amount=row[9],
             amount_min=parse_int(row[10]), amount_max=parse_int(row[11]), comment=row[12],
             received=report.received, report_url=report.url, is_amendment=report.is_amendment,
+            chamber=report.chamber,
         ))
 
     updated_rows = fetch_all(conn, UPDATED_SQL)
@@ -358,14 +396,23 @@ class Dataset:
         filers = {}
         self.filer_by_report = {}
         for report in sorted(self.reports, key=lambda r: (r.received or date.min), reverse=True):
-            key = f"{report.last_name}|{report.first_name}"
+            # One filer per chamber and name (and state, in the House). Someone who served in
+            # both chambers is joined into one person later, once matched to the legislators list.
+            key = f"{report.chamber}|{report.last_name}|{report.first_name}"
+            if report.chamber == "house":
+                key += f"|{report.state_district[:2]}"
             filer = filers.get(key)
             if filer is None:
                 filer = Filer(key=key, first_name=report.first_name, last_name=report.last_name,
                               name=display_name(report.first_name, report.last_name),
                               slug=slugify(display_name(report.first_name, report.last_name)),
-                              filer_type=report.filer_type)   # newest report first: current type
+                              filer_type=report.filer_type,   # newest report first: current type
+                              chamber=report.chamber)
                 filers[key] = filer
+            if report.chamber == "house" and not filer.district:
+                filer.district = report.state_district
+                if not filer.state and len(report.state_district) >= 2:
+                    filer.state = report.state_district[:2]
             filer.reports.append(report)
             self.filer_by_report[report.path] = filer
         for trade in self.trades:

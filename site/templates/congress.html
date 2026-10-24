@@ -1,27 +1,33 @@
 {% extends "base.html" %}
-{% block title %}Senators · Insider Tracking{% endblock %}
-{% block description %}Every U.S. senator and Senate candidate who has reported stock trades since 2012, with trade counts and late filings.{% endblock %}
+{% block title %}Congress · Insider Tracking{% endblock %}
+{% block description %}Every U.S. senator and representative who has reported stock trades, with trade counts and late filings.{% endblock %}
 {% block content %}
 <section class="page-head">
 <div class="hero-text">
-<h1>Senators</h1>
-<p class="lead">Everyone who has filed a trade report with the Senate since 2012: {{ senators | length }} senators and former senators, and {{ candidates | length }} candidates. Senators who never reported a trade aren’t listed.</p>
+<h1>Congress</h1>
+<p class="lead">Everyone in Congress who has filed a trade report: {{ fmt_number(senate_count) }} senators and former senators (reports since 2012) and {{ fmt_number(house_count) }} representatives and former representatives (reports since 2013). Members who never reported a trade aren’t listed.</p>
 </div>
 {% include "_search.html" %}
 </section>
 
-<section class="section" aria-labelledby="sen-h">
+<section class="section" aria-labelledby="members-h">
 <div class="card-head">
-<h2 id="sen-h">Senators and former senators</h2>
-<div class="field"><label for="sen-filter" class="muted">Filter by name, party or state</label><input id="sen-filter" type="search" data-filter="#sen-table" placeholder="e.g. Ohio, OH or Republican"></div>
+<h2 id="members-h">Members and former members</h2>
+<div class="filters-row">
+<div role="group" aria-label="Chamber" class="chips" data-chamber-filter="#members-table" hidden>
+{% for key, label in [("all", "All"), ("senate", "Senate"), ("house", "House")] %}<button type="button" class="chip{% if key == 'all' %} is-on{% endif %}" aria-pressed="{{ 'true' if key == 'all' else 'false' }}" data-chamber="{{ key }}">{{ label }}</button>{% endfor %}
+</div>
+<div class="field"><label for="members-filter" class="muted">Filter by name, party or state</label><input id="members-filter" type="search" data-filter="#members-table" placeholder="e.g. Ohio or R"></div>
+</div>
 </div>
 <div class="table-wrap">
-<table id="sen-table">
-<thead><tr><th scope="col">Senator</th><th scope="col">Party</th><th scope="col">State</th><th scope="col" class="r">Trades</th><th scope="col" class="r">Buys</th><th scope="col" class="r">Sells</th><th scope="col" class="r">Late reports</th><th scope="col">Last trade</th></tr></thead>
+<table id="members-table">
+<thead><tr><th scope="col">Member</th><th scope="col">Chamber</th><th scope="col">Party</th><th scope="col">State</th><th scope="col" class="r">Trades</th><th scope="col" class="r">Buys</th><th scope="col" class="r">Sells</th><th scope="col" class="r">Late reports</th><th scope="col">Last trade</th></tr></thead>
 <tbody>
-{% for f, s in senators %}
-<tr data-search="{{ f.name }} {{ f.party or '' }} {{ f.state or '' }} {{ f.state_name }} {{ f.description }}">
-<td><a href="{{ base }}/senators/{{ f.slug }}/" class="plain cell-main">{{ f.name }}</a>{% if not f.is_senator or 'former' in f.filer_type | lower %}<div class="muted">{{ f.filer_type }}</div>{% endif %}</td>
+{% for f, s in members %}
+<tr data-chamber="{{ 'house' if f.in_house else 'senate' }}" data-search="{{ f.name }} {{ f.chamber_label }} {{ f.party or '' }} {{ f.state or '' }} {{ f.state_name }} {{ f.district_label }} {{ f.description }}">
+<td><a href="{{ base }}/congress/{{ f.slug }}/" class="plain cell-main">{{ f.name }}</a>{% if 'former' in f.filer_type | lower or f.district_label %}<div class="muted">{% if 'former' in f.filer_type | lower %}{{ f.filer_type }}{% if f.district_label %}, {% endif %}{% endif %}{{ f.district_label }}</div>{% endif %}</td>
+<td>{{ f.chamber_label }}</td>
 <td>{{ f.party or "–" }}</td>
 <td>{{ f.state_name or "–" }}</td>
 <td class="r num">{{ fmt_number(s.trades) }}</td>
@@ -39,16 +45,16 @@
 {% if candidates %}
 <section class="section" aria-labelledby="cand-h">
 <div class="titles">
-<h2 id="cand-h">Candidates</h2>
-<p class="muted">People running for the Senate also file trade reports. Party and state aren’t available for them.</p>
+<h2 id="cand-h">Candidates and other filers</h2>
+<p class="muted">People running for the Senate also file trade reports, and so do a few officers of Congress. Party and state aren’t available for them.</p>
 </div>
 <div class="table-wrap">
 <table>
-<thead><tr><th scope="col">Candidate</th><th scope="col" class="r">Trades</th><th scope="col" class="r">Buys</th><th scope="col" class="r">Sells</th><th scope="col" class="r">Late reports</th><th scope="col">Last trade</th></tr></thead>
+<thead><tr><th scope="col">Name</th><th scope="col" class="r">Trades</th><th scope="col" class="r">Buys</th><th scope="col" class="r">Sells</th><th scope="col" class="r">Late reports</th><th scope="col">Last trade</th></tr></thead>
 <tbody>
 {% for f, s in candidates %}
 <tr>
-<td><a href="{{ base }}/senators/{{ f.slug }}/" class="plain cell-main">{{ f.name }}</a></td>
+<td><a href="{{ base }}/congress/{{ f.slug }}/" class="plain cell-main">{{ f.name }}</a>{% if f.filer_type %}<div class="muted">{{ f.filer_type }}</div>{% endif %}</td>
 <td class="r num">{{ fmt_number(s.trades) }}</td>
 <td class="r num">{{ fmt_number(s.buys) }}</td>
 <td class="r num">{{ fmt_number(s.sells) }}</td>

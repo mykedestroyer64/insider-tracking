@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% from "macros.html" import clock %}
 {% block title %}Trades · Insider Tracking{% endblock %}
-{% block description %}Every stock trade U.S. senators have reported since 2012, with filters by senator, stock, type, amount and late disclosure.{% endblock %}
+{% block description %}Every stock trade members of Congress have reported, with filters by member, chamber, stock, type, amount and late disclosure.{% endblock %}
 {% block content %}
 <section class="page-head">
 <div class="hero-text">
 <h1>Trades</h1>
-<p class="lead">Every trade senators have reported since 2012, newest first. Amounts are the ranges senators report, not exact figures.</p>
+<p class="lead">Every trade senators (since 2012) and representatives (since 2013) have reported, newest first. Amounts are the ranges they report, not exact figures.</p>
 </div>
 {% include "_search.html" %}
 </section>
@@ -15,8 +15,10 @@
 <form class="filters" id="filters" data-years="{{ years | join(',') }}" data-url="{{ base }}/data/trades-{year}.json">
 <div class="field"><label for="f-year" class="muted">Year disclosed</label>
 <select id="f-year" name="year">{% for y in years %}<option value="{{ y }}">{{ y }}</option>{% endfor %}<option value="all">All years (loads more data)</option></select></div>
-<div class="field"><label for="f-senator" class="muted">Senator</label>
-<select id="f-senator" name="senator"><option value="">All</option>{% for f in filers %}<option value="{{ f.slug }}">{{ f.name }}{% if f.party_state %} ({{ f.party_state }}){% endif %}</option>{% endfor %}</select></div>
+<div class="field"><label for="f-chamber" class="muted">Chamber</label>
+<select id="f-chamber" name="chamber"><option value="">Both</option><option value="S">Senate</option><option value="H">House</option></select></div>
+<div class="field"><label for="f-member" class="muted">Member</label>
+<select id="f-member" name="member"><option value="">All</option>{% for f in filers %}<option value="{{ f.slug }}">{{ f.name }}{% if f.party_state %} ({{ f.party_state }}){% endif %}</option>{% endfor %}</select></div>
 <div class="field"><label for="f-stock" class="muted">Stock or asset</label><input id="f-stock" name="q" type="text" placeholder="Ticker or name"></div>
 <div class="field"><label for="f-type" class="muted">Trade</label>
 <select id="f-type" name="type"><option value="">All</option><option value="buy">Buy</option><option value="sell">Sell</option><option value="exchange">Exchange</option><option value="other">Other</option></select></div>
@@ -27,7 +29,7 @@
 <label class="check"><input type="checkbox" id="f-late" name="late" value="1"><span>Late only (after 45 days)</span></label>
 </form>
 <p class="muted" id="status" aria-live="polite">Loading trades…</p>
-<noscript><p class="lead">This page needs JavaScript to filter trades. Without it, you can browse trades on each <a href="{{ base }}/senators/">senator’s page</a> or <a href="{{ base }}/stocks/">stock’s page</a>.</p></noscript>
+<noscript><p class="lead">This page needs JavaScript to filter trades. Without it, you can browse trades on each <a href="{{ base }}/congress/">member’s page</a> or <a href="{{ base }}/stocks/">stock’s page</a>.</p></noscript>
 </section>
 
 <section class="section" aria-label="Trades" style="border-top: 0; padding-top: 0">
@@ -35,7 +37,7 @@
 <table class="trades" id="trades-table">
 <thead>
 <tr>
-<th scope="col" class="sortable" data-sort="sn" aria-sort="none">Senator</th>
+<th scope="col" class="sortable" data-sort="sn" aria-sort="none">Member</th>
 <th scope="col" class="sortable" data-sort="k" aria-sort="none">Stock or asset</th>
 <th scope="col">Trade</th>
 <th scope="col">Owner</th>

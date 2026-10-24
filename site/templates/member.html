@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% from "macros.html" import trade_table %}
 {% block title %}{{ filer.name }}: stock trades · Insider Tracking{% endblock %}
-{% block description %}{{ filer.name }}{% if filer.description %} ({{ filer.description }}){% endif %}: {{ stats.trades }} stock trades reported to the Senate, with dates, amounts and late filings.{% endblock %}
+{% block description %}{{ filer.name }}{% if filer.description %} ({{ filer.description }}){% endif %}: {{ stats.trades }} stock trades reported to Congress, with dates, amounts and late filings.{% endblock %}
 {% block content %}
 <section class="page-head">
 <div class="hero-text">
-<nav class="crumbs" aria-label="Breadcrumb"><a href="{{ base }}/senators/">Senators</a> › {{ filer.name }}</nav>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="{{ base }}/congress/">Congress</a> › {{ filer.name }}</nav>
 <h1>{{ filer.name }}</h1>
 <p class="lead">{{ filer.description }}{% if filer.bioguide %} · <a href="https://bioguide.congress.gov/search/bio/{{ filer.bioguide }}" rel="noopener">Official biography</a>{% endif %}</p>
 </div>
@@ -48,7 +48,7 @@
 {% endif %}
 
 <section class="section" aria-labelledby="all-h">
-<div class="titles"><h2 id="all-h">All trades</h2><p class="muted">Newest disclosure first. “Days” counts from the trade to the public report; the law allows 45.</p></div>
+<div class="titles"><h2 id="all-h">All trades</h2><p class="muted">Newest disclosure first. “Days” counts from the trade to the public report; the law allows 45.{% if chambers | length > 1 %} Reports from both chambers: the source says which.{% endif %}</p></div>
 {{ trade_table(filer.trades, base, show_filer=False, caption="All trades reported by " ~ filer.name) }}
 </section>
 {% endblock %}
