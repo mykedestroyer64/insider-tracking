@@ -286,9 +286,11 @@ def main():
     try:
         conn = database.connect(db_url, db_password)
         database.ensure_schema(conn)
+        removed = database.remove_entity_insiders(conn, sec_parsing.ENTITY_SQL)
         before = database.insider_counts(conn)
         run_id = database.start_run(conn, ran_on, collector="sec")
-        log.done(1, OK, f"tables ready, {before['trades']:,} insider trades stored so far")
+        log.done(1, OK, f"tables ready, {before['trades']:,} insider trades stored so far"
+                 + (f" ({removed:,} rows by funds or companies removed)" if removed else ""))
 
         web = sec_site.SecSession(f"{PROJECT}/{VERSION} (non-commercial public transparency project; "
                                   f"contact: {email})", args.max_requests)

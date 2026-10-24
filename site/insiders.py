@@ -82,10 +82,12 @@ class InsiderTrade:
     security: str
     suspect: bool
     suspect_reason: str
+    lots: int = 1             # broker fills combined into this row
+    duplicate: bool = False   # the same trade appears in an earlier filing (a joint filer's)
 
     @property
     def counted(self):
-        return not self.filing.is_amendment and not self.suspect
+        return not self.filing.is_amendment and not self.suspect and not self.duplicate
 
     @property
     def label(self):
@@ -177,11 +179,54 @@ class Person:
         }
 
 
+def combine_lots(rows):
+    """One row per filing, insider, direction and trade date: filers often list every broker fill.
+
+    Shares and values are added up; the price becomes the average paid. Rows marked
+    suspect, and rows without a price, are kept apart so their numbers aren't mixed in.
+    """
+    groups, order = {}, []
+    for row in rows:
+        key = (row.filing.accession, row.insider_cik, row.kind, row.traded, row.direct, row.security.lower(),
+               row.suspect, row.price is None)
+        if key in groups:
+            first = groups[key]
+            first.lots += 1
+            first.shares = (first.shares or 0) + (row.shares or 0)
+            if row.value is not None:
+                first.value = (first.value or 0) + row.value
+            if first.shares and first.value is not None:
+                first.price = first.value / first.shares
+            if row.row_key < first.row_key:
+                first.row_key = row.row_key
+        else:
+            groups[key] = row
+            order.append(row)
+    return order
+
+
+def mark_duplicates(rows):
+    """The same insider, stock, day, direction, shares and price in two filings: count it once.
+
+    Happens when a fund and its partner each file for the same trade. The earlier filing wins."""
+    seen = {}
+    for row in sorted(rows, key=lambda r: (r.filing.filed or date.max, r.filing.accession)):
+        if row.filing.is_amendment or row.suspect or not row.insider_cik:
+            continue
+        key = (row.insider_cik, row.ticker, row.traded, row.kind, round(row.shares or 0, 3),
+               round(row.price or 0, 2))
+        if key in seen and seen[key] != row.filing.accession:
+            row.duplicate = True
+        else:
+            seen.setdefault(key, row.filing.accession)
+    return rows
+
+
 class InsiderData:
     def __init__(self, filings, trades, today=None):
         self.today = today or date.today()
         self.filings = filings
-        self.trades = trades
+        self.trades = mark_duplicates(combine_lots(trades))
         self.companies = {}
         self.people = {}
         for t in trades:
@@ -283,10 +328,13 @@ def load(conn, today=None):
             company_cik=row[4], company_name=row[5], ticker=row[6].upper(),
             plan=None if row[7] == "" else row[7] == "1", is_amendment=row[8] == "1", url=row[9] or "",
         )
+    import sec_parsing   # the collector's own rules for names (the repository root is on the path)
+    for filing in filings.values():
+        filing.company_name = sec_parsing.company_display_name(filing.company_name) or filing.company_name
     trades = []
     for row in fetch_all(conn, TRADES_SQL):
         filing = filings.get(row[0])
-        if filing is None:
+        if filing is None or sec_parsing.is_entity(row[3]):
             continue
         trades.append(InsiderTrade(
             filing=filing, row_key=row[1], insider_cik=row[2], insider_name=row[3], insider_title=row[4],
@@ -307,8 +355,8 @@ def fmt_money(value):
 
 
 def fmt_money_short(value):
-    """$1.2M, $340K, $950: for tiles and tight columns."""
-    if value is None:
+    """$1.2M, $340K, $950: for tiles and tight columns ('–' when nothing)."""
+    if not value:
         return "–"
     for limit, suffix in ((1e9, "B"), (1e6, "M"), (1e3, "K")):
         if abs(value) >= limit:

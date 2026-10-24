@@ -94,9 +94,14 @@ def roles_from_text(text):
     return roles_from_flags("director" in words, "officer" in words, "tenpercentowner" in words, "other" in words)
 
 
-ENTITY = re.compile(r"\b(LLC|L\.L\.C\.?|LP|L\.P\.?|LLP|Inc\.?|Corp\.?|Co\.?|Ltd\.?|Trust|Fund|Partners|Capital|Holdings|"
-                    r"Management|Group|Advisors|Advisers|Associates|Foundation|Estate|Ventures|Investments?|Bank|N\.A\.?|"
-                    r"S\.A\.?|GmbH|AG|PLC|Plc|Limited|Company)\b", re.I)
+ENTITY = re.compile(r"\b(LLC|L\.L\.C\.?|LP|L\.P\.?|LLP|Inc\.?|Corp\.?|Co\.?|Ltd\.?|Trust|Fund|Funds|Partners|Partnership|"
+                    r"Capital|Holdings|Management|Group|Advisors|Advisers|Associates|Foundation|Estate|Ventures|Investments?|"
+                    r"Investors|Bank|N\.A\.?|S\.A\.?|GmbH|AG|PLC|Plc|Limited|Company|GP|\(GP\)|Opportunities|Equity|"
+                    r"Master|Portfolio|Securities|Asset|Assets|International|Global|Family|Trustee|Trustees|Pension|"
+                    r"Retirement|Endowment|University|College|Church|Charitable|Enterprises|Industries|Technologies|"
+                    r"Systems|Services|Solutions|Sciences|Pharmaceuticals|Healthcare|Energy|Resources|Realty|Properties)\b", re.I)
+# The same test as ENTITY, for PostgreSQL (\y is a word boundary there)
+ENTITY_SQL = ENTITY.pattern.replace("\\b", "\\y")
 SUFFIXES = {"jr", "sr", "ii", "iii", "iv", "v"}
 KEEP_UPPER = {"llc", "lp", "llp", "plc", "ag", "sa", "na", "ii", "iii", "iv", "md", "phd", "cpa", "jd", "dds", "usa", "us"}
 
@@ -144,6 +149,19 @@ def display_name(name):
     return " ".join(tidy(w) for w in words)
 
 
+def is_entity(name):
+    """A fund, trust or company rather than a person ('667, L.P.', 'Baker Bros. Advisors (GP) LLC')."""
+    return bool(ENTITY.search(name or "")) or bool(re.match(r"^\d", (name or "").strip()))
+
+
+def company_display_name(name):
+    """'MONOLITHIC POWER SYSTEMS, INC.' -> 'Monolithic Power Systems, Inc.' (mixed case is kept as filed)."""
+    name = " ".join((name or "").split())
+    if name.isupper():
+        name = clean_name(name)
+    return name or None
+
+
 def clean_title(title):
     title = " ".join((title or "").split()).strip(" ,;")
     if title.isupper() and len(title) > 4:
@@ -180,14 +198,14 @@ def accession_url(accession, cik):
 def make_filing(accession, form, filing_date, period, company_cik, company_name, ticker, plan, owners,
                 original_date=None):
     """One filing record. `owners` is a list of dicts: cik, name, title, roles (list)."""
-    kept = [o for o in owners if "Officer" in o["roles"] or "Director" in o["roles"]]
+    kept = [o for o in owners if ("Officer" in o["roles"] or "Director" in o["roles"]) and not is_entity(o["name"])]
     return {
         "accession": accession,
         "form": form,
         "filing_date": filing_date,
         "period": period,
         "company_cik": (company_cik or "").lstrip("0") or None,
-        "company_name": " ".join((company_name or "").split()) or None,
+        "company_name": company_display_name(company_name),
         "ticker": normalise_ticker(ticker),
         "plan_10b5_1": plan,
         "is_amendment": form.endswith("/A"),

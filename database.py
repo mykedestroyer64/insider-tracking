@@ -456,6 +456,20 @@ def save_insider_filings(conn, filings, trades, source):
 
 
 @handles_errors
+def remove_entity_insiders(conn, pattern):
+    """Delete trades attributed to funds or companies (saved before the rule that keeps people only).
+
+    `pattern` is a PostgreSQL regular expression; returns how many trades went."""
+    cursor = conn.cursor()
+    cursor.execute("delete from insider_trades where insider_name ~* %s or insider_name ~ '^\\d'", (pattern,))
+    removed = cursor.rowcount
+    cursor.execute("delete from insider_filings f where not exists "
+                   "(select 1 from insider_trades t where t.accession = f.accession)")
+    conn.commit()
+    return removed or 0
+
+
+@handles_errors
 def insider_counts(conn):
     cursor = conn.cursor()
     cursor.execute("select count(*), count(*) filter (where is_amendment), min(filing_date), max(filing_date) "
