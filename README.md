@@ -7,13 +7,15 @@
 | `collect.py` | the Senate collector: runs every 3 hours on GitHub Actions and saves reports and trades in the Supabase database |
 | `collect_house.py` | the House collector: runs every 3 hours too and saves House members' reports and trades in the same database |
 | `house_site.py`, `house_parsing.py` | download the House Clerk's yearly lists and trade reports (PDFs), and read them |
+| `collect_sec.py` | the company-insider collector: officers' and directors' buys and sells from SEC Form 4, every 3 hours |
+| `sec_site.py`, `sec_parsing.py` | talk to the SEC's sites and turn their quarterly files and filings into clean records |
 | `efd_site.py` | talks to eFD politely (agreement, search, report pages) and stops if it is blocked |
 | `parsing.py` | turns eFD pages into clean data |
 | `database.py` | creates the tables and saves the data |
 | `site/build.py` | builds the website from the database (with `site/data.py`, `site/people.py`, `site/charts.py`) |
 | `site/templates/`, `site/static/` | the pages' templates, the stylesheet, the fonts and the small amount of JavaScript |
 | `site/overrides.json` | fixes for members of Congress whose party and state the build can't work out by name |
-| `.github/workflows/collect.yml`, `.github/workflows/collect-house.yml` | run the two collectors every 3 hours |
+| `.github/workflows/collect.yml`, `collect-house.yml`, `collect-sec.yml` | run the three collectors every 3 hours (the Senate one twice a day while eFD refuses it) |
 | `.github/workflows/site.yml` | builds and publishes the website after every collector run |
 | `efd_check.py` and `.github/workflows/efd-check.yml` | the step 1 access test, still handy for checking eFD by hand |
 | `house_check.py`, `sec_check.py` and `.github/workflows/new-sources-check.yml` | access tests for the next sources: House members' trade reports and company insiders' Form 4 filings (results go to the `check-results` branch) |
@@ -84,6 +86,18 @@ The last line of every run is the **verdict**:
 Scanned paper reports (about one in ten) are saved with the status `not_read`, like the Senate's. Each run sends at most 200 requests to the House site, 1.5-2.5 seconds apart. The verdict line works the same way as the Senate collector's.
 
 To start it by hand: **Actions > insider-tracking House collector > Run workflow**.
+
+## How the company-insider collector works
+
+`collect_sec.py` covers company insiders: officers and directors who buy or sell their own company's stock must report it to the SEC on Form 4 within two business days. It runs every 3 hours with the same three secrets. Every run:
+
+1. connects to the database (the first run adds the `insider_filings` and `insider_trades` tables)
+2. loads the SEC's quarterly data files, newest first, two per run, back to the start of 2021 (each holds every Form 4 of a quarter)
+3. reads EDGAR's daily lists of filings for the days after the newest quarterly file, downloads each new Form 4 and saves it
+
+Only open-market buys and sells (codes P and S) by officers and directors are kept: not stock awards, option exercises, gifts, tax withholding, or trades by 10% owners (mostly funds). A few filings carry impossible numbers; those rows are marked `suspect` and left out of totals. Each run sends at most 1,200 requests to the SEC, 0.3-0.6 seconds apart, with a User-Agent naming the project and your email, as the SEC asks.
+
+To start it by hand: **Actions > insider-tracking SEC collector > Run workflow**.
 
 ## Setting up the collector (once)
 

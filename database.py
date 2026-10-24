@@ -12,6 +12,8 @@ Tables (created automatically on the first run):
   transactions     the trades read from electronic reports
   report_pages     a compressed copy of each Senate report page, so it can be re-read later
                    (House reports are PDFs that stay online, so they aren't copied)
+  insider_filings  one row per SEC Form 4 (company insiders) with buys or sells by officers or directors
+  insider_trades   those buys and sells, with exact shares and prices
   collector_runs   one row per run of a collector, with its verdict
   collector_state  the collectors' bookmarks (how far back the history is listed)
 
@@ -91,7 +93,57 @@ SCHEMA = [
     "alter table reports add column if not exists chamber text not null default 'senate'",
     "alter table reports add column if not exists state_district text",
     "alter table collector_runs add column if not exists collector text",
+    """
+    create table if not exists insider_filings (
+        accession      text primary key,
+        form           text not null,
+        filing_date    date,
+        period         date,
+        company_cik    text,
+        company_name   text,
+        ticker         text,
+        plan_10b5_1    boolean,
+        is_amendment   boolean not null default false,
+        original_date  date,
+        owners         jsonb not null default '[]'::jsonb,
+        url            text,
+        source         text not null,
+        first_seen_at  timestamptz not null default now()
+    )""",
+    """
+    create table if not exists insider_trades (
+        accession          text not null references insider_filings (accession) on delete cascade,
+        row_key            text not null,
+        insider_cik        text,
+        insider_name       text,
+        insider_title      text,
+        roles              text[] not null default '{}',
+        trade_date         date,
+        code               text not null,
+        kind               text not null,
+        shares             double precision,
+        price              double precision,
+        value              double precision,
+        acquired_disposed  text,
+        shares_after       double precision,
+        direct             boolean not null default true,
+        nature             text,
+        security           text,
+        suspect            boolean not null default false,
+        suspect_reason     text,
+        primary key (accession, row_key)
+    )""",
     "create index if not exists reports_status_received on reports (status, date_received desc)",
+    "create index if not exists insider_filings_date on insider_filings (filing_date desc)",
+    "create index if not exists insider_filings_ticker on insider_filings (ticker)",
+    "create index if not exists insider_trades_insider on insider_trades (insider_cik)",
+    "create index if not exists insider_trades_date on insider_trades (trade_date desc)",
+    "alter table insider_filings enable row level security",
+    "alter table insider_trades enable row level security",
+    "comment on table insider_filings is 'SEC Form 4 filings (and amendments 4/A) by company insiders that hold "
+    "buys or sells by an officer or director. source: the quarter file or daily list it came from.'",
+    "comment on table insider_trades is 'Officers'' and directors'' open-market buys (P) and sells (S) from "
+    "Form 4. suspect marks rows with impossible numbers, kept but not counted.'",
     "create index if not exists reports_chamber_status on reports (chamber, status, date_received desc)",
     "create index if not exists reports_last_name on reports (last_name)",
     "create index if not exists transactions_ticker on transactions (ticker)",
@@ -347,6 +399,79 @@ def _store_page(cursor, report_path, page):
         on conflict (report_path) do update
             set html_gzip = excluded.html_gzip, fetched_at = now()""",
                    (report_path, gzip.compress(page)))
+
+
+# ---------------------------------------------------------- company insiders
+
+FILING_COLUMNS = ["accession", "form", "filing_date", "period", "company_cik", "company_name", "ticker",
+                  "plan_10b5_1", "is_amendment", "original_date", "owners", "url", "source"]
+INSIDER_TRADE_COLUMNS = ["accession", "row_key", "insider_cik", "insider_name", "insider_title", "roles",
+                         "trade_date", "code", "kind", "shares", "price", "value", "acquired_disposed",
+                         "shares_after", "direct", "nature", "security", "suspect", "suspect_reason"]
+
+
+@handles_errors
+def save_insider_filings(conn, filings, trades, source):
+    """Store Form 4 filings and their buys and sells (a filing seen before is replaced).
+
+    Returns how many filings were new.
+    """
+    if not filings:
+        return 0
+    cursor = conn.cursor()
+    new = 0
+    by_filing = {}
+    for trade in trades:
+        by_filing.setdefault(trade["accession"], []).append(trade)
+    for start in range(0, len(filings), 50):
+        chunk = filings[start:start + 50]
+        slots = "(" + ", ".join(["%s"] * (len(FILING_COLUMNS) - 3)) + ", %s::jsonb, %s, %s)"
+        params = []
+        for filing in chunk:
+            values = dict(filing, source=source,
+                          owners=json.dumps([{"cik": o["cik"], "name": o["name"], "title": o["title"], "roles": o["roles"]}
+                                             for o in filing["owners"]], ensure_ascii=False))
+            params += [values[column] for column in FILING_COLUMNS]
+        cursor.execute(
+            f"insert into insider_filings ({', '.join(FILING_COLUMNS)}) values " + ", ".join([slots] * len(chunk))
+            + " on conflict (accession) do update set form = excluded.form, filing_date = excluded.filing_date, "
+            "period = excluded.period, company_cik = excluded.company_cik, company_name = excluded.company_name, "
+            "ticker = excluded.ticker, plan_10b5_1 = excluded.plan_10b5_1, is_amendment = excluded.is_amendment, "
+            "original_date = excluded.original_date, owners = excluded.owners, url = excluded.url, "
+            "source = excluded.source returning (xmax = 0)", params)
+        new += sum(1 for row in cursor.fetchall() if row[0] in (True, "t", "true", 1))
+        accessions = [filing["accession"] for filing in chunk]
+        cursor.execute("delete from insider_trades where accession = any(%s)", (accessions,))
+        rows = [trade for filing in chunk for trade in by_filing.get(filing["accession"], [])]
+        for rstart in range(0, len(rows), 100):
+            part = rows[rstart:rstart + 100]
+            slots = "(" + ", ".join(["%s"] * len(INSIDER_TRADE_COLUMNS)) + ")"
+            tparams = []
+            for trade in part:
+                tparams += [trade[column] for column in INSIDER_TRADE_COLUMNS]
+            cursor.execute(f"insert into insider_trades ({', '.join(INSIDER_TRADE_COLUMNS)}) values "
+                           + ", ".join([slots] * len(part)), tparams)
+    conn.commit()
+    return new
+
+
+@handles_errors
+def insider_counts(conn):
+    cursor = conn.cursor()
+    cursor.execute("select count(*), count(*) filter (where is_amendment), min(filing_date), max(filing_date) "
+                   "from insider_filings")
+    filings, amendments, first, last = cursor.fetchone()
+    cursor.execute("select count(*), count(*) filter (where kind = 'buy'), count(*) filter (where kind = 'sell'), "
+                   "count(*) filter (where suspect), count(distinct insider_cik), count(distinct accession) "
+                   "from insider_trades")
+    trades, buys, sells, suspect, insiders, _ = cursor.fetchone()
+    cursor.execute("select pg_size_pretty(pg_total_relation_size('insider_trades') + "
+                   "pg_total_relation_size('insider_filings'))")
+    size = cursor.fetchone()[0]
+    conn.commit()
+    return {"filings": int(filings), "amendments": int(amendments), "first_filing": first, "last_filing": last,
+            "trades": int(trades), "buys": int(buys), "sells": int(sells), "suspect": int(suspect),
+            "insiders": int(insiders), "size": str(size)}
 
 
 # ---------------------------------------------------------------------- runs
