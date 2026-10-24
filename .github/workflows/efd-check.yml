@@ -52,6 +52,14 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Post the verdict as a note (readable through GitHub's API)
+        if: always()
+        shell: bash
+        run: |
+          grep -E '^VERDICT|^\[' output/console.log 2>/dev/null | while IFS= read -r line; do
+            echo "::notice title=eFD access check::$line"
+          done || true
+
       - name: Upload the output folder
         if: always()   # also when the check failed
         uses: actions/upload-artifact@v7
