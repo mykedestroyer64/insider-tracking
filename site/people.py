@@ -18,6 +18,7 @@ it can be fixed by hand in site/overrides.json, like this:
 """
 
 import json
+import re
 import sys
 import time
 import urllib.request
@@ -62,6 +63,15 @@ def same_first_name(mine, theirs):
     if len(mine) > 1 and len(theirs) > 1 and (mine.startswith(theirs) or theirs.startswith(mine)):
         return True
     return theirs in NICKNAMES.get(mine, ())
+
+
+TITLES = {"md", "facs", "phd", "jd", "dds", "esq", "jr", "sr", "ii", "iii", "iv"}
+
+
+def name_words(name):
+    """The words of a last name that can identify someone (no titles like MD or Jr.)."""
+    words = [squash(word) for word in re.split(r"[\s\-]+", name or "")]
+    return [word for word in words if len(word) >= 3 and word not in TITLES]
 
 
 class Legislator:
@@ -131,10 +141,13 @@ class Matcher:
     def __init__(self, legislators, overrides=None, log=print):
         self.by_bioguide = {l.bioguide: l for l in legislators if l.bioguide}
         self.by_last = {"senate": {}, "house": {}}   # last name -> people who served in that chamber
+        self.by_word = {"senate": {}, "house": {}}   # each word of a last name ("McMorris Rodgers")
         for leg in legislators:
             for chamber in ("senate", "house"):
                 if leg.served_in(chamber):
                     self.by_last[chamber].setdefault(squash(leg.last), []).append(leg)
+                    for word in name_words(leg.last):
+                        self.by_word[chamber].setdefault(word, []).append(leg)
         self.overrides = overrides or {}
         self.log = log
         self.unmatched = []
@@ -153,6 +166,8 @@ class Matcher:
         if leg is None:
             if filer.is_member:           # candidates are not expected in the list
                 self.unmatched.append(filer)
+                if filer.chamber == "house":
+                    filer.filer_type = "House filer"   # not found among representatives: listed apart
             return
         self.matched += 1
         filer.bioguide = leg.bioguide
@@ -172,6 +187,14 @@ class Matcher:
         people = "representatives" if chamber == "house" else "senators"
         last = squash(last_name_core(filer.last_name))
         candidates = self.by_last[chamber].get(last, [])
+        if not candidates:
+            # Last names written differently: "Rodgers" for McMorris Rodgers, "Paulina Luna" for
+            # Luna, "Dunn MD, FACS" for Dunn. Try each word of the name.
+            found = {}
+            for word in name_words(last_name_core(filer.last_name)):
+                for leg in self.by_word[chamber].get(word, []):
+                    found[leg.bioguide or id(leg)] = leg
+            candidates = list(found.values())
         if not candidates:
             return None, f"no {people[:-1]} with this last name"
         state = (filer.district or "")[:2] if chamber == "house" else ""
