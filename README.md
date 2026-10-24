@@ -143,7 +143,7 @@ From now on the collector runs by itself every 3 hours. The history back to 2012
   ```sql
   update reports set status = 'to_read', note = null where status = 'failed' and chamber = 'senate';
   ```
-- **Changing the pace:** `MAX_REQUESTS` in `collect.py` sets the requests per run, and the `cron` line in `collect.yml` sets how often it runs.
+- **Changing the pace:** `MAX_REQUESTS` in `collect.py` sets the requests per run, and the `cron` line in `collect.yml` sets how often it runs (twice a day since 24 Oct 2026, while eFD refuses the collector; every 3 hours before that).
 
 ## Step 1: the eFD access check
 

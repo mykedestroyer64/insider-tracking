@@ -4,7 +4,9 @@ name: insider-tracking collector
 
 on:
   schedule:
-    - cron: "23 */3 * * *"   # every 3 hours at 23 minutes past (UTC); GitHub may start it late
+    # Twice a day while eFD refuses the collector (since 23 Oct 2026), so a failed run emails
+    # you at most twice a day. Put back "23 */3 * * *" (every 3 hours) once access works again.
+    - cron: "23 5,17 * * *"
   workflow_dispatch:         # adds the "Run workflow" button
 
 permissions:
