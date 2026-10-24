@@ -52,7 +52,16 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           SITE_URL: ${{ vars.SITE_URL }}               # optional: set when the site gets its own domain
           SITE_BASE_PATH: ${{ vars.SITE_BASE_PATH }}   # optional: "/" for a custom domain
-        run: python site/build.py --out _site
+        shell: bash
+        run: python -u site/build.py --out _site 2>&1 | tee build.log
+
+      - name: Post the build's summary as notes (readable through GitHub's API)
+        if: always()
+        shell: bash
+        run: |
+          grep -E 'reports, .* trades|filers matched|without party/state|^    .\w+\|' build.log 2>/dev/null | head -40 | while IFS= read -r line; do
+            echo "::notice title=Site build::$line"
+          done || true
 
       - name: Prepare the upload
         uses: actions/configure-pages@v6
