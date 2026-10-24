@@ -113,8 +113,19 @@ class Trade:
     filer: "Filer | None" = None
 
     @property
+    def date_after_filing(self):
+        """The trade date is later than the day the report was filed: a typo in the report
+        (it is shown as written, but not counted)."""
+        return bool(self.traded and self.received and self.traded > self.received)
+
+    @property
+    def traded_ok(self):
+        """The trade date, unless it is impossible (after the filing)."""
+        return None if self.date_after_filing else self.traded
+
+    @property
     def days(self):
-        if self.traded and self.received:
+        if self.traded and self.received and not self.date_after_filing:
             return (self.received - self.traded).days
         return None
 
@@ -181,7 +192,7 @@ class Report:
 
     @property
     def oldest_trade(self):
-        return min((t.traded for t in self.trades if t.traded), default=None)
+        return min((t.traded_ok for t in self.trades if t.traded_ok), default=None)
 
     @property
     def delay(self):
@@ -283,7 +294,7 @@ class Filer:
             "late": sum(1 for r in reports if r.late),
             "late_trades": sum(1 for t in trades if t.late),
             "stocks": len({slug for t in trades for slug in t.stock_slugs}),
-            "last_traded": max((t.traded for t in trades if t.traded), default=None),
+            "last_traded": max((t.traded_ok for t in trades if t.traded_ok), default=None),
             "last_received": max((t.received for t in trades if t.received), default=None),
             "paper_reports": sum(1 for r in self.reports if r.kind == "paper"),
             "unread_reports": sum(1 for r in self.reports if r.status in ("to_read", "failed")),

@@ -82,6 +82,8 @@ def short_asset(asset_type):
 
 
 def days_text(trade):
+    if trade.date_after_filing:
+        return "–, the trade date in the report is later than its filing date"
     if trade.days is None:
         return "–"
     if trade.late:
@@ -105,6 +107,7 @@ def trade_record(trade):
         "am": trade.amount, "mn": trade.amount_min, "mx": trade.amount_max,
         "o": trade.owner, "dy": trade.days, "l": 1 if trade.late else 0,
         "x": 1 if trade.is_amendment else 0, "u": trade.report_url, "c": trade.comment,
+        "df": 1 if trade.date_after_filing else 0,
         "ch": "H" if trade.chamber == "house" else "S",
     }
 
@@ -233,7 +236,7 @@ class Builder:
                     s["trades"] += 1
                     s["buys"] += t.group == "buy"
                     s["sells"] += t.group == "sell"
-                    when = t.traded or t.received
+                    when = t.traded_ok or t.received
                     if when and (s["last"] is None or when > s["last"]):
                         s["last"] = when
             top = sorted(per_stock.values(), key=lambda s: (-s["trades"], s["ticker"]))[:TOP_STOCKS_ON_MEMBER_PAGE]
@@ -258,7 +261,7 @@ class Builder:
                 row["trades"] += 1
                 row["buys"] += t.group == "buy"
                 row["sells"] += t.group == "sell"
-                when = t.traded or t.received
+                when = t.traded_ok or t.received
                 if when and (row["last"] is None or when > row["last"]):
                     row["last"] = when
             self.page("stock.html", f"/stocks/{stock['slug']}/index.html", page="stocks", stock=stock,

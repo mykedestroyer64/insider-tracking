@@ -39,7 +39,7 @@
 <td class="nowrap">{{ t.label }}</td>
 <td>{{ t.owner or "–" }}</td>
 <td class="num nowrap">{{ t.amount or "–" }}</td>
-<td class="num nowrap">{{ fmt_date(t.traded) or "–" }}</td>
+<td class="num nowrap">{{ fmt_date(t.traded) or "–" }}{% if t.date_after_filing %}<div class="muted">as filed</div>{% endif %}</td>
 <td class="num nowrap">{{ fmt_date(t.received) or "–" }}</td>
 <td class="r">{{ days_cell(t) }}</td>
 <td class="nowrap"><a href="{{ t.report_url }}" rel="noopener">{{ "House" if t.chamber == "house" else "Senate" }} report</a></td>

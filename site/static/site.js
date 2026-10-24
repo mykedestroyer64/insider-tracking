@@ -193,7 +193,7 @@
       var days = t.dy == null ? '<span class="muted">–</span>' : '<span class="days">' + (t.l ? CLOCK : "") + '<span' + (t.l ? ' class="late-flag"' : "") + '>' + t.dy + '</span></span>' + (t.x ? '<div class="muted">amendment</div>' : "");
       return '<tr><td><a href="' + esc(base + "/congress/" + t.ss + "/") + '" class="plain cell-main">' + esc(t.sn) + '</a><div class="muted">' + esc(t.sp || "") + '</div></td>' +
         '<td>' + stock + '</td><td class="nowrap">' + esc(t.tl) + '</td><td>' + esc(t.o || "–") + '</td><td class="num nowrap">' + esc(t.am || "–") + '</td>' +
-        '<td class="num nowrap">' + fmtDate(t.d) + '</td><td class="num nowrap">' + fmtDate(t.r) + '</td><td class="r">' + days + '</td>' +
+        '<td class="num nowrap">' + fmtDate(t.d) + (t.df ? '<div class="muted">as filed</div>' : '') + '</td><td class="num nowrap">' + fmtDate(t.r) + '</td><td class="r">' + days + '</td>' +
         '<td class="nowrap"><a href="' + esc(t.u) + '" rel="noopener">' + (t.ch === "H" ? "House" : "Senate") + ' report</a></td></tr>';
     }
     function render() {
