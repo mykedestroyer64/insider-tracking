@@ -324,6 +324,7 @@ def parse_export(content, rate_on):
     counts = {"lines": 0, "kept": 0, "buys": 0, "sells": 0, "other_nature": 0, "other_instrument": 0,
               "entities": 0, "suspect": 0, "not_current": 0}
     rows = []
+    seen_keys = {}
     for fields in read_export(content):
         counts["lines"] += 1
         trade = to_trade(fields, rate_on)
@@ -337,6 +338,11 @@ def parse_export(content, rate_on):
             else:
                 counts["entities"] += 1
             continue
+        # two identical lines (the same lot bought twice in a day) must keep both rows
+        times = seen_keys.get(trade["row_key"], 0) + 1
+        seen_keys[trade["row_key"]] = times
+        if times > 1:
+            trade["row_key"] = f"{trade['row_key']}-{times}"
         rows.append(trade)
         counts["kept"] += 1
         counts["buys" if trade["kind"] == "buy" else "sells"] += 1
