@@ -1,7 +1,7 @@
 # Test run for new sources: House members' trade reports, company insiders' Form 4s,
 # and Swedish executives' trades (Finansinspektionen's register).
 # Start it by hand: Actions tab -> "New sources check" -> "Run workflow", and type the
-# names of the checks to run (any of: house sec sweden).
+# names of the checks to run (any of: house sec sweden netherlands).
 # The results (examples of real filings) are saved on the "check-results" branch.
 name: New sources check
 
@@ -9,8 +9,8 @@ on:
   workflow_dispatch:   # only runs when started by hand (no schedule)
     inputs:
       sources:
-        description: "Which checks to run (space-separated: house sec sweden)"
-        default: "house sec sweden"
+        description: "Which checks to run (space-separated: house sec sweden netherlands)"
+        default: "house sec sweden netherlands"
         required: true
 
 permissions:
@@ -62,13 +62,23 @@ jobs:
           mkdir -p output/sweden
           python -u sweden_check.py 2>&1 | tee output/sweden/console.log
 
+      - name: Check the AFM's register (Netherlands)
+        if: contains(inputs.sources, 'netherlands')
+        continue-on-error: true
+        shell: bash
+        env:
+          EFD_CONTACT_EMAIL: ${{ secrets.EFD_CONTACT_EMAIL }}
+        run: |
+          mkdir -p output/netherlands
+          python -u netherlands_check.py 2>&1 | tee output/netherlands/console.log
+
       - name: Write the verdicts to the job summary
         if: always()
         shell: bash
         run: |
           {
             echo "## New sources check"
-            for part in house sec sweden; do
+            for part in house sec sweden netherlands; do
               [ -f "output/$part/console.log" ] || continue
               echo
               echo "### ${part^^}"
@@ -84,7 +94,7 @@ jobs:
             done
           } >> "$GITHUB_STEP_SUMMARY"
           # The same lines as annotations, so they can be read without opening the logs.
-          for part in house sec sweden; do
+          for part in house sec sweden netherlands; do
             [ -f "output/$part/console.log" ] || continue
             grep -E '^(\[|VERDICT)' "output/$part/console.log" | while IFS= read -r line; do
               echo "::notice title=${part^^} check::$line"
