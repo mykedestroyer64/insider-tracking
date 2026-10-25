@@ -163,7 +163,8 @@ class Builder:
             "headline": headline, "days_text": days_text, "trade_json": home_trade_json,
             "short_asset": short_asset, "fmt_money": insiderdata.fmt_money,
             "fmt_money_short": insiderdata.fmt_money_short, "fmt_shares": insiderdata.fmt_shares,
-            "fmt_price": insiderdata.fmt_price, "has_insiders": bool(self.ins.trades),
+            "fmt_price": insiderdata.fmt_price, "fmt_eur_short": insiderdata.fmt_eur_short,
+            "has_insiders": bool(self.ins.trades), "insider_markets": self.ins.markets,
         })
 
     def write(self, path, text):
@@ -204,9 +205,11 @@ class Builder:
         self.build_data_files()
         self.build_feed()
         self.build_sitemap()
+        markets = ", ".join(f"{m['name']} {sum(1 for t in self.ins.trades if t.country == m['code']):,}"
+                            for m in self.ins.markets)
         log(f"  {len(self.pages)} pages, {len(ds.trades)} trades, {len(ds.filers)} filers, "
             f"{len(ds.stocks)} stocks, {len(self.ins.trades)} insider trades by {len(self.ins.people)} insiders "
-            f"at {len(self.ins.companies)} companies")
+            f"at {len(self.ins.companies)} companies" + (f" ({markets})" if markets else ""))
 
     def build_home(self):
         ds = self.ds
@@ -259,7 +262,7 @@ class Builder:
         ds, ins = self.ds, self.ins
         stocks = dict(ds.stocks)
         for slug, company in ins.companies.items():       # companies only insiders traded get a page too
-            if slug not in stocks:
+            if slug not in stocks:                           # (European ones always: their slug is "se/name")
                 stocks[slug] = {"ticker": company.ticker, "slug": slug, "name": company.name, "names": Counter(),
                                 "trades": [], "count": 0, "filers": [], "buys": 0, "sells": 0, "last_received": None}
         for slug, stock in stocks.items():
@@ -318,11 +321,17 @@ class Builder:
 
     def build_insiders(self):
         ins = self.ins
-        self.page("insiders.html", "/insiders/index.html", page="insiders", stats=ins.overview(),
-                  latest=ins.latest(), biggest_buys=ins.biggest("buy"), biggest_sells=ins.biggest("sell"),
-                  most_active=ins.most_active(), weekly=ins.weekly_counts(),
-                  weekly_svg=charts.buys_sells_svg(ins.weekly_counts()) if ins.trades else "",
-                  people=ins.people)
+        # one page for all markets, and one per market (/insiders/sweden/ ...)
+        for market in [ins.market_info(None)] + ins.markets:
+            country = None if market["code"] == "ALL" else market["code"]
+            path = "/insiders/index.html" if country is None else f"/insiders/{market['slug']}/index.html"
+            weekly = ins.weekly_counts(country=country)
+            self.page("insiders.html", path, page="insiders", market=market, markets=ins.markets,
+                      stats=ins.overview(country=country), latest=ins.latest(country=country),
+                      biggest_buys=ins.biggest("buy", country=country), biggest_sells=ins.biggest("sell", country=country),
+                      most_active=ins.most_active(country=country), weekly=weekly,
+                      weekly_svg=charts.buys_sells_svg(weekly) if ins.counted_trades(country) else "",
+                      people=ins.people)
         for person in ins.people.values():
             trades = sorted(person.trades, key=lambda t: (t.filing.filed or date.min, t.traded or date.min), reverse=True)
             self.page("insider.html", f"/insiders/{person.slug}/index.html", page="insiders", person=person,
@@ -377,7 +386,8 @@ class Builder:
         listed = {s["slug"] for s in ds.stocks.values() if s["count"]}
         for company in sorted(self.ins.companies.values(), key=lambda c: -len(c.trades)):
             if company.slug not in listed:
-                search.append({"t": "stock", "n": company.ticker, "k": company.name, "s": company.name,
+                where = company.name if company.country == "US" else f"{company.name} · {company.market['name']}"
+                search.append({"t": "stock", "n": company.ticker, "k": company.name, "s": where,
                                "u": f"/stocks/{company.slug}/"})
         self.write("/data/search.json", json.dumps(search, ensure_ascii=False, separators=(",", ":")))
         by_year = defaultdict(list)

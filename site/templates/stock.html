@@ -1,19 +1,21 @@
 {% extends "base.html" %}
 {% from "macros.html" import trade_table %}
 {% from "_insider_macros.html" import insider_table %}
-{% block title %}{{ stock.ticker }}: trades by members of Congress{% if insider_total %} and company insiders{% endif %} · Insider Tracking{% endblock %}
-{% block description %}{{ stock.ticker }} ({{ stock.name }}): {% if stock.count %}{{ stock.count }} trades reported by {{ stock.filers | length }} members of Congress{% endif %}{% if stock.count and insider_total %}, and {% endif %}{% if insider_total %}{{ insider_total }} open-market trades by the company's own officers and directors{% endif %}.{% endblock %}
+{% set company = stock.company %}
+{% set european = company and company.country != "US" %}
+{% block title %}{{ stock.ticker }}: trades by {% if not european %}members of Congress{% if insider_total %} and {% endif %}{% endif %}{% if insider_total %}company insiders{% endif %} · Insider Tracking{% endblock %}
+{% block description %}{{ stock.ticker }} ({{ stock.name }}): {% if stock.count %}{{ stock.count }} trades reported by {{ stock.filers | length }} members of Congress{% endif %}{% if stock.count and insider_total %}, and {% endif %}{% if insider_total %}{{ insider_total }} trades by the company's own executives and board members{% if european %}, reported to {{ company.market.regulator }}{% endif %}{% endif %}.{% endblock %}
 {% block content %}
 <section class="page-head">
 <div class="hero-text">
 <nav class="crumbs" aria-label="Breadcrumb"><a href="{{ base }}/stocks/">Stocks</a> › {{ stock.ticker }}</nav>
 <h1>{{ stock.ticker }}</h1>
-<p class="lead">{{ stock.name }}</p>
+<p class="lead">{{ stock.name }}{% if european %} · {{ company.market.name }}{% if company.isins %} · ISIN {{ company.isins | sort | join(", ") }}{% endif %}{% endif %}</p>
 </div>
 {% include "_search.html" %}
 </section>
 
-{% if stock.count or not insider_total %}
+{% if (stock.count or not insider_total) and not european %}
 <section class="section" aria-labelledby="congress-h">
 <h2 id="congress-h" class="section-h">Members of Congress</h2>
 <dl class="tiles on-white" aria-label="Congress summary">
@@ -54,10 +56,10 @@
 {% set s = stock.insider_stats %}
 <section class="section" aria-labelledby="ins-h">
 <h2 id="ins-h" class="section-h">Company insiders</h2>
-<p class="muted">Open-market buys and sells by {{ stock.name }}’s own officers and directors, reported to the SEC on Form 4 (since 2021).</p>
+<p class="muted">{% if european %}Buys and sells of {{ stock.name }} shares by its own executives and board members, reported to {{ company.market.regulator }} (since {{ company.market.since }}).{% else %}Open-market buys and sells by {{ stock.name }}’s own officers and directors, reported to the SEC on Form 4 (since 2021).{% endif %}</p>
 <dl class="tiles on-white" aria-label="Insider summary">
-<div class="tile"><dt class="muted">Insider buys</dt><dd class="big">{{ fmt_number(s.buys) }}<span class="of"> {{ fmt_money_short(s.bought) }}</span></dd></div>
-<div class="tile"><dt class="muted">Insider sells</dt><dd class="big">{{ fmt_number(s.sells) }}<span class="of"> {{ fmt_money_short(s.sold) }}</span></dd></div>
+<div class="tile"><dt class="muted">Insider buys</dt><dd class="big">{{ fmt_number(s.buys) }}<span class="of"> {{ fmt_money_short(s.bought, s.currency) }}{% if s.currency not in ("USD", "EUR") %} {{ fmt_eur_short(s.bought_eur) }}{% endif %}</span></dd></div>
+<div class="tile"><dt class="muted">Insider sells</dt><dd class="big">{{ fmt_number(s.sells) }}<span class="of"> {{ fmt_money_short(s.sold, s.currency) }}{% if s.currency not in ("USD", "EUR") %} {{ fmt_eur_short(s.sold_eur) }}{% endif %}</span></dd></div>
 <div class="tile"><dt class="muted">Insiders who traded</dt><dd class="big">{{ fmt_number(s.insiders) }}</dd></div>
 <div class="tile"><dt class="muted">Last insider trade</dt><dd class="big">{{ fmt_date(s.last) or "–" }}</dd></div>
 </dl>
@@ -71,7 +73,7 @@
 <tbody>
 {% for row in insider_rows %}
 {% set p = insider_people.get(row.cik) %}
-<tr><td>{% if p %}<a href="{{ base }}/insiders/{{ p.slug }}/" class="plain cell-main">{{ row.name }}</a>{% else %}<span class="cell-main">{{ row.name }}</span>{% endif %}<div class="muted">{{ row.title }}</div></td><td class="r num">{{ row.trades }}</td><td class="r num">{{ row.buys }}</td><td class="r num">{{ row.sells }}</td><td class="r num">{{ fmt_money_short(row.bought) }}</td><td class="r num">{{ fmt_money_short(row.sold) }}</td><td class="num nowrap">{{ fmt_date(row.last) }}</td></tr>
+<tr><td>{% if p %}<a href="{{ base }}/insiders/{{ p.slug }}/" class="plain cell-main">{{ row.name }}</a>{% else %}<span class="cell-main">{{ row.name }}</span>{% endif %}<div class="muted">{{ row.title }}</div></td><td class="r num">{{ row.trades }}</td><td class="r num">{{ row.buys }}</td><td class="r num">{{ row.sells }}</td><td class="r num">{{ fmt_money_short(row.bought, s.currency) }}</td><td class="r num">{{ fmt_money_short(row.sold, s.currency) }}</td><td class="num nowrap">{{ fmt_date(row.last) }}</td></tr>
 {% endfor %}
 </tbody>
 </table>

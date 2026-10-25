@@ -9,24 +9,26 @@
 | `house_site.py`, `house_parsing.py` | download the House Clerk's yearly lists and trade reports (PDFs), and read them |
 | `collect_sec.py` | the company-insider collector: officers' and directors' buys and sells from SEC Form 4, every 3 hours |
 | `sec_site.py`, `sec_parsing.py` | talk to the SEC's sites and turn their quarterly files and filings into clean records |
+| `collect_sweden.py` | the Swedish executives collector: buys and sells of their company's shares from Finansinspektionen's register, every 3 hours |
+| `sweden_site.py`, `sweden_parsing.py`, `ecb_rates.py` | talk to the register and the European Central Bank, read the register's export and the euro exchange rates |
 | `efd_site.py` | talks to eFD politely (agreement, search, report pages) and stops if it is blocked |
 | `parsing.py` | turns eFD pages into clean data |
 | `database.py` | creates the tables and saves the data |
 | `site/build.py` | builds the website from the database (with `site/data.py`, `site/people.py`, `site/charts.py`) |
 | `site/templates/`, `site/static/` | the pages' templates, the stylesheet, the fonts and the small amount of JavaScript |
 | `site/overrides.json` | fixes for members of Congress whose party and state the build can't work out by name |
-| `.github/workflows/collect.yml`, `collect-house.yml`, `collect-sec.yml` | run the three collectors every 3 hours (the Senate one twice a day while eFD refuses it) |
+| `.github/workflows/collect.yml`, `collect-house.yml`, `collect-sec.yml`, `collect-sweden.yml` | run the four collectors every 3 hours (the Senate one twice a day while eFD refuses it) |
 | `.github/workflows/site.yml` | builds and publishes the website after every collector run |
 | `efd_check.py` and `.github/workflows/efd-check.yml` | the step 1 access test, still handy for checking eFD by hand |
-| `house_check.py`, `sec_check.py` and `.github/workflows/new-sources-check.yml` | access tests for the next sources: House members' trade reports and company insiders' Form 4 filings (results go to the `check-results` branch) |
+| `house_check.py`, `sec_check.py`, `sweden_check.py`, `netherlands_check.py` and `.github/workflows/new-sources-check.yml` | access tests for new sources (type the names of the checks to run when starting the workflow; results go to the `check-results` branch) |
 | `requirements.txt` | the Python libraries needed |
 | `status/heartbeat.txt` | a date the Senate collector saves once a week (see "Good to know") |
 
 ## The website
 
-After every successful collector run (Senate or House), GitHub builds the website from the database and publishes it to GitHub Pages at `https://<your GitHub name>.github.io/insider-tracking/`. Visitors never touch the database: the site is plain pages, so it is fast and free to host.
+After every successful collector run, GitHub builds the website from the database and publishes it to GitHub Pages at `https://<your GitHub name>.github.io/insider-tracking/`. Visitors never touch the database: the site is plain pages, so it is fast and free to host.
 
-Pages: an overview with charts and the latest trades, every trade with filters (including Senate or House), a Congress page listing every member who reported a trade, a page per member, a page per stock, late filings, and a feed (`feed.xml`) that any news reader can follow. Party, state and House district come from the public-domain [congress-legislators](https://github.com/unitedstates/congress-legislators) dataset; members the build can't match by name are listed in the build log and can be added to `site/overrides.json`.
+Pages: an overview with charts and the latest trades, every trade with filters (including Senate or House), a Congress page listing every member who reported a trade, a page per member, a page per stock, an Insiders section (all markets, and one page per market: `/insiders/united-states/`, `/insiders/sweden/`) with a page per insider, late filings, and a feed (`feed.xml`) that any news reader can follow. European companies' stock pages live under their country code (`/stocks/se/investor/`); amounts stay in the trade's currency with a euro figure alongside. Party, state and House district come from the public-domain [congress-legislators](https://github.com/unitedstates/congress-legislators) dataset; members the build can't match by name are listed in the build log and can be added to `site/overrides.json`.
 
 ### Switching it on (once)
 

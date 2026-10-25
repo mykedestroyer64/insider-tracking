@@ -3,15 +3,19 @@
 {% if p %}<a href="{{ base }}/insiders/{{ p.slug }}/" class="plain cell-main">{{ t.insider_name }}</a>{% else %}<span class="cell-main">{{ t.insider_name }}</span>{% endif %}<div class="muted">{{ t.role_text }}</div>
 {%- endmacro %}
 
-{% macro company_cell(t, base) -%}
-<a href="{{ base }}/stocks/{{ t.stock_slug }}/" class="plain cell-main">{{ t.ticker }}</a><div class="muted">{{ t.filing.company_name }}</div>
+{% macro company_cell(t, base, mixed=False) -%}
+<a href="{{ base }}/stocks/{{ t.stock_slug }}/" class="plain cell-main">{{ t.ticker }}</a><div class="muted">{{ t.instrument or t.filing.company_name }}{% if mixed and t.country != "US" %} · {{ t.filing.market.name }}{% endif %}</div>
 {%- endmacro %}
 
 {% macro kind_cell(t) -%}
-<span class="nowrap">{{ t.label }}</span>{% if t.filing.is_amendment %}<div class="muted">amendment</div>{% elif t.suspect %}<div class="muted">not counted: {{ t.suspect_reason }}</div>{% elif t.duplicate %}<div class="muted">also in an earlier filing</div>{% elif t.filing.plan %}<div class="muted">pre-set plan</div>{% endif %}
+<span class="nowrap">{{ t.label }}</span>{% if t.note %}<div class="muted">{{ t.note }}</div>{% elif t.venue == "off-exchange" %}<div class="muted nowrap">off-exchange</div>{% endif %}
 {%- endmacro %}
 
-{% macro insider_table(trades, base, people, show_insider=True, show_company=True, caption=None) -%}
+{% macro value_cell(t) -%}
+{{ fmt_money(t.value, t.currency) }}{% if t.eur_shown %}<div class="muted">{{ fmt_eur_short(t.value_eur) }}</div>{% endif %}
+{%- endmacro %}
+
+{% macro insider_table(trades, base, people, show_insider=True, show_company=True, caption=None, mixed=False) -%}
 <div class="table-wrap">
 <table class="trades">
 {% if caption %}<caption class="visually-hidden">{{ caption }}</caption>{% endif %}
@@ -32,17 +36,24 @@
 {% for t in trades %}
 <tr>
 {% if show_insider %}<td>{{ insider_cell(t, base, people) }}</td>{% endif %}
-{% if show_company %}<td>{{ company_cell(t, base) }}</td>{% endif %}
+{% if show_company %}<td>{{ company_cell(t, base, mixed) }}</td>{% endif %}
 <td>{{ kind_cell(t) }}</td>
-<td class="r num">{{ fmt_shares(t.shares) }}{% if t.lots > 1 %}<div class="muted">in {{ t.lots }} lots</div>{% endif %}{% if not t.direct %}<div class="muted">{{ t.nature or "indirect" }}</div>{% endif %}</td>
-<td class="r num">{{ fmt_price(t.price) }}{% if t.lots > 1 and t.price %}<div class="muted">average</div>{% endif %}</td>
-<td class="r num">{{ fmt_money(t.value) }}</td>
+<td class="r num">{{ fmt_shares(t.shares) }}{% if t.lots > 1 %}<div class="muted">in {{ t.lots }} lots</div>{% endif %}{% if t.via %}<div class="muted">{{ t.via }}</div>{% endif %}</td>
+<td class="r num">{{ fmt_price(t.price, t.currency) }}{% if t.lots > 1 and t.price %}<div class="muted">average</div>{% endif %}</td>
+<td class="r num">{{ value_cell(t) }}</td>
 <td class="num nowrap">{{ fmt_date(t.traded) or "–" }}</td>
 <td class="num nowrap">{{ fmt_date(t.filing.filed) or "–" }}</td>
-<td class="nowrap"><a href="{{ t.filing.url }}" rel="noopener">Form {{ t.filing.form }}</a></td>
+<td class="nowrap"><a href="{{ t.filing.url }}" rel="noopener">{{ t.filing.source_label }}</a></td>
 </tr>
 {% endfor %}
 </tbody>
 </table>
 </div>
+{%- endmacro %}
+
+{% macro market_chips(markets, current, base) -%}
+<nav class="chips" aria-label="Market">
+<a href="{{ base }}/insiders/" class="chip{% if current.code == 'ALL' %} is-on{% endif %}"{% if current.code == 'ALL' %} aria-current="page"{% endif %}>All markets</a>
+{% for m in markets %}<a href="{{ base }}/insiders/{{ m.slug }}/" class="chip{% if current.code == m.code %} is-on{% endif %}"{% if current.code == m.code %} aria-current="page"{% endif %}>{{ m.name }}</a>{% endfor %}
+</nav>
 {%- endmacro %}

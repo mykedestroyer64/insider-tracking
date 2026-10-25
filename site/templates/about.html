@@ -5,7 +5,7 @@
 <section class="page-head">
 <div class="hero-text">
 <h1>About Insider Tracking</h1>
-<p class="lead">A free, independent record of the stock trades that members of Congress and company insiders must report, built from the official disclosure sites of the Senate, the House and the SEC.</p>
+<p class="lead">A free, independent record of the stock trades that members of Congress and company insiders must report, built from the official disclosure sites of the Senate, the House, the SEC and Europe’s financial regulators.</p>
 </div>
 {% include "_search.html" %}
 </section>
@@ -14,7 +14,7 @@
 <div class="prose">
 <h2>How it works</h2>
 <p>Under the STOCK Act of 2012, senators and representatives must report trades of stocks, bonds and other securities worth more than $1,000 within 45 days. The reports are public, but they are hard to browse: the Senate shows one report at a time behind a click-through agreement, and the House publishes each report as a PDF file.</p>
-<p>Every three hours, three small programs read the Senate and House sites and the SEC’s filing system, save new reports in a database, and rebuild this website from it. Nothing is typed in by hand, and nothing is left out on purpose: if it is in an electronic report, it is here.</p>
+<p>Every three hours, a few small programs read the Senate and House sites, the SEC’s filing system and the European registers, save new reports in a database, and rebuild this website from it. Nothing is typed in by hand, and nothing is left out on purpose: if it is in an electronic report, it is here.</p>
 <p>Insider Tracking is non-commercial and carries no advertising. It is not affiliated with Congress or any of its members.</p>
 </div>
 </section>
@@ -23,7 +23,7 @@
 <div class="prose">
 <h2>Data and methods</h2>
 <ul>
-<li><strong>Sources.</strong> Company insiders: the SEC’s <a href="https://www.sec.gov/dera/data/form-345" rel="noopener">insider transactions data sets</a> and <a href="https://www.sec.gov/Archives/edgar/daily-index/" rel="noopener">EDGAR daily indexes</a>; every trade links to its filing. Senate: U.S. Senate Financial Disclosures, <a href="https://efdsearch.senate.gov/search/home/" rel="noopener">efdsearch.senate.gov</a>, Periodic Transaction Reports filed since 2012. House: the Clerk of the House, <a href="https://disclosures-clerk.house.gov/FinancialDisclosure" rel="noopener">disclosures-clerk.house.gov</a>, Periodic Transaction Reports filed since 2013; its electronic reports are PDF files, and the program reads the table in each one. Every trade links to its report.</li>
+<li><strong>Sources.</strong> Company insiders in the United States: the SEC’s <a href="https://www.sec.gov/dera/data/form-345" rel="noopener">insider transactions data sets</a> and <a href="https://www.sec.gov/Archives/edgar/daily-index/" rel="noopener">EDGAR daily indexes</a>; every trade links to its filing. In Sweden: Finansinspektionen’s <a href="https://www.fi.se/en/our-registers/pdmr-transactions/" rel="noopener">register of managers’ transactions</a>, since July 2016; every trade links to the register’s entry for that person and company. Euro figures use the <a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html" rel="noopener">European Central Bank’s reference rates</a> of the trade’s day. Senate: U.S. Senate Financial Disclosures, <a href="https://efdsearch.senate.gov/search/home/" rel="noopener">efdsearch.senate.gov</a>, Periodic Transaction Reports filed since 2012. House: the Clerk of the House, <a href="https://disclosures-clerk.house.gov/FinancialDisclosure" rel="noopener">disclosures-clerk.house.gov</a>, Periodic Transaction Reports filed since 2013; its electronic reports are PDF files, and the program reads the table in each one. Every trade links to its report.</li>
 <li><strong>Amounts.</strong> Members report value ranges, such as $15,001–$50,000, not exact amounts or numbers of shares. The site shows the ranges as filed. Filters on amount use the lower end of the range.</li>
 <li><strong>Days to disclose.</strong> For a trade, the number of days between the trade and the day the Senate or the House received the report. The law allows 45 days; trades past that are marked with a clock.</li>
 <li><strong>Dates as filed.</strong> Dates are shown as written in each report. A few reports carry a trade date later than the day they were filed, which can only be a typo; those dates are marked “as filed” and left out of the day counts.</li>
@@ -32,6 +32,7 @@
 <li><strong>Paper filings.</strong> Some reports are filed on paper and scanned (about one in ten in the House). They are listed on each member’s page, but their trades can’t be read automatically yet, so they aren’t in the trade lists.</li>
 <li><strong>Who is who.</strong> The Senate site gives names only; the House gives names, states and districts. Party, state and district come from the public-domain <a href="https://github.com/unitedstates/congress-legislators" rel="noopener">congress-legislators</a> dataset. Candidates who never served aren’t in that dataset, so they appear without party or state.</li>
 <li><strong>Company insiders.</strong> Officers and directors of public companies must report trades in their own company’s stock to the SEC on <a href="https://www.sec.gov/dera/data/form-345" rel="noopener">Form 4</a> within two business days. The site keeps their open-market buys and sells (transaction codes P and S) since 2021: not stock awards, option exercises, gifts or tax withholding, and not trades by 10% owners, which are mostly funds. Shares and prices are exact, as filed; the value is shares × price. A few filings carry impossible numbers; those rows are shown, marked, and left out of totals. “Pre-set plan” marks trades the filer made under a plan arranged in advance (SEC rule 10b5-1).</li>
+<li><strong>European executives.</strong> In the EU, executives and board members (and their close relatives and companies) must report trades in their company’s shares to the national regulator within three business days (Market Abuse Regulation, Article 19). Sweden is the first country here: its register is complete and public. The site keeps buys and sells of shares and depositary receipts; subscriptions in new issues, option exercises, gifts and inheritances aren’t trades and are left out, and trades linked to a share or option programme are shown but not counted. When a filing is later corrected, the register marks the old entry “Revised” and the site counts only the corrected one. Amounts stay in the currency of the trade, with a euro figure alongside.</li>
 <li><strong>What is not here.</strong> Trades under $1,000 by members of Congress, trades in scanned paper reports, holdings from yearly financial reports, and insiders’ option exercises and stock awards.</li>
 </ul>
 </div>

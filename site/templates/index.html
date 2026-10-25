@@ -115,7 +115,7 @@
 <div class="card-head">
 <div class="titles">
 <h2 id="ins-h">Company insiders</h2>
-<p class="muted">What officers and directors bought and sold in their own companies: {{ fmt_number(insider_stats.buys_30d) }} buys and {{ fmt_number(insider_stats.sells_30d) }} sells in the last 30 days.</p>
+<p class="muted">What executives and board members bought and sold in their own companies{% if insider_markets | length > 1 %} ({% for m in insider_markets %}{{ ", " if not loop.first }}{{ m.name }}{% endfor %}){% endif %}: {{ fmt_number(insider_stats.buys_30d) }} buys and {{ fmt_number(insider_stats.sells_30d) }} sells in the last 30 days.</p>
 </div>
 <a href="{{ base }}/insiders/" class="more">See all insider trades</a>
 </div>
@@ -124,7 +124,7 @@
 <thead><tr><th scope="col">Insider</th><th scope="col">Company</th><th scope="col">Trade</th><th scope="col" class="r">Value</th><th scope="col">Traded</th></tr></thead>
 <tbody>
 {% for t in insider_latest %}
-<tr><td><span class="cell-main">{{ t.insider_name }}</span><div class="muted">{{ t.role_text }}</div></td><td><a href="{{ base }}/stocks/{{ t.stock_slug }}/" class="plain cell-main">{{ t.ticker }}</a><div class="muted">{{ t.filing.company_name }}</div></td><td class="nowrap">{{ t.label }}</td><td class="r num">{{ fmt_money(t.value) }}</td><td class="num nowrap">{{ fmt_date(t.traded) }}</td></tr>
+<tr><td><span class="cell-main">{{ t.insider_name }}</span><div class="muted">{{ t.role_text }}</div></td><td><a href="{{ base }}/stocks/{{ t.stock_slug }}/" class="plain cell-main">{{ t.ticker }}</a><div class="muted">{{ t.filing.company_name }}{% if t.country != "US" %} · {{ t.filing.market.name }}{% endif %}</div></td><td class="nowrap">{{ t.label }}</td><td class="r num">{{ fmt_money(t.value, t.currency) }}{% if t.eur_shown %}<div class="muted">{{ fmt_eur_short(t.value_eur) }}</div>{% endif %}</td><td class="num nowrap">{{ fmt_date(t.traded) }}</td></tr>
 {% endfor %}
 </tbody>
 </table>

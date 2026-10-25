@@ -1,29 +1,29 @@
 {% extends "base.html" %}
 {% from "_insider_macros.html" import insider_table %}
 {% block title %}{{ person.name }}: insider trades · Insider Tracking{% endblock %}
-{% block description %}{{ person.name }} ({{ person.description }}): open-market buys and sells of company stock reported to the SEC on Form 4.{% endblock %}
+{% block description %}{{ person.name }} ({{ person.description }}): buys and sells of company shares reported to {{ person.market.regulator }}.{% endblock %}
 {% block content %}
 <section class="page-head">
 <div class="hero-text">
-<nav class="crumbs" aria-label="Breadcrumb"><a href="{{ base }}/insiders/">Insiders</a> › {{ person.name }}</nav>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="{{ base }}/insiders/">Insiders</a> › <a href="{{ base }}/insiders/{{ person.market.slug }}/">{{ person.market.name }}</a> › {{ person.name }}</nav>
 <h1>{{ person.name }}</h1>
-<p class="lead">{% for c in person.companies %}{% if not loop.first %} · {% endif %}{{ c.title }}, <a href="{{ base }}/stocks/{{ c.slug }}/">{{ c.name }}</a> ({{ c.ticker }}){% endfor %}</p>
+<p class="lead">{% for c in person.companies %}{% if not loop.first %} · {% endif %}{{ c.title }}, <a href="{{ base }}/stocks/{{ c.slug }}/">{{ c.name }}</a>{% if c.country == "US" %} ({{ c.ticker }}){% endif %}{% endfor %}</p>
 </div>
 {% include "_search.html" %}
 </section>
 
 <section class="section">
 <dl class="tiles on-white" aria-label="Summary">
-<div class="tile"><dt class="muted">Buys</dt><dd class="big">{{ fmt_number(stats.buys) }}<span class="of"> {{ fmt_money_short(stats.bought) }}</span></dd></div>
-<div class="tile"><dt class="muted">Sells</dt><dd class="big">{{ fmt_number(stats.sells) }}<span class="of"> {{ fmt_money_short(stats.sold) }}</span></dd></div>
+<div class="tile"><dt class="muted">Buys</dt><dd class="big">{{ fmt_number(stats.buys) }}<span class="of"> {{ fmt_money_short(stats.bought, stats.currency) }}{% if stats.currency not in ("USD", "EUR") %} {{ fmt_eur_short(stats.bought_eur) }}{% endif %}</span></dd></div>
+<div class="tile"><dt class="muted">Sells</dt><dd class="big">{{ fmt_number(stats.sells) }}<span class="of"> {{ fmt_money_short(stats.sold, stats.currency) }}{% if stats.currency not in ("USD", "EUR") %} {{ fmt_eur_short(stats.sold_eur) }}{% endif %}</span></dd></div>
 <div class="tile"><dt class="muted">First trade</dt><dd class="big">{{ fmt_date(stats.first) or "–" }}</dd></div>
 <div class="tile"><dt class="muted">Last trade</dt><dd class="big">{{ fmt_date(stats.last) or "–" }}</dd></div>
 </dl>
-{% if stats.amendments or stats.suspect %}<p class="muted">{% if stats.amendments %}{{ stats.amendments }} row{{ 's' if stats.amendments != 1 }} come{{ 's' if stats.amendments == 1 }} from amendments, which re-file earlier reports; {{ 'they are' if stats.amendments != 1 else 'it is' }} listed but not counted. {% endif %}{% if stats.suspect %}{{ stats.suspect }} row{{ 's' if stats.suspect != 1 }} carr{{ 'y' if stats.suspect != 1 else 'ies' }} impossible numbers as filed and {{ 'are' if stats.suspect != 1 else 'is' }} not counted.{% endif %}</p>{% endif %}
+{% if stats.amendments or stats.suspect or stats.not_current or stats.programme %}<p class="muted">{% if stats.amendments %}{{ stats.amendments }} row{{ 's' if stats.amendments != 1 }} come{{ 's' if stats.amendments == 1 }} from amendments, which re-file earlier reports; {{ 'they are' if stats.amendments != 1 else 'it is' }} listed but not counted. {% endif %}{% if stats.not_current %}{{ stats.not_current }} row{{ 's' if stats.not_current != 1 }} {{ 'were' if stats.not_current != 1 else 'was' }} later revised or cancelled in the register and {{ 'are' if stats.not_current != 1 else 'is' }} not counted. {% endif %}{% if stats.programme %}{{ stats.programme }} row{{ 's' if stats.programme != 1 }} {{ 'are' if stats.programme != 1 else 'is' }} linked to a share or option programme rather than bought or sold on the market, and {{ 'are' if stats.programme != 1 else 'is' }} not counted. {% endif %}{% if stats.suspect %}{{ stats.suspect }} row{{ 's' if stats.suspect != 1 }} carr{{ 'y' if stats.suspect != 1 else 'ies' }} impossible numbers as filed and {{ 'are' if stats.suspect != 1 else 'is' }} not counted.{% endif %}</p>{% endif %}
 </section>
 
 <section class="section" aria-labelledby="all-h">
-<div class="titles"><h2 id="all-h">All trades</h2><p class="muted">Newest filing first. Open-market buys and sells only; stock awards, option exercises and gifts aren’t trades and aren’t listed.</p></div>
+<div class="titles"><h2 id="all-h">All trades</h2><p class="muted">Newest filing first. Buys and sells only; stock awards, option exercises, subscriptions in new issues and gifts aren’t trades and aren’t listed.</p></div>
 {{ insider_table(trades, base, {}, show_insider=False, caption="All trades by " ~ person.name) }}
 </section>
 {% endblock %}

@@ -134,6 +134,7 @@ html.menu-open .side { width: 240px; }
 .chip:hover { background: #E4E4E4; }
 .chip.is-on { background: var(--ink); color: var(--on-ink); font-weight: 600; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chips a.chip { display: inline-flex; align-items: center; text-decoration: none; }
 .link-btn { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: var(--ink); cursor: pointer; text-align: left; }
 .link-btn:hover { text-decoration: underline; }
 .more { align-self: flex-start; font-weight: 600; line-height: 44px; text-underline-offset: 4px; }

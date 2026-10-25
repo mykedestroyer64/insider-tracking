@@ -14,6 +14,9 @@ Tables (created automatically on the first run):
                    (House reports are PDFs that stay online, so they aren't copied)
   insider_filings  one row per SEC Form 4 (company insiders) with buys or sells by officers or directors
   insider_trades   those buys and sells, with exact shares and prices
+  mar_trades       European executives' buys and sells (EU Market Abuse Regulation, Art. 19),
+                   one row per transaction line, with the country it was reported in
+  fx_rates         the European Central Bank's daily euro exchange rates (1 EUR = rate units)
   collector_runs   one row per run of a collector, with its verdict
   collector_state  the collectors' bookmarks (how far back the history is listed)
 
@@ -133,6 +136,63 @@ SCHEMA = [
         suspect_reason     text,
         primary key (accession, row_key)
     )""",
+    """
+    create table if not exists mar_trades (
+        country             text not null,
+        row_key             text not null,
+        filing_key          text not null,
+        published_at        timestamptz,
+        issuer_name         text,
+        issuer_short        text,
+        issuer_lei          text,
+        notifier            text,
+        person_name         text not null,
+        position            text,
+        role                text,
+        position_raw        text,
+        closely_associated  boolean not null default false,
+        is_amendment        boolean not null default false,
+        amendment_note      text,
+        initial             boolean,
+        option_programme    boolean not null default false,
+        nature              text,
+        kind                text not null,
+        instrument_type     text,
+        instrument_name     text,
+        isin                text,
+        trade_date          date,
+        volume              double precision,
+        unit                text,
+        price               double precision,
+        currency            text,
+        value               double precision,
+        value_eur           double precision,
+        venue               text,
+        status              text not null default 'Current',
+        suspect             boolean not null default false,
+        suspect_reason      text,
+        source              text not null,
+        first_seen_at       timestamptz not null default now(),
+        last_seen_at        timestamptz not null default now(),
+        primary key (country, row_key)
+    )""",
+    """
+    create table if not exists fx_rates (
+        day       date not null,
+        currency  text not null,
+        rate      double precision not null,
+        primary key (day, currency)
+    )""",
+    "create index if not exists mar_trades_date on mar_trades (country, trade_date desc)",
+    "create index if not exists mar_trades_person on mar_trades (country, person_name)",
+    "create index if not exists mar_trades_isin on mar_trades (isin)",
+    "create index if not exists mar_trades_published on mar_trades (published_at desc)",
+    "alter table mar_trades enable row level security",
+    "alter table fx_rates enable row level security",
+    "comment on table mar_trades is 'European executives'' buys and sells of their company''s shares, reported "
+    "under Art. 19 of the EU Market Abuse Regulation. country: SE (Finansinspektionen). One row per transaction "
+    "line of a notification; status Current/Revised/Cancelled as in the register; suspect marks impossible numbers.'",
+    "comment on table fx_rates is 'ECB euro reference rates: 1 EUR = rate units of the currency on that day.'",
     "create index if not exists reports_status_received on reports (status, date_received desc)",
     "create index if not exists insider_filings_date on insider_filings (filing_date desc)",
     "create index if not exists insider_filings_ticker on insider_filings (ticker)",
@@ -487,6 +547,117 @@ def insider_counts(conn):
     return {"filings": int(filings), "amendments": int(amendments), "first_filing": first, "last_filing": last,
             "trades": int(trades), "buys": int(buys), "sells": int(sells), "suspect": int(suspect),
             "insiders": int(insiders), "size": str(size)}
+
+
+# ------------------------------------------------------- European executives
+
+MAR_COLUMNS = ["country", "row_key", "filing_key", "published_at", "issuer_name", "issuer_short", "issuer_lei",
+               "notifier", "person_name", "position", "role", "position_raw", "closely_associated", "is_amendment",
+               "amendment_note", "initial", "option_programme", "nature", "kind", "instrument_type",
+               "instrument_name", "isin", "trade_date", "volume", "unit", "price", "currency", "value", "value_eur",
+               "venue", "status", "suspect", "suspect_reason", "source"]
+MAR_UPDATED = ["status", "amendment_note", "value_eur", "suspect", "suspect_reason", "source", "issuer_short",
+               "position", "role", "notifier", "person_name", "issuer_name"]
+
+
+@handles_errors
+def save_mar_trades(conn, rows, source):
+    """Store transaction lines from a European register (a line seen before is updated).
+
+    Returns (new rows, updated rows)."""
+    if not rows:
+        return 0, 0
+    cursor = conn.cursor()
+    new = updated = 0
+    for start in range(0, len(rows), 100):
+        chunk = rows[start:start + 100]
+        slots = "(" + ", ".join(["%s"] * len(MAR_COLUMNS)) + ")"
+        params = []
+        for row in chunk:
+            values = dict(row, source=source)
+            params += [values.get(column) for column in MAR_COLUMNS]
+        updates = ", ".join(f"{c} = excluded.{c}" for c in MAR_UPDATED)
+        cursor.execute(
+            f"insert into mar_trades ({', '.join(MAR_COLUMNS)}) values " + ", ".join([slots] * len(chunk))
+            + f" on conflict (country, row_key) do update set {updates}, last_seen_at = now() "
+            "returning (xmax = 0)", params)
+        for (is_new,) in cursor.fetchall():
+            if is_new in (True, "t", "true", 1):
+                new += 1
+            else:
+                updated += 1
+    conn.commit()
+    return new, updated
+
+
+@handles_errors
+def mar_rows_without_eur(conn, country):
+    """Rows whose euro value could not be worked out yet (no exchange rate at the time)."""
+    cursor = conn.cursor()
+    cursor.execute("select row_key, trade_date, currency, value from mar_trades "
+                   "where country = %s and value is not null and value_eur is null and currency is not null",
+                   (country,))
+    rows = cursor.fetchall()
+    conn.commit()
+    return [{"row_key": str(r[0]), "trade_date": r[1], "currency": str(r[2]), "value": float(r[3])} for r in rows]
+
+
+@handles_errors
+def set_mar_eur(conn, country, values):
+    """values: {row_key: value_eur}."""
+    cursor = conn.cursor()
+    for row_key, value_eur in values.items():
+        cursor.execute("update mar_trades set value_eur = %s where country = %s and row_key = %s",
+                       (value_eur, country, row_key))
+    conn.commit()
+
+
+@handles_errors
+def mar_counts(conn, country):
+    cursor = conn.cursor()
+    cursor.execute("""
+        select count(*), count(*) filter (where kind = 'buy'), count(*) filter (where kind = 'sell'),
+               count(*) filter (where suspect), count(*) filter (where status <> 'Current'),
+               count(distinct person_name), count(distinct coalesce(issuer_lei, issuer_name)),
+               min(published_at), max(published_at)
+        from mar_trades where country = %s""", (country,))
+    trades, buys, sells, suspect, not_current, people, companies, first, last = cursor.fetchone()
+    cursor.execute("select pg_size_pretty(pg_total_relation_size('mar_trades'))")
+    size = cursor.fetchone()[0]
+    conn.commit()
+    return {"trades": int(trades), "buys": int(buys), "sells": int(sells), "suspect": int(suspect),
+            "not_current": int(not_current), "people": int(people), "companies": int(companies),
+            "first_published": first, "last_published": last, "size": str(size)}
+
+
+@handles_errors
+def save_fx_rates(conn, rows):
+    """rows: [(day, currency, rate)]. Returns how many were new."""
+    if not rows:
+        return 0
+    cursor = conn.cursor()
+    new = 0
+    for start in range(0, len(rows), 500):
+        chunk = rows[start:start + 500]
+        params = []
+        for day, currency, rate in chunk:
+            params += [day, currency, rate]
+        cursor.execute("insert into fx_rates (day, currency, rate) values " + ", ".join(["(%s, %s, %s)"] * len(chunk))
+                       + " on conflict (day, currency) do update set rate = excluded.rate returning (xmax = 0)", params)
+        new += sum(1 for (is_new,) in cursor.fetchall() if is_new in (True, "t", "true", 1))
+    conn.commit()
+    return new
+
+
+@handles_errors
+def load_fx_rates(conn):
+    """All stored rates as [(day, currency, rate)]."""
+    cursor = conn.cursor()
+    cursor.execute("select day, currency, rate from fx_rates")
+    rows = [(r[0] if not isinstance(r[0], str) else __import__("datetime").date.fromisoformat(r[0]), str(r[1]), float(r[2]))
+            for r in cursor.fetchall()]
+    conn.commit()
+    return rows
 
 
 # ---------------------------------------------------------------------- runs

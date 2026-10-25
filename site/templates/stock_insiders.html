@@ -1,13 +1,14 @@
 {% extends "base.html" %}
 {% from "_insider_macros.html" import insider_table %}
 {% block title %}{{ stock.ticker }}: all insider trades · Insider Tracking{% endblock %}
-{% block description %}Every open-market buy and sell of {{ stock.ticker }} ({{ stock.name }}) by the company's officers and directors, from SEC Form 4 filings since 2021.{% endblock %}
+{% set m = stock.company.market %}
+{% block description %}Every buy and sell of {{ stock.ticker }} ({{ stock.name }}) shares by the company's executives and board members, reported to {{ m.regulator }} since {{ m.since }}.{% endblock %}
 {% block content %}
 <section class="page-head">
 <div class="hero-text">
 <nav class="crumbs" aria-label="Breadcrumb"><a href="{{ base }}/stocks/">Stocks</a> › <a href="{{ base }}/stocks/{{ stock.slug }}/">{{ stock.ticker }}</a> › Insiders</nav>
 <h1>{{ stock.ticker }}: insider trades</h1>
-<p class="lead">{{ stock.name }}. Every open-market buy and sell by its officers and directors since 2021, newest filing first.</p>
+<p class="lead">{{ stock.name }}. Every buy and sell by its executives and board members since {{ m.since }}, newest filing first.</p>
 </div>
 {% include "_search.html" %}
 </section>
