@@ -1,10 +1,17 @@
-# Test run for the next sources: House members' trade reports and company insiders' Form 4s.
-# Start it by hand: Actions tab -> "New sources check" -> "Run workflow".
+# Test run for new sources: House members' trade reports, company insiders' Form 4s,
+# and Swedish executives' trades (Finansinspektionen's register).
+# Start it by hand: Actions tab -> "New sources check" -> "Run workflow", and type the
+# names of the checks to run (any of: house sec sweden).
 # The results (examples of real filings) are saved on the "check-results" branch.
 name: New sources check
 
 on:
   workflow_dispatch:   # only runs when started by hand (no schedule)
+    inputs:
+      sources:
+        description: "Which checks to run (space-separated: house sec sweden)"
+        default: "house sec sweden"
+        required: true
 
 permissions:
   contents: write      # to save the results on the check-results branch
@@ -26,7 +33,8 @@ jobs:
         run: python -m pip install -r requirements.txt pdfplumber
 
       - name: Check the House site
-        continue-on-error: true   # run the SEC check even if this one fails
+        if: contains(inputs.sources, 'house')
+        continue-on-error: true   # run the other checks even if this one fails
         shell: bash
         env:
           EFD_CONTACT_EMAIL: ${{ secrets.EFD_CONTACT_EMAIL }}   # your email, kept private
@@ -35,6 +43,7 @@ jobs:
           python -u house_check.py 2>&1 | tee output/house/console.log
 
       - name: Check the SEC site
+        if: contains(inputs.sources, 'sec')
         continue-on-error: true
         shell: bash
         env:
@@ -43,13 +52,24 @@ jobs:
           mkdir -p output/sec
           python -u sec_check.py 2>&1 | tee output/sec/console.log
 
+      - name: Check Finansinspektionen's register (Sweden)
+        if: contains(inputs.sources, 'sweden')
+        continue-on-error: true
+        shell: bash
+        env:
+          EFD_CONTACT_EMAIL: ${{ secrets.EFD_CONTACT_EMAIL }}
+        run: |
+          mkdir -p output/sweden
+          python -u sweden_check.py 2>&1 | tee output/sweden/console.log
+
       - name: Write the verdicts to the job summary
         if: always()
         shell: bash
         run: |
           {
             echo "## New sources check"
-            for part in house sec; do
+            for part in house sec sweden; do
+              [ -f "output/$part/console.log" ] || continue
               echo
               echo "### ${part^^}"
               if grep -q '^VERDICT' "output/$part/console.log" 2>/dev/null; then
@@ -63,6 +83,13 @@ jobs:
               fi
             done
           } >> "$GITHUB_STEP_SUMMARY"
+          # The same lines as annotations, so they can be read without opening the logs.
+          for part in house sec sweden; do
+            [ -f "output/$part/console.log" ] || continue
+            grep -E '^(\[|VERDICT)' "output/$part/console.log" | while IFS= read -r line; do
+              echo "::notice title=${part^^} check::$line"
+            done
+          done
 
       - name: Save the results on the check-results branch
         if: always()
