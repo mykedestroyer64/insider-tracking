@@ -42,7 +42,9 @@ PROJECT = "insider-tracking"
 VERSION = "0.1"
 COUNTRY = sweden_parsing.COUNTRY
 
-MAX_REQUESTS = 20          # requests to Finansinspektionen (and the ECB) per run
+MAX_REQUESTS = 60          # requests to Finansinspektionen (and the ECB) per run
+EXPORT_CAP = 1000          # the register's export stops at this many lines: longer windows are split
+HISTORY_VERSION = "2"      # bump to make the next run load the history again (v1 lost lines to the cap)
 RECENT_DAYS = 45           # the window re-exported on every run (catches revisions and cancellations)
 MONTHS_PER_RUN = 12        # history months loaded per run
 FIRST_DAY = date(2016, 7, 3)   # the register starts with the Market Abuse Regulation
@@ -161,12 +163,22 @@ def update_rates(conn, web, today):
 
 
 def save_export(conn, web, start, end, rates, stats, label):
-    """Export one window of the register and save it. Returns (rows kept, new, updated, lines)."""
+    """Export one window of the register and save it. Returns (rows kept, new, updated, lines).
+
+    The register's export never holds more than EXPORT_CAP lines, so a window that
+    comes back full is split in two and both halves are exported again."""
     response = web.export(start, end)
     try:
         rows, counts = sweden_parsing.parse_export(response.content, rates.rate_on)
     except sweden_parsing.ExportProblem as problem:
         raise sweden_site.SiteStop(CHANGED, f"the export for {start}..{end} could not be read: {problem}", response) from None
+    if counts["lines"] >= EXPORT_CAP and end > start:
+        middle = start + (end - start) // 2
+        first = save_export(conn, web, start, middle, rates, stats, label)
+        second = save_export(conn, web, middle + timedelta(days=1), end, rates, stats, label)
+        return tuple(a + b for a, b in zip(first, second))
+    if counts["lines"] >= EXPORT_CAP:
+        note(f"{start}: {counts['lines']:,} lines on one day, the export's limit; some may be missing")
     new, updated = database.save_mar_trades(conn, rows, source=f"{label} {start}..{end}")
     stats["lines"] += counts["lines"]
     stats["kept"] += len(rows)
@@ -192,6 +204,11 @@ def export_recent(conn, web, rates, stats, today):
 
 def load_history(conn, web, rates, stats):
     """Step 5: months before the loaded range, MONTHS_PER_RUN per run, back to FIRST_DAY."""
+    if database.get_state(conn, "se_history_version") != HISTORY_VERSION:
+        recent_from = as_date(database.get_state(conn, "se_recent_through")) or date.today()
+        database.set_state(conn, "se_history_cursor", (recent_from - timedelta(days=RECENT_DAYS)).isoformat())
+        database.set_state(conn, "se_history_version", HISTORY_VERSION)
+        note("the history is loaded again from the start (the way it is read changed)")
     cursor = as_date(database.get_state(conn, "se_history_cursor"))
     if cursor is None or cursor <= FIRST_DAY:
         return f"complete - the register is loaded back to {FIRST_DAY}"
