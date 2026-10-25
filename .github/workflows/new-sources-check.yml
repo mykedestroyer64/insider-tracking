@@ -1,7 +1,8 @@
 # Test run for new sources: House members' trade reports, company insiders' Form 4s,
 # and Swedish executives' trades (Finansinspektionen's register).
 # Start it by hand: Actions tab -> "New sources check" -> "Run workflow", and type the
-# names of the checks to run (any of: house sec sweden netherlands).
+# names of the checks to run (any of: house sec sweden netherlands libs).
+# "libs" shows which versions of the Python libraries GitHub installs, and the newest ones on PyPI.
 # The results (examples of real filings) are saved on the "check-results" branch.
 name: New sources check
 
@@ -9,7 +10,7 @@ on:
   workflow_dispatch:   # only runs when started by hand (no schedule)
     inputs:
       sources:
-        description: "Which checks to run (space-separated: house sec sweden netherlands)"
+        description: "Which checks to run (space-separated: house sec sweden netherlands libs)"
         default: "house sec sweden netherlands"
         required: true
 
@@ -31,6 +32,30 @@ jobs:
 
       - name: Install requirements (and pdfplumber, to read PDFs)
         run: python -m pip install -r requirements.txt pdfplumber
+
+      - name: Show the library versions (libs)
+        if: contains(inputs.sources, 'libs')
+        continue-on-error: true
+        shell: bash
+        run: |
+          python - <<'PY'
+          import importlib.metadata as meta
+          names = ["pg8000", "scramp", "asn1crypto", "requests", "beautifulsoup4", "jinja2", "pdfplumber"]
+          found = []
+          for name in names:
+              try:
+                  found.append(f"{name} {meta.version(name)}")
+              except meta.PackageNotFoundError:
+                  found.append(f"{name} missing")
+          print("::notice title=LIBS check::installed: " + ", ".join(found))
+          import scramp
+          print("::notice title=LIBS check::scramp has make_channel_binding: " + str(hasattr(scramp, "make_channel_binding"))
+                + "; scramp offers: " + ", ".join(sorted(n for n in dir(scramp) if not n.startswith("_"))))
+          PY
+          for name in pg8000 scramp; do
+            line="$(python -m pip index versions "$name" 2>/dev/null | head -2 | tr '\n' ' ' | cut -c1-400)"
+            echo "::notice title=LIBS check::on PyPI: $line"
+          done
 
       - name: Check the House site
         if: contains(inputs.sources, 'house')
