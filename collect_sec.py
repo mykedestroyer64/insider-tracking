@@ -348,10 +348,16 @@ def main():
     verdict_line = f"VERDICT: {status} {outcome} (ran on {ran_on})"
 
     print()
+    whole_db = ""
+    if totals:
+        try:
+            whole_db = f" (whole database {database.total_size(conn)} MB of the free plan's {database.FREE_PLAN_MB} MB)"
+        except database.DatabaseError:
+            pass
     if totals:
         print(f"Database now: {totals['trades']:,} insider trades ({totals['buys']:,} buys, {totals['sells']:,} sells, "
               f"{totals['suspect']:,} suspect) from {totals['filings']:,} filings by {totals['insiders']:,} insiders, "
-              f"filed {totals['first_filing']} to {totals['last_filing']}; tables use {totals['size']}")
+              f"filed {totals['first_filing']} to {totals['last_filing']}; tables use {totals['size']}" + whole_db)
     if web is not None:
         print(f"Requests to the SEC in this run: {web.requests_sent}")
     if status in ADVICE:

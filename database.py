@@ -674,6 +674,19 @@ def load_fx_rates(conn):
     return rows
 
 
+@handles_errors
+def total_size(conn):
+    """The whole database's size in MB (Supabase's free plan allows 500 MB)."""
+    cursor = conn.cursor()
+    cursor.execute("select pg_database_size(current_database())")
+    size = int(cursor.fetchone()[0])
+    conn.commit()
+    return round(size / 1024 / 1024)
+
+
+FREE_PLAN_MB = 500
+
+
 # ---------------------------------------------------------------------- runs
 
 @handles_errors

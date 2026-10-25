@@ -340,6 +340,12 @@ def main():
     verdict_line = f"VERDICT: {status} {outcome} (ran on {ran_on})"
 
     print()
+    whole_db = ""
+    if totals:
+        try:
+            whole_db = f" (whole database {database.total_size(conn)} MB of the free plan's {database.FREE_PLAN_MB} MB)"
+        except database.DatabaseError:
+            pass
     if stats["lines"]:
         print(f"Left out this run: {stats['skipped_nature']:,} lines that aren't buys or sells (subscriptions, "
               f"option exercises, gifts...), {stats['skipped_instrument']:,} in other instruments (warrants, bonds...), "
@@ -350,7 +356,7 @@ def main():
         span = f"published {str(first)[:10]} to {str(last)[:10]}" if first and last else "nothing published yet"
         print(f"Database now: {totals['trades']:,} Swedish trades ({totals['buys']:,} buys, {totals['sells']:,} sells, "
               f"{totals['suspect']:,} suspect, {totals['not_current']:,} revised or cancelled) by {totals['people']:,} "
-              f"people at {totals['companies']:,} companies, {span}; table uses {totals['size']}")
+              f"people at {totals['companies']:,} companies, {span}; table uses {totals['size']}" + whole_db)
     if web is not None:
         print(f"Requests in this run: {web.requests_sent}")
     if status in ADVICE:
