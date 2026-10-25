@@ -10,8 +10,11 @@ a second. This session:
   - and if the SEC refuses it, raises SiteStop and the collector stops.
 """
 
+import html
 import random
+import re
 import time
+from urllib.parse import urlparse
 
 import requests
 
@@ -77,11 +80,34 @@ class SecSession:
 
     @staticmethod
     def _check(response):
-        content_type = response.headers.get("Content-Type", "")
-        if "text" in content_type or "html" in content_type:
-            lower = response.text[:4000].lower()
-            if any(word in lower for word in BLOCK_WORDS):
-                raise SiteStop(BLOCKED, f"HTTP {response.status_code}: the SEC's page about automated tools "
-                                        "(it wants a User-Agent with a name and email, and fewer requests)",
-                               response)
-        check_response(response)
+        try:
+            content_type = response.headers.get("Content-Type", "")
+            if "text" in content_type or "html" in content_type:
+                lower = response.text[:4000].lower()
+                if any(word in lower for word in BLOCK_WORDS):
+                    raise SiteStop(BLOCKED, f"HTTP {response.status_code}: the SEC's page about automated tools "
+                                            "(it wants a User-Agent with a name and email, and fewer requests)",
+                                   response)
+            check_response(response)
+        except SiteStop as stop:
+            # say which address was refused and what the refusal page says, so the verdict
+            # line alone is enough to tell a one-off from a block of every request
+            stop.detail = f"{stop.detail} - on {where(response.url)}{page_says(response)}"
+            stop.args = (stop.detail,)
+            raise
+
+
+def where(url):
+    """The part of an SEC address after the host: /Archives/edgar/daily-index/... or /Archives/edgar/data/..."""
+    path = urlparse(url or "").path or "/"
+    return path if len(path) <= 90 else path[:87] + "..."
+
+
+def page_says(response):
+    """The first words of an HTML refusal page, without its tags (empty for other answers)."""
+    if "html" not in response.headers.get("Content-Type", "") and "<html" not in response.text[:500].lower():
+        return ""
+    text = re.sub(r"<(script|style)\b.*?</\1>", " ", response.text[:20000], flags=re.S | re.I)
+    text = html.unescape(re.sub(r"<[^>]+>", " ", text))
+    text = re.sub(r"\s+", " ", text).strip()
+    return f"; the page says: \"{text[:160]}\"" if text else ""

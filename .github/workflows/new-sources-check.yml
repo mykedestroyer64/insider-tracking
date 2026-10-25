@@ -132,6 +132,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          if [ ! -d output ] || [ -z "$(ls -A output)" ]; then echo "Nothing to save."; exit 0; fi
           cd output
           git init -q -b check-results
           git config user.name "github-actions[bot]"

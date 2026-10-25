@@ -1,5 +1,10 @@
 requests>=2.32,<3
 beautifulsoup4>=4.12,<5
-pg8000>=1.31,<2
+# The database driver and the library it uses to log in are pinned to versions that
+# work together. On 25 Oct 2026 scramp 1.5.0 removed make_channel_binding, which
+# pg8000 1.31.5 still calls, and every collector failed at "Connect to the database".
+# Change these two only together, after a test run.
+pg8000==1.31.5
+scramp==1.4.17
 jinja2>=3.1,<4
 pdfplumber>=0.11,<1

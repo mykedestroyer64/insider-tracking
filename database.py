@@ -312,8 +312,22 @@ def connect(url, password=None):
         if settings["host"].startswith("db.") and settings["host"].endswith(".supabase.co"):
             hint = (" - this is Supabase's Direct connection string, which GitHub can't use; "
                     "use the Session pooler string instead")
+        elif not isinstance(error, (OSError, TimeoutError)) and type(error).__module__ in ("builtins",):
+            hint = f" ({library_versions()})"      # a library problem rather than a network one
         raise DatabaseError(f"could not connect to {settings['host']}: "
                             f"{describe(error)}{hint}") from None
+
+
+def library_versions():
+    """'pg8000 1.31.5, scramp 1.4.17': the versions installed, for error messages."""
+    import importlib.metadata
+    found = []
+    for name in ("pg8000", "scramp"):
+        try:
+            found.append(f"{name} {importlib.metadata.version(name)}")
+        except importlib.metadata.PackageNotFoundError:
+            found.append(f"{name} not installed")
+    return ", ".join(found)
 
 
 # -------------------------------------------------------------------- tables
