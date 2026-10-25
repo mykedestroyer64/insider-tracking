@@ -157,6 +157,7 @@ class InsiderTrade:
     venue: str = ""
     superseded: bool = False   # an amendment in the register replaces this row
     instrument: str = ""       # European registers: the share class, e.g. "Investor B"
+    transfer: bool = False     # a buy and a sell of the same lot on the same day: shares moved, not traded
 
     @property
     def country(self):
@@ -164,7 +165,7 @@ class InsiderTrade:
 
     @property
     def counted(self):
-        if self.suspect or self.duplicate or self.superseded or self.programme:
+        if self.suspect or self.duplicate or self.superseded or self.programme or self.transfer:
             return False
         if self.status.lower() != "current":
             return False
@@ -187,6 +188,8 @@ class InsiderTrade:
             return "also in an earlier filing"
         if self.superseded:
             return "revised later, see the corrected row"
+        if self.transfer:
+            return "moved between the insider and a related party, not counted"
         if self.status.lower() == "cancelled":
             return "cancelled by the filer"
         if self.status.lower() != "current":
@@ -321,6 +324,7 @@ class Person:
             "suspect": sum(1 for t in self.trades if t.suspect),
             "not_current": sum(1 for t in self.trades if t.status.lower() != "current" or t.superseded),
             "programme": sum(1 for t in self.trades if t.programme),
+            "transfers": sum(1 for t in self.trades if t.transfer),
         }
 
 
@@ -369,6 +373,25 @@ def mark_duplicates(rows):
     return rows
 
 
+def mark_transfers(rows):
+    """A buy and a sell by the same insider of the same lot on the same day are one transfer.
+
+    European filers report a move of shares between themselves and their own company
+    (or a relative) as a disposal by one and an acquisition by the other; nothing was
+    bought or sold on the market, so neither side is counted."""
+    sides = defaultdict(set)
+    for row in rows:
+        if row.country != "US" and row.status.lower() == "current" and not row.suspect:
+            key = (row.insider_cik, row.security, row.traded, round(row.shares or 0, 3), round(row.price or 0, 2))
+            sides[key].add(row.kind)
+    for row in rows:
+        if row.country != "US" and row.status.lower() == "current" and not row.suspect:
+            key = (row.insider_cik, row.security, row.traded, round(row.shares or 0, 3), round(row.price or 0, 2))
+            if sides[key] == {"buy", "sell"}:
+                row.transfer = True
+    return rows
+
+
 def mark_superseded(rows):
     """A European register's corrected filing replaces the original line for the same trade.
 
@@ -391,7 +414,7 @@ class InsiderData:
     def __init__(self, filings, trades, today=None):
         self.today = today or date.today()
         self.filings = filings
-        self.trades = mark_superseded(mark_duplicates(combine_lots(trades)))
+        self.trades = mark_superseded(mark_transfers(mark_duplicates(combine_lots(trades))))
         self.companies = {}
         self.people = {}
         for t in self.trades:
@@ -568,11 +591,13 @@ def load_europe(conn):
         return [], []
     rows = fetch_all(conn, MAR_SQL)
     # company slugs first: /stocks/se/<short name>/, unique per issuer (LEI, or name)
+    import sweden_parsing   # the collector's own naming rules (the repository root is on the path)
     issuers = {}
     for row in rows:
-        country, issuer_name, issuer_short, lei = row[0], row[4], row[5], row[6]
+        country, issuer_name, lei = row[0], row[4], row[6]
         key = (country, lei or issuer_name.lower())
-        issuers.setdefault(key, {"name": issuer_name, "short": issuer_short or issuer_name, "slug": None})
+        issuers.setdefault(key, {"name": issuer_name, "short": sweden_parsing.company_short_name(issuer_name) or issuer_name,
+                                 "slug": None})
     used = set()
     for key in sorted(issuers, key=lambda k: issuers[k]["short"].lower()):
         info = issuers[key]
@@ -599,7 +624,6 @@ def load_europe(conn):
         filing.is_amendment = filing.is_amendment or amendment == "1"
         trade_day = parse_date(traded)
         if not filing.url:
-            import sweden_parsing
             filing.url = sweden_parsing.register_search_url(person, issuer_name, trade_day)
         trades.append(InsiderTrade(
             filing=filing, row_key=row_key, insider_cik=person_key(country, person), insider_name=person,

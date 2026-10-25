@@ -70,8 +70,8 @@ ENTITY_WORDS = (r"\b(?:AB|Aktiebolag|AS|ASA|A/S|ApS|Oy|Oyj|KB|HB|Ltd|Limited|LLC
                 r"Stiftelsen|Foundation|Fund|Fonder|Partners|Trust|Group|Gruppen|Bolag|Bolaget|Fastigheter|Konsult)\b")
 ENTITY = re.compile(ENTITY_WORDS, re.I)
 
-COMPANY_SUFFIXES = re.compile(r"\s*,?\s*(?:\(publ\)|\(PUBL\)|AB|Aktiebolag|ASA|AS|Oyj|Oy|A/S|plc|PLC|SE|Ltd|Limited|NV|"
-                              r"N\.V\.|SA|S\.A\.|AG|Abp)\s*$")
+COMPANY_SUFFIXES = re.compile(r"\s*,?\s*(?:\(publ\)|AB|Aktiebolag|ASA|AS|Oyj|Oy|Abp|A/S|ApS|plc|SE|Ltd\.?|Limited|NV|"
+                              r"N\.V\.|SA|S\.A\.|AG|Inc\.?|Incorporated|Corp\.?|Corporation|Co\.?|LLC|L\.?P\.?)\s*$", re.I)
 
 
 class ExportProblem(Exception):
