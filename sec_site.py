@@ -24,6 +24,7 @@ from efd_site import (BLOCKED, CHANGED, OK, SITE_DOWN, EfdStop as SiteStop,  # n
 SEC_URL = "https://www.sec.gov"
 DATASETS_PAGE = SEC_URL + "/dera/data/form-345"                               # lists the quarterly files
 DAILY_INDEX = SEC_URL + "/Archives/edgar/daily-index/{year}/QTR{quarter}/form.{day:%Y%m%d}.idx"
+DAILY_LISTING = SEC_URL + "/Archives/edgar/daily-index/{year}/QTR{quarter}/index.json"   # the quarter's daily files
 ARCHIVES = SEC_URL + "/Archives/"
 
 TIMEOUT = (10, 120)    # seconds allowed to connect, and to receive the answer (the quarterly files are big)

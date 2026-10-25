@@ -95,7 +95,7 @@ To start it by hand: **Actions > insider-tracking House collector > Run workflow
 
 1. connects to the database (the first run adds the `insider_filings` and `insider_trades` tables)
 2. loads the SEC's quarterly data files, newest first, two per run, back to the start of 2021 (each holds every Form 4 of a quarter)
-3. reads EDGAR's daily lists of filings for the days after the newest quarterly file, downloads each new Form 4 and saves it
+3. reads EDGAR's daily lists of filings for the days after the newest quarterly file, downloads each new Form 4 and saves it. EDGAR publishes no list on weekends and US federal holidays, so the collector first reads the quarter's listing of daily lists (`index.json`) and skips the days that aren't in it: asking the SEC for a list that doesn't exist gets "403 Access Denied" from its storage, which looks exactly like a refusal (this happened on Columbus Day, 12 Oct 2026)
 
 Only open-market buys and sells (codes P and S) by officers and directors are kept: not stock awards, option exercises, gifts, tax withholding, or trades by 10% owners (mostly funds). A few filings carry impossible numbers; those rows are marked `suspect` and left out of totals. Each run sends at most 1,200 requests to the SEC, 0.3-0.6 seconds apart, with a User-Agent naming the project and your email, as the SEC asks.
 

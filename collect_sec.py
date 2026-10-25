@@ -37,7 +37,7 @@ import sec_site
 from sec_site import BLOCKED, CHANGED, OK, SITE_DOWN
 
 PROJECT = "insider-tracking"
-VERSION = "0.4"
+VERSION = "0.5"
 
 MAX_REQUESTS = 1200        # requests to the SEC per run
 FIRST_QUARTER = (2021, 1)  # how far back the quarterly files are loaded
@@ -156,6 +156,27 @@ def load_quarters(conn, web, files, stats):
     return f"loaded {len(loaded)}; {left} quarterly file{'s' if left != 1 else ''} left to load"
 
 
+def listed_days(web, listings, year, quarter):
+    """The days of a quarter that have a daily list, from EDGAR's listing of the quarter (one request).
+
+    EDGAR publishes no list on weekends and US federal holidays, and asking for a list
+    that doesn't exist gets "403 Access Denied" from the SEC's storage, which looks just
+    like a refusal. So the collector asks for a day's list only when the listing has it."""
+    if (year, quarter) not in listings:
+        response = web.get(sec_site.DAILY_LISTING.format(year=year, quarter=quarter), ok_codes=(404,))
+        if response.status_code == 404:                        # a new quarter with no list yet
+            listings[(year, quarter)] = set()
+        else:
+            try:
+                items = response.json()["directory"]["item"]
+            except (ValueError, KeyError, TypeError):
+                raise sec_site.unexpected(response, f"the listing of daily lists for {year} Q{quarter} "
+                                                    "could not be read") from None
+            listings[(year, quarter)] = {m.group(1) for m in (re.fullmatch(r"form\.(\d{8})\.idx", item.get("name", ""))
+                                                              for item in items) if m}
+    return listings[(year, quarter)]
+
+
 def read_daily(conn, web, files, stats, now):
     """Step 3: new filings from EDGAR's daily lists, for the days after the newest quarterly file."""
     newest = max(files)
@@ -168,6 +189,7 @@ def read_daily(conn, web, files, stats, now):
     seen_state = json.loads(database.get_state(conn, "sec_daily_seen") or "{}")
     days_done, fetched, kept, failures_in_a_row = 0, 0, 0, 0
     progress, stopped = [], None          # what happened on each day, for the step's summary line
+    listings = {}
     try:
         while day <= now.date():
             if day.weekday() >= 5:                                # EDGAR publishes no lists at weekends
@@ -176,6 +198,13 @@ def read_daily(conn, web, files, stats, now):
                 day += timedelta(days=1)
                 continue
             year, quarter = quarter_of(day)
+            if f"{day:%Y%m%d}" not in listed_days(web, listings, year, quarter):
+                if day <= today:                                  # a weekday without a list: a holiday
+                    progress.append(f"{day:%m/%d}: no list (EDGAR closed)")
+                    database.set_state(conn, "sec_daily_cursor", day.isoformat())
+                    day += timedelta(days=1)
+                    continue
+                break                                             # not published yet
             response = web.get(sec_site.DAILY_INDEX.format(year=year, quarter=quarter, day=day), ok_codes=(404,))
             if response.status_code == 404:                       # a holiday, or not published yet
                 if day <= today:
