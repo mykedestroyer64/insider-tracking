@@ -3,6 +3,7 @@
 # Start it by hand: Actions tab -> "New sources check" -> "Run workflow", and type the
 # names of the checks to run (any of: house sec sweden netherlands libs).
 # "libs" shows which versions of the Python libraries GitHub installs, and the newest ones on PyPI.
+# "secdays" asks EDGAR (3 requests) which daily lists exist this quarter and what a missing one returns.
 # The results (examples of real filings) are saved on the "check-results" branch.
 name: New sources check
 
@@ -10,7 +11,7 @@ on:
   workflow_dispatch:   # only runs when started by hand (no schedule)
     inputs:
       sources:
-        description: "Which checks to run (space-separated: house sec sweden netherlands libs)"
+        description: "Which checks to run (space-separated: house sec sweden netherlands libs secdays)"
         default: "house sec sweden netherlands"
         required: true
 
@@ -56,6 +57,37 @@ jobs:
             line="$(python -m pip index versions "$name" 2>/dev/null | head -2 | tr '\n' ' ' | cut -c1-400)"
             echo "::notice title=LIBS check::on PyPI: $line"
           done
+
+      - name: Ask EDGAR which daily lists exist (secdays)
+        if: contains(inputs.sources, 'secdays')
+        continue-on-error: true
+        shell: bash
+        env:
+          EFD_CONTACT_EMAIL: ${{ secrets.EFD_CONTACT_EMAIL }}
+        run: |
+          python - <<'PY'
+          import os, re, time
+          import requests
+          web = requests.Session()
+          web.headers["User-Agent"] = ("insider-tracking/0.1 (non-commercial public transparency project; contact: "
+                                       + os.environ.get("EFD_CONTACT_EMAIL", "") + ")")
+          def note(text):
+              print("::notice title=SECDAYS check::" + text.replace("\n", " ")[:900])
+          base = "https://www.sec.gov/Archives/edgar/daily-index/2026/QTR4/"
+          r = web.get(base + "index.json", timeout=30)
+          days = []
+          try:
+              days = sorted(i["name"] for i in r.json()["directory"]["item"] if i.get("name", "").startswith("form."))
+          except Exception as error:
+              note(f"listing not readable: {error}")
+          note(f"listing: HTTP {r.status_code}, {len(days)} form.*.idx files: " + ", ".join(d[5:13] for d in days))
+          for day in ("20261012", "20261013"):
+              time.sleep(2)
+              r = web.get(base + f"form.{day}.idx", timeout=30)
+              text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", r.text[:600])).strip()
+              note(f"form.{day}.idx: HTTP {r.status_code}, Content-Type {r.headers.get('Content-Type')}, "
+                   f"{len(r.content):,} bytes, starts: {text[:200]}")
+          PY
 
       - name: Check the House site
         if: contains(inputs.sources, 'house')
