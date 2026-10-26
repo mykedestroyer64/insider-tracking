@@ -4,8 +4,8 @@ name: insider-tracking collector
 
 on:
   schedule:
-    # Twice a day while eFD refuses the collector (since 23 Oct 2026), so a failed run emails
-    # you at most twice a day. Put back "23 */3 * * *" (every 3 hours) once access works again.
+    # Twice a day while eFD refuses the collector (since 23 Oct 2026). Put back "23 */3 * * *"
+    # (every 3 hours) once access works again.
     - cron: "23 5,17 * * *"
   workflow_dispatch:         # adds the "Run workflow" button
 
@@ -38,9 +38,21 @@ jobs:
           EFD_CONTACT_EMAIL: ${{ secrets.EFD_CONTACT_EMAIL }}
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          # While eFD refuses the collector (since 23 Oct 2026), a refusal (verdict BLOCKED) is
+          # recorded on the run and in the database but doesn't count as a failed run, so GitHub
+          # doesn't email about it. Any other problem still fails the run and emails you.
+          # Set this to "false" to be emailed about refusals again.
+          QUIET_WHEN_BLOCKED: "true"
         run: |
           mkdir -p output
-          python -u collect.py 2>&1 | tee output/console.log
+          if python -u collect.py 2>&1 | tee output/console.log; then
+            exit 0
+          fi
+          if [ "$QUIET_WHEN_BLOCKED" = "true" ] && grep -q '^VERDICT: BLOCKED' output/console.log; then
+            echo "::warning title=Senate collector::eFD refused the collector again; recorded, not counted as a failed run (no email)"
+            exit 0
+          fi
+          exit 1
 
       - name: Write the verdict to the job summary
         if: always()   # also when the collector failed

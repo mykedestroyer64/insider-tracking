@@ -151,7 +151,7 @@ From now on the collector runs by itself every 3 hours. The history back to 2012
 
 ## Good to know
 
-- **Failure emails:** when a scheduled run fails, GitHub emails you.
+- **Failure emails:** when a scheduled run fails, GitHub emails you. Exception: while eFD refuses the Senate collector (since 23 Oct 2026), a refusal is recorded on the run (a yellow warning and the verdict note) but doesn't count as a failed run, so it sends no email; every other kind of failure still does. `QUIET_WHEN_BLOCKED` in `collect.yml` switches this off.
 - **Heartbeat:** GitHub switches off scheduled workflows in public repositories after 60 days without any change, so once a week the collector saves today's date in `status/heartbeat.txt`. Those small commits are expected.
 - **Supabase free plan:** Supabase pauses a free project after a week without activity. Runs every 3 hours keep it awake, and the data fits easily in the free 500 MB.
 - **Who can see the database:** only you, in Supabase. Row Level Security is switched on for every table and no read access is granted; the website build connects with your password and publishes plain pages, so visitors never reach the database.
