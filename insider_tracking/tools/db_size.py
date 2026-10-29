@@ -19,13 +19,15 @@ def mb(size):
 
 
 class DatabaseSizeReport:
-    def __init__(self, note=Notes("DBSIZE check")):
+    """note(text) posts a note (by default on the platform's console)."""
+
+    def __init__(self, note=None):
         self.note = note
 
     def run(self, argv, platform):
         settings = Settings.read(platform.environ)
         db = Database(platform.connect(settings.db_url, settings.db_password))
-        size, note = DatabaseSize(db), self.note
+        size, note = DatabaseSize(db), self.note or Notes("DBSIZE check", platform.console)
         note(f"whole database {mb(size.database_bytes())}; tables: " + " | ".join(
             f"{name} {mb(total)} (data {mb(heap)}, indexes {mb(indexes)}, toast {mb(toast)}, ~{rows:,} rows, {dead:,} dead)"
             for name, total, heap, indexes, toast, rows, dead in size.table_details()))

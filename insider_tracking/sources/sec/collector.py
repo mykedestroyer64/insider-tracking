@@ -24,7 +24,7 @@ from ...db.state import StateStore
 from ...runs.command import CollectorCommand
 from ...runs.definition import CollectorDefinition
 from ...runs.summary import whole_database_note
-from ...web.client import PoliteClient, new_session
+from ...web.client import PoliteClient
 from ...web.pacing import RequestBudget
 from .daily import DailyLists
 from .names import ENTITY_SQL
@@ -68,7 +68,7 @@ class SecSource:
         budget = RequestBudget(context.max_requests)
 
         def open_site():
-            session = new_session(user_agent(VERSION, context.settings.email), compressed=True)
+            session = context.new_session(user_agent(VERSION, context.settings.email), compressed=True)
             return SecSite(PoliteClient(session, self.pacing, budget, who=WHO, sleep=context.sleep), self.endpoints)
 
         return SecRun(filings=InsiderFilings(context.db), bookmarks=StateStore(context.db),

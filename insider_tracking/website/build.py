@@ -12,7 +12,7 @@ returns; write every page (pages/), in order.
 
 import argparse
 
-from ..db.connection import DatabaseError
+from ..core.errors import DatabaseError
 from ..db.database import Database
 from ..runs.settings import Settings
 from .config import CACHE, OVERRIDES, STATIC, TEMPLATES, SiteConfig
@@ -28,10 +28,6 @@ from .render import Renderer, template_globals
 from .returns import loader as returns_loader
 from .returns.rules import attach
 from .writer import SiteWriter
-
-
-def log(message):
-    print(message, flush=True)
 
 
 class SiteBuild:
@@ -54,6 +50,7 @@ class SiteBuild:
 
     def run(self, argv, platform):
         args = self.parser().parse_args(argv)
+        log = platform.console.line
         config = SiteConfig.read(platform.environ, args.base, args.site_url)
         log(f"Insider Tracking site build -> {args.out} (base path {config.base or '/'}, {config.url})")
         started = platform.clock.now()
@@ -67,7 +64,7 @@ class SiteBuild:
         log("Matching names to the legislators list…")
         today = platform.clock.today()
         legislators = [Legislator(record, today) for record in self.legislators.records(args.offline, log)]
-        matcher = Matcher(legislators, load_overrides(self.overrides), log=log)
+        matcher = Matcher(legislators, load_overrides(self.overrides, warn=platform.console.error), log=log)
         congress.apply_people(matcher)
         log(f"  {matcher.matched} filers matched")
         if matcher.unmatched:

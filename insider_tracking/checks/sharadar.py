@@ -19,7 +19,7 @@ from ..core.identity import user_agent
 from ..runs.notes import Notes
 from ..sources.returns.calc import Series
 from ..sources.sharadar.site import PACING, WHO, SharadarApi, SharadarEndpoints
-from ..web.client import PoliteClient, new_session
+from ..web.client import PoliteClient
 from ..web.pacing import Pacing, RequestBudget
 
 TEST_KEY = "test-api-key"           # the public test key in Sharadar's email of 23 Oct 2026
@@ -47,15 +47,17 @@ def rows_of(response):
 
 
 class SharadarProbe:
-    """The requests and their notes. sleep: how to wait between requests; note(text) posts a note."""
+    """The requests and their notes. new_session(user_agent, compressed) makes a web session;
+    sleep: how to wait between requests; note(text) posts a note."""
 
-    def __init__(self, endpoints, sleep, note):
+    def __init__(self, endpoints, new_session, sleep, note):
         self.endpoints = endpoints
+        self.new_session = new_session
         self.sleep = sleep
         self.note = note
 
     def client(self, pacing, limit=None):
-        return PoliteClient(new_session(user_agent(VERSION), compressed=True), pacing, RequestBudget(limit),
+        return PoliteClient(self.new_session(user_agent(VERSION), compressed=True), pacing, RequestBudget(limit),
                             who=WHO, sleep=self.sleep)
 
     def collector_requests(self):
@@ -114,7 +116,8 @@ class SharadarCheck:
         self.endpoints = endpoints
 
     def run(self, argv, platform):
-        probe = SharadarProbe(self.endpoints, platform.sleep, Notes("SHARADAR check", limit=3000))
+        probe = SharadarProbe(self.endpoints, platform.new_session, platform.sleep,
+                              Notes("SHARADAR check", platform.console, limit=3000))
         probe.collector_requests()    # first: GitHub keeps only the first 10 notes of a step
         probe.formats()
         return 0

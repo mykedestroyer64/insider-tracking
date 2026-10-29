@@ -70,6 +70,10 @@ class ReportProblem(Exception):
     """A report could not be read. The report gets marked as failed."""
 
 
+class ScannedReport(ReportProblem):
+    """The PDF has no text: a scan with an electronic-looking number. It is kept as not read."""
+
+
 # ------------------------------------------------------------- yearly lists
 
 def parse_list(xml_bytes, report_url):
@@ -205,7 +209,7 @@ def parse_report(pdf_bytes):
     """
     pages = pdf_lines(pdf_bytes)
     if not any(pages):
-        raise ReportProblem("the PDF has no text (it is probably a scan)")
+        raise ScannedReport("the PDF has no text (it is probably a scan)")
 
     rows, columns, current, in_details, ended = [], None, None, False, False
     last_detail, expected = None, 0

@@ -34,7 +34,7 @@ from ..core.status import CHANGED, NOT_RUN, OK
 from ..runs.console import Console, tolerate_unusual_characters
 from ..runs.platform import REPOSITORY
 from ..runs.settings import Settings
-from ..web.client import PoliteClient, new_session
+from ..web.client import PoliteClient
 from ..web.describe import http_codes, short_error
 from ..web.pacing import Pacing
 
@@ -161,7 +161,7 @@ class CheckRunner:
         check, definition = self.check, self.check.definition
         args = self.parser().parse_args(argv)
         tolerate_unusual_characters()
-        console = Console()
+        console = platform.console
         folder = platform.output_dir / definition.folder if definition.folder else platform.output_dir
         folder.mkdir(parents=True, exist_ok=True)
         check.clear(folder)
@@ -180,7 +180,7 @@ class CheckRunner:
             run.status, run.outcome = NOT_RUN, "- no contact email given"
         else:
             console.line("Contact email: set (it goes in the User-Agent and is not saved in output)\n")
-            client = PoliteClient(new_session(user_agent(VERSION, settings.email)), definition.pacing,
+            client = PoliteClient(platform.new_session(user_agent(VERSION, settings.email)), definition.pacing,
                                   sleep=platform.sleep)
             self._steps(run, client)
             if run.failure is not None:
@@ -220,7 +220,7 @@ class CheckRunner:
             run.log.end(CHANGED, run.failure.detail)
             run.log.mark_rest(NOT_RUN)
             run.console.line("\nTechnical details (useful for fixing the script):")
-            traceback.print_exc(file=sys.stdout)
+            run.console.write(traceback.format_exc())
 
 
 def write_json(path, data):

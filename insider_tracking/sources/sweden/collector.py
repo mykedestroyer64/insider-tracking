@@ -30,7 +30,7 @@ from ...db.state import StateStore
 from ...runs.command import CollectorCommand
 from ...runs.definition import CollectorDefinition
 from ...runs.summary import whole_database_note
-from ...web.client import PoliteClient, new_session
+from ...web.client import PoliteClient
 from ...web.pacing import RequestBudget
 from ..ecb.rates import Rates
 from ..ecb.site import EcbEndpoints, EcbSite
@@ -96,7 +96,7 @@ class SwedenSource:
 
         def open_sites():
             """The register and the ECB, through one client (one budget, one pace)."""
-            session = new_session(user_agent(VERSION, context.settings.email), compressed=True)
+            session = context.new_session(user_agent(VERSION, context.settings.email), compressed=True)
             client = PoliteClient(session, self.pacing, budget, sleep=context.sleep)
             return FiRegister(client, self.endpoints), EcbSite(client, self.ecb_endpoints)
 

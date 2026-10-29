@@ -9,7 +9,8 @@ the preconditions it needs in its definition.
 from dataclasses import dataclass
 from typing import Protocol
 
-from ..db.connection import DatabaseError, parse_db_url
+from ..core.errors import DatabaseError
+from ..db.connection import parse_db_url
 
 
 @dataclass(frozen=True)

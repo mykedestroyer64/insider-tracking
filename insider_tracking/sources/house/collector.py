@@ -14,21 +14,20 @@ history fills in over a few days. Everything is saved as it goes. Reading the PD
 pdfplumber library (it is in requirements.txt).
 """
 
-from ...core.errors import OutOfRequests
+from ...core.errors import DatabaseError, OutOfRequests
 from ...core.identity import user_agent
 from ...core.status import BLOCKED, CHANGED, DB_ERROR, ERROR, SITE_DOWN
 from ...core.text import plural
 from ...db.congress import CongressReports
-from ...db.connection import DatabaseError
 from ...db.state import StateStore
 from ...runs.command import CollectorCommand
 from ...runs.definition import CollectorDefinition
 from ...web.checks import unexpected
-from ...web.client import PoliteClient, new_session
+from ...web.client import PoliteClient
 from ...web.pacing import RequestBudget
 from ..congress import plain_kinds
 from ..report_queue import ReadResult, ReportQueue
-from .parsing import ReportProblem, is_amendment, parse_list, parse_report
+from .parsing import ReportProblem, ScannedReport, is_amendment, parse_list, parse_report
 from .site import PACING, WHO, HouseEndpoints, HouseSite
 
 VERSION = "0.3"
@@ -78,7 +77,7 @@ class HouseSource:
         budget = RequestBudget(context.max_requests)
 
         def open_site():
-            session = new_session(user_agent(VERSION, context.settings.email))
+            session = context.new_session(user_agent(VERSION, context.settings.email))
             return HouseSite(PoliteClient(session, self.pacing, budget, who=WHO, sleep=context.sleep), self.endpoints)
 
         reports = CongressReports(context.db)
@@ -105,10 +104,10 @@ class PdfReader:
             return ReadResult(problem=problem)
         try:
             transactions, expected = parse_report(response.content)
+        except ScannedReport as error:
+            self.reports.mark_scanned(path, str(error))
+            return ReadResult(scanned=True)
         except ReportProblem as error:
-            if "no text" in str(error):     # a scan with an electronic-looking number
-                self.reports.mark_scanned(path, str(error))
-                return ReadResult(scanned=True)
             self.reports.mark_failed(path, str(error))
             return ReadResult(problem=str(error))
         remark = None

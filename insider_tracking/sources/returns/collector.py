@@ -28,7 +28,7 @@ from ...runs.command import CollectorCommand
 from ...runs.definition import CollectorDefinition
 from ...runs.preconditions import DatabaseUrl, SharadarKey
 from ...runs.summary import whole_database_note
-from ...web.client import PoliteClient, new_session
+from ...web.client import PoliteClient
 from ...web.pacing import RequestBudget
 from ..sharadar.site import PACING, WHO, SharadarApi, SharadarEndpoints
 from .calc import BENCHMARK, PERIODS, PRICE_GAP_DAYS, Series, returns, stopped_day
@@ -141,7 +141,7 @@ class ReturnsSource:
         budget = RequestBudget(context.max_requests)
 
         def open_api():
-            session = new_session(user_agent(VERSION), compressed=True)
+            session = context.new_session(user_agent(VERSION), compressed=True)
             client = PoliteClient(session, self.pacing, budget, who=WHO, sleep=context.sleep)
             return SharadarApi(client, context.settings.api_key, self.endpoints)
 

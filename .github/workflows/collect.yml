@@ -11,7 +11,7 @@ on:
   workflow_dispatch:         # adds the "Run workflow" button
 
 permissions:
-  contents: write   # only used for the small weekly heartbeat file
+  contents: read
 
 concurrency:
   group: collector          # never two collector runs at the same time
@@ -19,6 +19,8 @@ concurrency:
 
 jobs:
   collect:
+    permissions:
+      contents: write   # only used for the small weekly heartbeat file
     uses: ./.github/workflows/_collector.yml
     with:
       collector: senate

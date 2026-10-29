@@ -8,7 +8,8 @@ collectors only ever have to handle that one kind of database problem.
 
 from contextlib import contextmanager
 
-from .connection import DatabaseError, describe
+from ..core.errors import DatabaseError
+from .connection import describe
 
 
 class Database:

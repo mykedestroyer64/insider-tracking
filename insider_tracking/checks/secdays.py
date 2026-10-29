@@ -11,7 +11,7 @@ from ..core.errors import SiteStop
 from ..core.identity import user_agent
 from ..runs.notes import Notes
 from ..runs.settings import Settings
-from ..web.client import PoliteClient, new_session
+from ..web.client import PoliteClient
 from ..web.pacing import Pacing
 
 VERSION = "0.1"
@@ -68,9 +68,9 @@ class SecDaysCheck:
 
     def run(self, argv, platform):
         settings = Settings.read(platform.environ)
-        client = PoliteClient(new_session(user_agent(VERSION, settings.email)), PACING, who="the SEC",
+        client = PoliteClient(platform.new_session(user_agent(VERSION, settings.email)), PACING, who="the SEC",
                               sleep=platform.sleep)
-        EdgarDays(client, Notes("SECDAYS check", limit=900), self.quarter, self.days).run()
+        EdgarDays(client, Notes("SECDAYS check", platform.console, limit=900), self.quarter, self.days).run()
         return 0
 
 

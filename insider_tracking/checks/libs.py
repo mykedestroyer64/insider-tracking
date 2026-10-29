@@ -21,24 +21,23 @@ def installed(name, version=metadata.version):
 
 
 class LibsCheck:
-    """`check libs`. load(name) imports a module (tests pass a stand-in)."""
+    """`check libs`. version(name) and load(name) look a library up (tests pass stand-ins)."""
 
-    def __init__(self, names=NAMES, version=metadata.version, load=importlib.import_module,
-                 note=Notes("LIBS check")):
+    def __init__(self, names=NAMES, version=metadata.version, load=importlib.import_module):
         self.names = names
         self.version = version
         self.load = load
-        self.note = note
 
     def run(self, argv, platform):
-        self.note("installed: " + ", ".join(installed(name, self.version) for name in self.names))
+        note = Notes("LIBS check", platform.console)
+        note("installed: " + ", ".join(installed(name, self.version) for name in self.names))
         try:
             scramp = self.load("scramp")
         except ImportError:
-            self.note("scramp is not installed")
+            note("scramp is not installed")
             return 0
-        self.note("scramp has make_channel_binding: " + str(hasattr(scramp, "make_channel_binding"))
-                  + "; scramp offers: " + ", ".join(sorted(n for n in dir(scramp) if not n.startswith("_"))))
+        note("scramp has make_channel_binding: " + str(hasattr(scramp, "make_channel_binding"))
+             + "; scramp offers: " + ", ".join(sorted(n for n in dir(scramp) if not n.startswith("_"))))
         return 0
 
 

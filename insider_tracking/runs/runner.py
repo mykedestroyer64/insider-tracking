@@ -15,13 +15,11 @@ Everything a step saved before it stopped stays saved; the next run carries on.
 The last line printed is the verdict. Exit code: 0 if OK, 1 otherwise.
 """
 
-import sys
 import traceback
 from dataclasses import replace
 
-from ..core.errors import OutOfRequests, SiteStop
+from ..core.errors import DatabaseError, OutOfRequests, SiteStop
 from ..core.status import DB_ERROR, ERROR, NOT_RUN, OK, SKIPPED
-from ..db.connection import DatabaseError
 from ..web.describe import http_codes
 from .steps import StepLog
 
@@ -54,7 +52,12 @@ class CollectorRunner:
             log.done(1, OK, detail)
 
             work.open()
-            for number, step_work in enumerate(work.steps(), start=2):
+            steps = work.steps()
+            step = 2
+            if len(steps) != len(definition.steps) - 1:     # each step needs its name, and each name a step
+                raise RuntimeError(f"the run has {len(steps)} steps after step 1, the definition names "
+                                   f"{len(definition.steps) - 1}")
+            for number, step_work in enumerate(steps, start=2):
                 step = number
                 result = step_work()
                 if isinstance(result, str):
@@ -81,7 +84,7 @@ class CollectorRunner:
             log.done(step, ERROR, failure)
             log.rest(step, NOT_RUN)
             self.console.line("\nTechnical details (useful for fixing the collector):")
-            traceback.print_exc(file=sys.stdout)
+            self.console.write(traceback.format_exc())
 
         totals = None
         if opened and work is not None and status != DB_ERROR:

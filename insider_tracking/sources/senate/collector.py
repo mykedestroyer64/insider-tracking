@@ -17,17 +17,16 @@ the next run carries on.
 
 from datetime import date, timedelta
 
-from ...core.errors import OutOfRequests, SiteStop
+from ...core.errors import DatabaseError, OutOfRequests, SiteStop
 from ...core.identity import user_agent
 from ...core.status import BLOCKED, CHANGED, DB_ERROR, ERROR, SITE_DOWN
 from ...core.text import plural
 from ...db.congress import CongressReports
-from ...db.connection import DatabaseError
 from ...db.state import StateStore
 from ...runs.command import CollectorCommand
 from ...runs.definition import CollectorDefinition
 from ...runs.steps import StepResult
-from ...web.client import PoliteClient, new_session
+from ...web.client import PoliteClient
 from ...web.pacing import RequestBudget
 from ..congress import plain_kinds
 from ..report_queue import ReadResult, ReportQueue
@@ -96,7 +95,7 @@ class SenateSource:
         budget = RequestBudget(context.max_requests)
 
         def open_site():
-            session = new_session(user_agent(VERSION, context.settings.email))
+            session = context.new_session(user_agent(VERSION, context.settings.email))
             return EfdSite(PoliteClient(session, self.pacing, budget, sleep=context.sleep), self.endpoints)
 
         reports = CongressReports(context.db)

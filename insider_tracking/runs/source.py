@@ -6,21 +6,30 @@ A SourceRun is one run of it: the steps after step 1, and the words that sum the
 The runner only ever talks to these two, so it never changes when a source is added.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Callable, Protocol, Sequence
+from typing import TYPE_CHECKING, Callable, Protocol, Sequence
+
+if TYPE_CHECKING:
+    from ..db.database import Database
+    from .console import Console
+    from .definition import CollectorDefinition
+    from .settings import Settings
 
 
 @dataclass
 class RunContext:
-    """What a source gets for one run."""
-    db: object              # db.database.Database
-    settings: object        # runs.settings.Settings
+    """What a source gets for one run: the open database and the outside world."""
+    db: Database | None     # opened by the runner at step 1
+    settings: Settings
     max_requests: int
     started: datetime       # when the run started (UTC)
     today: date             # the computer's date when the run started
-    console: object         # runs.console.Console, for progress notes
+    console: Console        # for progress notes
     sleep: Callable         # how the run waits (time.sleep; tests pass one that doesn't)
+    new_session: Callable   # (user_agent, compressed=False) -> a web session
 
 
 class SourceRun(Protocol):
@@ -53,7 +62,7 @@ class SourceRun(Protocol):
 
 
 class Source(Protocol):
-    definition: object      # runs.definition.CollectorDefinition
+    definition: CollectorDefinition
 
     def start(self, context: RunContext) -> SourceRun:
         """A new run, with its repositories (no web requests yet)."""

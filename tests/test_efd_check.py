@@ -5,7 +5,6 @@ situation the check knows: refusals, outages, a changed site, missing settings.
 import json
 import sys
 import tempfile
-import time
 from pathlib import Path
 
 from insider_tracking.checks.efd import EfdCheck
@@ -22,13 +21,16 @@ EMAIL = "tester@example.com"
 check = Checks()
 
 
-def run(mode, args=("--email", EMAIL), env=None, base_url=None, fast=True):
+def run(mode, args=("--email", EMAIL), env=None, base_url=None, waits=None):
+    """One run of the check. waits: a list that gets every pause the check asks for (with the
+    real pacing); without it, the check doesn't pause at all."""
     site.MODE = mode
     site.LOG.clear()
     site.CALLS.clear()
     outdir = Path(tempfile.mkdtemp())
-    efd = EfdCheck(EfdEndpoints(base_url or BASE), PACING.without_waiting() if fast else PACING)
-    platform = Platform(environ=dict(env or {}), output_dir=outdir, sleep=(lambda seconds: None) if fast else time.sleep)
+    efd = EfdCheck(EfdEndpoints(base_url or BASE), PACING if waits is not None else PACING.without_waiting())
+    platform = Platform(environ=dict(env or {}), output_dir=outdir,
+                        sleep=waits.append if waits is not None else (lambda seconds: None))
     result = run_command(CheckRunner(efd), args, platform)
     summary = json.loads((outdir / "summary.json").read_text(encoding="utf-8"))
     files = sorted(p.name for p in outdir.iterdir())
@@ -135,15 +137,13 @@ check("[github] OK and ran_on GitHub Actions", code == 0 and summary["ran_on"] =
 code, out, summary, files, outdir, leaked = run("ok", args=(), env={"GITHUB_ACTIONS": "true", "EFD_CONTACT_EMAIL": ""})
 check("[github, secret missing] NOT_RUN with secret advice", summary["verdict"] == "NOT_RUN" and "EFD_CONTACT_EMAIL" in out)
 
-# The real pauses: the check waits 2-3 seconds before each request it plans (the redirect after
-# the agreement is followed at once, as a browser does)
-code, out, summary, files, outdir, leaked = run("ok", fast=False)
-times = [entry[0] for entry in site.LOG]
-paths = [f"{entry[1]} {entry[2]}" for entry in site.LOG]
-gaps = [(later - earlier, path) for earlier, later, path in zip(times, times[1:], paths[1:])]
-print("\n[real pauses]", [f"{path}: {gap:.2f} s" for gap, path in gaps])
-check("[real pauses] planned requests are 2-3 s apart",
-      code == 0 and all(2.0 <= gap <= 3.3 for gap, path in gaps if path != "GET /search/"), gaps)
+# The pauses: the check waits 2-3 seconds before each request it plans after the first (the
+# redirect after the agreement is followed at once, as a browser does)
+waits = []
+code, out, summary, files, outdir, leaked = run("ok", waits=waits)
+print("\n[pauses]", [f"{wait:.2f} s" for wait in waits])
+check("[pauses] 2-3 s before each of the 3 planned requests after the first",
+      code == 0 and len(waits) == 3 and all(2.0 <= wait <= 3.0 for wait in waits), waits)
 
 for mode in ("ok", "blocked", "csrf", "paperonly"):
     print(f"\n========== full output: {mode} ==========")

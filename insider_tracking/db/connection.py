@@ -10,13 +10,11 @@ import re
 import ssl
 from urllib.parse import unquote
 
+from ..core.errors import DatabaseError
+
 URL_PATTERN = re.compile(r"postgres(?:ql)?://(?P<user>[^:@/]+)(?::(?P<password>.*))?"
                          r"@(?P<host>[^:/@]+)(?::(?P<port>\d+))?/(?P<database>[^?#]*)")
 PASSWORD_PLACEHOLDERS = {"[YOUR-PASSWORD]", "YOUR-PASSWORD", "[YOUR_PASSWORD]"}
-
-
-class DatabaseError(Exception):
-    """Any problem with the database (connecting, reading or writing)."""
 
 
 def describe(error):

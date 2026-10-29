@@ -4,10 +4,18 @@ import sys
 
 
 class Console:
-    """Prints lines to sys.stdout as it is when each line is printed."""
+    """Prints lines to sys.stdout as it is when each line is printed (errors to sys.stderr)."""
 
     def line(self, text=""):
         print(text, flush=True)
+
+    def write(self, text):
+        """Text as it is, without adding a line break (e.g. a traceback)."""
+        print(text, end="", flush=True)
+
+    def error(self, text):
+        """A warning that isn't part of the run's output."""
+        print(text, file=sys.stderr, flush=True)
 
     def start(self, text):
         """The start of a line whose end comes later (a check's step, printed as it begins)."""

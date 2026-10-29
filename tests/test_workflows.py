@@ -76,7 +76,10 @@ for file, (name, collector, cron, group, permission, timeout, artifact, secrets)
           schedule == ([cron] if cron else []) and "workflow_dispatch" in workflow["on"], schedule)
     check(f"{file}: one run at a time ({group})", workflow["concurrency"] == {"group": group, "cancel-in-progress": False},
           workflow["concurrency"])
-    check(f"{file}: contents {permission}", workflow["permissions"] == {"contents": permission}, workflow["permissions"])
+    check(f"{file}: reads the repository; may write to it only where needed ({permission})",
+          workflow["permissions"] == {"contents": "read"}
+          and job.get("permissions", {"contents": "read"}) == {"contents": permission},
+          (workflow["permissions"], job.get("permissions")))
     check(f"{file}: runs the shared collector run", job["uses"] == "./.github/workflows/_collector.yml", job["uses"])
     check(f"{file}: collect {collector}, title, timeout {timeout}, artifact {artifact}",
           given["collector"] == collector and f"collect {collector}" in COMMANDS and given["title"]

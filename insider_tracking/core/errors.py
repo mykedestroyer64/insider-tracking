@@ -1,8 +1,9 @@
 """
-errors.py - the two ways a website conversation ends early.
+errors.py - the ways a run ends early.
 
-SiteStop      the site refused us, is down, or works differently: the run stops with a status
-OutOfRequests the run has used every request it is allowed: not an error, the run just ends
+SiteStop       the site refused us, is down, or works differently: the run stops with a status
+OutOfRequests  the run has used every request it is allowed: not an error, the run just ends
+DatabaseError  the database couldn't be reached, read or written (raised by db/)
 """
 
 
@@ -29,3 +30,7 @@ class SiteStop(Exception):
 
 class OutOfRequests(Exception):
     """This run has used all the requests it is allowed (not an error)."""
+
+
+class DatabaseError(Exception):
+    """Any problem with the database (connecting, reading or writing)."""

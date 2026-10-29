@@ -27,13 +27,15 @@ def describe(whole, tables):
 
 
 class SlimDatabase:
-    def __init__(self, note=Notes("SLIM check")):
+    """note(text) posts a note (by default on the platform's console)."""
+
+    def __init__(self, note=None):
         self.note = note
 
     def run(self, argv, platform):
         settings = Settings.read(platform.environ)
         db = Database(platform.connect(settings.db_url, settings.db_password))
-        size, note = DatabaseSize(db), self.note
+        size, note = DatabaseSize(db), self.note or Notes("SLIM check", platform.console)
         before = size.database_bytes(), size.tables()
         note("before: " + describe(*before))
 

@@ -10,7 +10,7 @@ import argparse
 from .. import PROJECT
 from ..core.status import NOT_RUN
 from .archive import NoArchive, ProblemPageArchive
-from .console import Console, tolerate_unusual_characters
+from .console import tolerate_unusual_characters
 from .runner import CollectorRunner
 from .settings import Settings
 from .source import RunContext
@@ -40,7 +40,7 @@ class CollectorCommand:
         archive = archive_type(platform.output_dir)
         archive.clear()
 
-        console = Console()
+        console = platform.console
         console.line(f"{PROJECT} {definition.title} {definition.version}")
         console.line(f"Running on: {ran_on}")
         console.line(definition.budget_line(args.max_requests) + "\n")
@@ -54,6 +54,6 @@ class CollectorCommand:
                 return refusal.exit_code
 
         context = RunContext(db=None, settings=settings, max_requests=args.max_requests, started=started,
-                             today=today, console=console, sleep=platform.sleep)
+                             today=today, console=console, sleep=platform.sleep, new_session=platform.new_session)
         runner = CollectorRunner(definition, console, RunStorage(platform.connect), archive, ran_on)
         return runner.run(self.source, context)

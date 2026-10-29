@@ -1,6 +1,6 @@
 """summary.py - pieces of the lines that sum a run up."""
 
-from ..db.connection import DatabaseError
+from ..core.errors import DatabaseError
 
 
 def whole_database_note(size):

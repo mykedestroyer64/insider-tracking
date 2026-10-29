@@ -59,7 +59,7 @@ class ReportQueue:
                 break
             result = self.reader.read(report, response)
             if result.scanned:
-                stats["scanned"] += 1
+                stats["scanned"] = stats.get("scanned", 0) + 1
             elif not result.problem:
                 stats["reports_read"] += 1
                 stats["transactions_saved"] += result.transactions
