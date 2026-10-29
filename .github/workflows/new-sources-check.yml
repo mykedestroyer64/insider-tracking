@@ -1,12 +1,13 @@
-# Test run for new sources: House members' trade reports, company insiders' Form 4s,
-# and Swedish executives' trades (Finansinspektionen's register).
+# Test runs by hand: can a script read these sites (House members' trade reports, company
+# insiders' Form 4s, Swedish and Dutch executives' trades), plus a few database and API tools.
+# Each is a command of the insider_tracking package (python -m insider_tracking check house, db size, ...).
 # Start it by hand: Actions tab -> "New sources check" -> "Run workflow", and type the
-# names of the checks to run (any of: house sec sweden netherlands libs).
+# names of the checks to run (any of: house sec sweden netherlands libs secdays dbsize sharadar slim).
 # "libs" shows which versions of the Python libraries GitHub installs, and the newest ones on PyPI.
-# "secdays" asks EDGAR (3 requests) which daily lists exist this quarter and what a missing one returns.
+# "secdays" asks EDGAR (3 requests) which daily lists 2026 Q4 has, and what asking for a missing one returns.
 # "dbsize" shows how much space each table, index and column takes in the database (read only).
-# "sharadar" reads Sharadar's free tickers file with the public test key, to learn its format.
-# "slim" frees the space of dropped columns and indexes (db_maintenance.py; locks insider_filings ~1 minute).
+# "sharadar" sends the returns collector's requests with Sharadar's public test key, to learn the format.
+# "slim" frees the space of dropped columns and indexes (locks insider_filings for about a minute).
 # The results (examples of real filings) are saved on the "check-results" branch.
 name: New sources check
 
@@ -34,28 +35,15 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install requirements (and pdfplumber, to read PDFs)
-        run: python -m pip install -r requirements.txt pdfplumber
+      - name: Install requirements
+        run: python -m pip install -r requirements.txt
 
       - name: Show the library versions (libs)
         if: contains(inputs.sources, 'libs')
         continue-on-error: true
         shell: bash
         run: |
-          python - <<'PY'
-          import importlib.metadata as meta
-          names = ["pg8000", "scramp", "asn1crypto", "requests", "beautifulsoup4", "jinja2", "pdfplumber"]
-          found = []
-          for name in names:
-              try:
-                  found.append(f"{name} {meta.version(name)}")
-              except meta.PackageNotFoundError:
-                  found.append(f"{name} missing")
-          print("::notice title=LIBS check::installed: " + ", ".join(found))
-          import scramp
-          print("::notice title=LIBS check::scramp has make_channel_binding: " + str(hasattr(scramp, "make_channel_binding"))
-                + "; scramp offers: " + ", ".join(sorted(n for n in dir(scramp) if not n.startswith("_"))))
-          PY
+          python -u -m insider_tracking check libs
           for name in pg8000 scramp; do
             line="$(python -m pip index versions "$name" 2>/dev/null | head -2 | tr '\n' ' ' | cut -c1-400)"
             echo "::notice title=LIBS check::on PyPI: $line"
@@ -64,33 +52,9 @@ jobs:
       - name: Ask EDGAR which daily lists exist (secdays)
         if: contains(inputs.sources, 'secdays')
         continue-on-error: true
-        shell: bash
         env:
           EFD_CONTACT_EMAIL: ${{ secrets.EFD_CONTACT_EMAIL }}
-        run: |
-          python - <<'PY'
-          import os, re, time
-          import requests
-          web = requests.Session()
-          web.headers["User-Agent"] = ("insider-tracking/0.1 (non-commercial public transparency project; contact: "
-                                       + os.environ.get("EFD_CONTACT_EMAIL", "") + ")")
-          def note(text):
-              print("::notice title=SECDAYS check::" + text.replace("\n", " ")[:900])
-          base = "https://www.sec.gov/Archives/edgar/daily-index/2026/QTR4/"
-          r = web.get(base + "index.json", timeout=30)
-          days = []
-          try:
-              days = sorted(i["name"] for i in r.json()["directory"]["item"] if i.get("name", "").startswith("form."))
-          except Exception as error:
-              note(f"listing not readable: {error}")
-          note(f"listing: HTTP {r.status_code}, {len(days)} form.*.idx files: " + ", ".join(d[5:13] for d in days))
-          for day in ("20261012", "20261013"):
-              time.sleep(2)
-              r = web.get(base + f"form.{day}.idx", timeout=30)
-              text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", r.text[:600])).strip()
-              note(f"form.{day}.idx: HTTP {r.status_code}, Content-Type {r.headers.get('Content-Type')}, "
-                   f"{len(r.content):,} bytes, starts: {text[:200]}")
-          PY
+        run: python -u -m insider_tracking check secdays
 
       - name: Show the database's size by table, index and column (dbsize)
         if: contains(inputs.sources, 'dbsize')
@@ -98,7 +62,7 @@ jobs:
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-        run: python -u db_size_check.py
+        run: python -u -m insider_tracking db size
 
       - name: Free the space of dropped columns and indexes (slim)
         if: contains(inputs.sources, 'slim')
@@ -106,12 +70,12 @@ jobs:
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-        run: python -u db_maintenance.py
+        run: python -u -m insider_tracking db slim
 
       - name: Read Sharadar's free tickers file (sharadar)
         if: contains(inputs.sources, 'sharadar')
         continue-on-error: true
-        run: python -u sharadar_check.py
+        run: python -u -m insider_tracking check sharadar
 
       - name: Check the House site
         if: contains(inputs.sources, 'house')
@@ -121,7 +85,7 @@ jobs:
           EFD_CONTACT_EMAIL: ${{ secrets.EFD_CONTACT_EMAIL }}   # your email, kept private
         run: |
           mkdir -p output/house
-          python -u house_check.py 2>&1 | tee output/house/console.log
+          python -u -m insider_tracking check house 2>&1 | tee output/house/console.log
 
       - name: Check the SEC site
         if: contains(inputs.sources, 'sec')
@@ -131,7 +95,7 @@ jobs:
           EFD_CONTACT_EMAIL: ${{ secrets.EFD_CONTACT_EMAIL }}
         run: |
           mkdir -p output/sec
-          python -u sec_check.py 2>&1 | tee output/sec/console.log
+          python -u -m insider_tracking check sec 2>&1 | tee output/sec/console.log
 
       - name: Check Finansinspektionen's register (Sweden)
         if: contains(inputs.sources, 'sweden')
@@ -141,7 +105,7 @@ jobs:
           EFD_CONTACT_EMAIL: ${{ secrets.EFD_CONTACT_EMAIL }}
         run: |
           mkdir -p output/sweden
-          python -u sweden_check.py 2>&1 | tee output/sweden/console.log
+          python -u -m insider_tracking check sweden 2>&1 | tee output/sweden/console.log
 
       - name: Check the AFM's register (Netherlands)
         if: contains(inputs.sources, 'netherlands')
@@ -151,7 +115,7 @@ jobs:
           EFD_CONTACT_EMAIL: ${{ secrets.EFD_CONTACT_EMAIL }}
         run: |
           mkdir -p output/netherlands
-          python -u netherlands_check.py 2>&1 | tee output/netherlands/console.log
+          python -u -m insider_tracking check netherlands 2>&1 | tee output/netherlands/console.log
 
       - name: Write the verdicts to the job summary
         if: always()

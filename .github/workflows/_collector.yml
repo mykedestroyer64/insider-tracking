@@ -1,0 +1,151 @@
+# One collector run, the same for every collector. The collect*.yml workflows call this file
+# with their own name, schedule, settings and secrets; it doesn't run by itself.
+#
+# The run: install the requirements, run "python -m insider_tracking collect <collector>",
+# write the verdict to the job summary and as notes, keep the output when something went
+# wrong, and (for the Senate collector) save the weekly heartbeat.
+name: Collector run (used by the collector workflows)
+
+on:
+  workflow_call:
+    inputs:
+      collector:
+        description: "Which collector: senate, house, sec, sweden or returns"
+        type: string
+        required: true
+      title:
+        description: "How the notes are titled, e.g. 'SEC collector'"
+        type: string
+        required: true
+      timeout-minutes:
+        description: "The longest a run may take"
+        type: number
+        required: true
+      notes:
+        description: "Which lines of the collector's output are posted as notes (grep -E)"
+        type: string
+        default: "^VERDICT|^\\[|^Database now|^History"
+      artifact:
+        description: "Name of the output kept when a run fails (empty: none kept)"
+        type: string
+        default: ""
+      blocked-note:
+        description: "When set, a refusal (verdict BLOCKED) doesn't fail the run; this warning is posted instead"
+        type: string
+        default: ""
+      heartbeat:
+        description: "Save the weekly heartbeat (stops GitHub from pausing the schedules)"
+        type: boolean
+        default: false
+    secrets:
+      SUPABASE_DB_URL:
+        required: true
+      SUPABASE_DB_PASSWORD:
+        required: true
+      EFD_CONTACT_EMAIL:
+        required: false
+      SHARADAR_API_KEY:
+        required: false
+
+jobs:
+  collect:
+    name: ${{ inputs.title }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    steps:
+      - name: Get the files from this repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install requirements
+        run: python -m pip install -r requirements.txt
+
+      - name: Run the ${{ inputs.title }}
+        shell: bash   # bash with "pipefail": the step fails when the collector fails, even through tee
+        env:   # private settings, stored as repository secrets (the ones a caller doesn't pass are empty)
+          EFD_CONTACT_EMAIL: ${{ secrets.EFD_CONTACT_EMAIL }}
+          SHARADAR_API_KEY: ${{ secrets.SHARADAR_API_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          COLLECTOR: ${{ inputs.collector }}
+          TITLE: ${{ inputs.title }}
+          BLOCKED_NOTE: ${{ inputs.blocked-note }}
+        run: |
+          mkdir -p output
+          if python -u -m insider_tracking collect "$COLLECTOR" 2>&1 | tee output/console.log; then
+            exit 0
+          fi
+          if [ -n "$BLOCKED_NOTE" ] && grep -q '^VERDICT: BLOCKED' output/console.log; then
+            echo "::warning title=$TITLE::$BLOCKED_NOTE"
+            exit 0
+          fi
+          exit 1
+
+      - name: Write the verdict to the job summary
+        if: always()   # also when the collector failed
+        shell: bash
+        env:
+          TITLE: ${{ inputs.title }}
+          WORKFLOW: ${{ github.workflow }}
+        run: |
+          {
+            echo "## $WORKFLOW"
+            echo
+            if grep -q '^VERDICT' output/console.log 2>/dev/null; then
+              echo "**$(grep '^VERDICT' output/console.log)**"
+              if grep -qE '^\[|^Database now|^History' output/console.log; then
+                echo
+                echo '```'
+                grep -E '^\[|^Database now|^History|^Requests' output/console.log
+                echo '```'
+              fi
+            else
+              echo "**No verdict.** The collector stopped before printing one. Open the \"Run the $TITLE\" step to see why."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Post the verdict as a note (readable through GitHub's API)
+        if: always()
+        shell: bash
+        env:
+          TITLE: ${{ inputs.title }}
+          NOTES: ${{ inputs.notes }}
+        run: |
+          grep -E "$NOTES" output/console.log 2>/dev/null | while IFS= read -r line; do
+            echo "::notice title=$TITLE::$line"
+          done || true
+
+      - name: Keep the output when something went wrong
+        if: failure() && inputs.artifact != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.artifact }}
+          path: output/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Weekly heartbeat (stops GitHub from pausing the schedule)
+        if: always() && inputs.heartbeat
+        shell: bash
+        run: |
+          # GitHub switches off scheduled workflows in a public repository after 60 days
+          # without any change to it, so once a week we save today's date in a small file.
+          last=$(head -n 1 status/heartbeat.txt 2>/dev/null || true)
+          last_seconds=$(date -u -d "${last:-2000-01-01}" +%s 2>/dev/null || echo 0)
+          if [ $(( ( $(date -u +%s) - last_seconds ) / 86400 )) -ge 7 ]; then
+            mkdir -p status
+            date -u +%F > status/heartbeat.txt
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add status/heartbeat.txt
+            git commit --quiet -m "Weekly heartbeat: the collector is running"
+            git pull --rebase --quiet origin "$GITHUB_REF_NAME"
+            git push --quiet origin "HEAD:$GITHUB_REF_NAME"
+            echo "Saved the weekly heartbeat."
+          else
+            echo "Heartbeat is recent enough ($last), nothing to save."
+          fi

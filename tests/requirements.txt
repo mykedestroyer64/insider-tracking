@@ -1,0 +1,2 @@
+# What the tests need besides the project's own requirements (../requirements.txt).
+pyyaml>=6,<7

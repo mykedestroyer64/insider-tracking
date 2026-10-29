@@ -1,0 +1,166 @@
+<SEC-DOCUMENT>0000109563-26-000045.txt : 20261022
+<SEC-HEADER>0000109563-26-000045.hdr.sgml : 20261022
+<ACCEPTANCE-DATETIME>20261022172651
+ACCESSION NUMBER:		0000109563-26-000045
+CONFORMED SUBMISSION TYPE:	4
+PUBLIC DOCUMENT COUNT:		1
+CONFORMED PERIOD OF REPORT:	20261020
+FILED AS OF DATE:		20261022
+DATE AS OF CHANGE:		20261022
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			Olosky Michael
+		CENTRAL INDEX KEY:			0001833593
+		ORGANIZATION NAME:           	
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	001-02299
+		FILM NUMBER:		261479529
+
+	MAIL ADDRESS:	
+		STREET 1:		C/O SIMPSON MANUFACTURING CO., INC.
+		STREET 2:		5956 W. LAS POSITAS BLVD
+		CITY:			PLEASANTON
+		STATE:			CA
+		ZIP:			94588
+
+ISSUER:		
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			APPLIED INDUSTRIAL TECHNOLOGIES INC
+		CENTRAL INDEX KEY:			0000109563
+		STANDARD INDUSTRIAL CLASSIFICATION:	WHOLESALE-MACHINERY, EQUIPMENT & SUPPLIES [5080]
+		ORGANIZATION NAME:           	07 Trade & Services
+		EIN:				340117420
+		STATE OF INCORPORATION:			OH
+		FISCAL YEAR END:			0630
+
+	BUSINESS ADDRESS:	
+		STREET 1:		ONE APPLIED PLAZA
+		CITY:			CLEVELAND
+		STATE:			OH
+		ZIP:			44115-5056
+		BUSINESS PHONE:		216-426-4753
+
+	MAIL ADDRESS:	
+		STREET 1:		ONE APPLIED PLAZA
+		CITY:			CLEVELAND
+		STATE:			OH
+		ZIP:			44115-5056
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	BEARINGS INC /OH/
+		DATE OF NAME CHANGE:	19920703
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	BROWN JIM STORES INC
+		DATE OF NAME CHANGE:	19600201
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<SEQUENCE>1
+<FILENAME>wk-form4_1792704409.xml
+<DESCRIPTION>FORM 4
+<TEXT>
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+
+    <schemaVersion>X0609</schemaVersion>
+
+    <documentType>4</documentType>
+
+    <periodOfReport>2026-10-20</periodOfReport>
+
+    <notSubjectToSection16>0</notSubjectToSection16>
+
+    <issuer>
+        <issuerCik>0000109563</issuerCik>
+        <issuerName>APPLIED INDUSTRIAL TECHNOLOGIES INC</issuerName>
+        <issuerTradingSymbol>AIT</issuerTradingSymbol>
+        <issuerForeignTradingSymbol></issuerForeignTradingSymbol>
+    </issuer>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001833593</rptOwnerCik>
+            <rptOwnerName>Olosky Michael</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerNonUSAddressFlag>false</rptOwnerNonUSAddressFlag>
+            <rptOwnerStreet1>ONE APPLIED PLAZA</rptOwnerStreet1>
+            <rptOwnerStreet2></rptOwnerStreet2>
+            <rptOwnerCity>CLEVELAND</rptOwnerCity>
+            <rptOwnerState>OH</rptOwnerState>
+            <rptOwnerZipCode>44115</rptOwnerZipCode>
+            <rptOwnerStateDescription></rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>1</isDirector>
+            <isOfficer>0</isOfficer>
+            <isTenPercentOwner>0</isTenPercentOwner>
+            <isOther>0</isOther>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <aff10b5One>0</aff10b5One>
+
+    <nonDerivativeTable>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2026-10-20</value>
+            </transactionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>A</transactionCode>
+                <equitySwapInvolved>0</equitySwapInvolved>
+            </transactionCoding>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>110</value>
+                    <footnoteId id="F1"/>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>0</value>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>A</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>110</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+    </nonDerivativeTable>
+
+    <derivativeTable></derivativeTable>
+
+    <footnotes>
+        <footnote id="F1">Shares of restricted stock granted under the 2023 Long-Term Performance Plan that vest one year from the date of the grant.</footnote>
+    </footnotes>
+
+    <remarks></remarks>
+
+    <ownerSignature>
+        <signatureName>/s/ Amy M. Auch, POA for Michael L. Olosky</signatureName>
+        <signatureDate>2026-10-22</signatureDate>
+    </ownerSignature>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

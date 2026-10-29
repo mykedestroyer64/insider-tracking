@@ -1,6 +1,6 @@
 # The House collector: saves House members' trade reports in the Supabase database.
 # Runs by itself every 3 hours (half an hour after the Senate collector), and whenever you
-# press "Run workflow" on the Actions tab.
+# press "Run workflow" on the Actions tab. The run itself: see _collector.yml.
 name: insider-tracking House collector
 
 on:
@@ -9,7 +9,7 @@ on:
   workflow_dispatch:         # adds the "Run workflow" button
 
 permissions:
-  contents: read    # (the Senate collector saves the weekly heartbeat for both)
+  contents: read    # (the Senate collector saves the weekly heartbeat for all of them)
 
 concurrency:
   group: house-collector    # never two House collector runs at the same time
@@ -17,63 +17,13 @@ concurrency:
 
 jobs:
   collect:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: Get the files from this repository
-        uses: actions/checkout@v7
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-
-      - name: Install requirements
-        run: python -m pip install -r requirements.txt
-
-      - name: Run the House collector
-        shell: bash   # bash with "pipefail": the step fails when the collector fails, even through tee
-        env:   # private settings, stored as repository secrets
-          EFD_CONTACT_EMAIL: ${{ secrets.EFD_CONTACT_EMAIL }}
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-        run: |
-          mkdir -p output
-          python -u collect_house.py 2>&1 | tee output/console.log
-
-      - name: Write the verdict to the job summary
-        if: always()   # also when the collector failed
-        shell: bash
-        run: |
-          {
-            echo "## insider-tracking House collector"
-            echo
-            if grep -q '^VERDICT' output/console.log 2>/dev/null; then
-              echo "**$(grep '^VERDICT' output/console.log)**"
-              if grep -qE '^\[|^Database now|^History' output/console.log; then
-                echo
-                echo '```'
-                grep -E '^\[|^Database now|^History|^Requests' output/console.log
-                echo '```'
-              fi
-            else
-              echo "**No verdict.** The collector stopped before printing one. Open the \"Run the House collector\" step to see why."
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Post the verdict as a note (readable through GitHub's API)
-        if: always()
-        shell: bash
-        run: |
-          grep -E '^VERDICT|^\[|^Database now|^History' output/console.log 2>/dev/null | while IFS= read -r line; do
-            echo "::notice title=House collector::$line"
-          done || true
-
-      - name: Keep the output when something went wrong
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: house-collector-output
-          path: output/
-          if-no-files-found: ignore
-          retention-days: 14
+    uses: ./.github/workflows/_collector.yml
+    with:
+      collector: house
+      title: House collector
+      timeout-minutes: 30
+      artifact: house-collector-output
+    secrets:   # private settings, stored as repository secrets
+      EFD_CONTACT_EMAIL: ${{ secrets.EFD_CONTACT_EMAIL }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}

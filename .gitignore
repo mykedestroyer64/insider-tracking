@@ -1,4 +1,4 @@
-# Results written by efd_check.py
+# What the access checks and collectors write (python -m insider_tracking ...)
 output/
 
 # Python virtual environments

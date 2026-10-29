@@ -1,0 +1,49 @@
+# The tests (tests/): every collector, check and tool, the website build and these workflows,
+# against stand-in sites and a test database (nothing is sent to the real sites or to Supabase).
+# Runs on every push and pull request, and when you press "Run workflow".
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true   # a newer push makes an older test run pointless
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:               # a throwaway PostgreSQL server for the test databases
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - name: Get the files from this repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install requirements
+        run: python -m pip install -r requirements.txt -r tests/requirements.txt
+
+      - name: Make sure psql is there
+        run: command -v psql || (sudo apt-get update -q && sudo apt-get install -y -q postgresql-client)
+
+      - name: Run the tests
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: python -u -m tests.run

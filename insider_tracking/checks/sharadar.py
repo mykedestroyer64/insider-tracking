@@ -16,20 +16,17 @@ from datetime import date
 
 from ..core.errors import SiteStop
 from ..core.identity import user_agent
-from ..web.client import PoliteClient, new_session
-from ..web.pacing import Pacing, RequestBudget
+from ..runs.notes import Notes
 from ..sources.returns.calc import Series
 from ..sources.sharadar.site import PACING, WHO, SharadarApi, SharadarEndpoints
+from ..web.client import PoliteClient, new_session
+from ..web.pacing import Pacing, RequestBudget
 
 TEST_KEY = "test-api-key"           # the public test key in Sharadar's email of 23 Oct 2026
 VERSION = "0.1"
 METADATA = ("ticker", "permaticker", "table", "category", "isdelisted", "exchange", "relatedtickers",
             "secfilings", "firstpricedate", "lastpricedate", "firstadded", "currency", "cusips")
 ONE_A_SECOND = Pacing(pause=(1.0, 1.0), retry_extra=0, timeout=(60, 60))
-
-
-def note(text):
-    print("::notice title=SHARADAR check::" + text.replace("\n", " ")[:3000])
 
 
 def rows_of(response):
@@ -50,11 +47,12 @@ def rows_of(response):
 
 
 class SharadarProbe:
-    """The requests and their notes. sleep: how to wait between requests."""
+    """The requests and their notes. sleep: how to wait between requests; note(text) posts a note."""
 
-    def __init__(self, endpoints, sleep):
+    def __init__(self, endpoints, sleep, note):
         self.endpoints = endpoints
         self.sleep = sleep
+        self.note = note
 
     def client(self, pacing, limit=None):
         return PoliteClient(new_session(user_agent(VERSION), compressed=True), pacing, RequestBudget(limit),
@@ -66,15 +64,15 @@ class SharadarProbe:
         for table, ticker in (("stocks", "AAPL"), ("funds", "SPY")):
             try:
                 series = Series.from_csv(api.closes(table, ticker, date(2026, 9, 1), date(2026, 9, 30)))
-                note(f"collector request {table}/{ticker} Sep 2026: {len(series)} closes, "
-                     f"{series.days[0] if len(series) else '-'} to {series.last_day}")
+                self.note(f"collector request {table}/{ticker} Sep 2026: {len(series)} closes, "
+                          f"{series.days[0] if len(series) else '-'} to {series.last_day}")
             except SiteStop as stop:
-                note(f"collector request {table}/{ticker}: {stop.status} - {stop.detail}")
+                self.note(f"collector request {table}/{ticker}: {stop.status} - {stop.detail}")
         try:
             api.table_file("tickers")
-            note("tickers file: downloaded (unexpected with the test key)")
+            self.note("tickers file: downloaded (unexpected with the test key)")
         except SiteStop as stop:
-            note(f"tickers file with the test key: {stop.status} - {stop.detail[:200]}")
+            self.note(f"tickers file with the test key: {stop.status} - {stop.detail[:200]}")
 
     def formats(self):
         """The tables' columns, the AAPL tickers row and a date-only range (never prices)."""
@@ -82,20 +80,20 @@ class SharadarProbe:
         client = self.client(ONE_A_SECOND)
         for table in ("tickers", "stocks", "funds", "actions"):
             response = client.get(root + f"schema/{table}")
-            note(f"schema/{table}: HTTP {response.status_code}, {response.headers.get('Content-Type')}: "
-                 + response.text[:1500])
+            self.note(f"schema/{table}: HTTP {response.status_code}, {response.headers.get('Content-Type')}: "
+                      + response.text[:1500])
 
         response = client.get(self.endpoints.api + "tickers", params={"ticker": "AAPL", "format": "csv"},
                               headers={"x-api-key": TEST_KEY})
-        note(f"tickers row for AAPL: HTTP {response.status_code}")
+        self.note(f"tickers row for AAPL: HTTP {response.status_code}")
         if response.status_code == 200:
             header, rows = rows_of(response)
-            note(f"tickers columns: {', '.join(header)}; {len(rows)} rows")
+            self.note(f"tickers columns: {', '.join(header)}; {len(rows)} rows")
             for row in rows[:3]:
                 record = dict(zip(header, row))
-                note("AAPL metadata: " + json.dumps({k: record.get(k) for k in METADATA if k in record}))
+                self.note("AAPL metadata: " + json.dumps({k: record.get(k) for k in METADATA if k in record}))
         else:
-            note("answer: " + response.text[:300])
+            self.note("answer: " + response.text[:300])
 
         response = client.get(self.endpoints.api + "stocks", params={"ticker": "AAPL", "from": "2026-09-01",
                                                                      "to": "2026-09-30", "fields": "date",
@@ -103,9 +101,9 @@ class SharadarProbe:
                               headers={"x-api-key": TEST_KEY})
         header, rows = rows_of(response) if response.status_code == 200 else ([], [])
         dates = sorted(row[0] for row in rows) if rows else []
-        note(f"stocks AAPL Sep 2026, date column only, key in a header: HTTP {response.status_code}, "
-             f"columns {header}, {len(rows)} rows" + (f", {dates[0]} to {dates[-1]}" if dates else "")
-             + ("" if response.status_code == 200 else "; answer: " + response.text[:300]))
+        self.note(f"stocks AAPL Sep 2026, date column only, key in a header: HTTP {response.status_code}, "
+                  f"columns {header}, {len(rows)} rows" + (f", {dates[0]} to {dates[-1]}" if dates else "")
+                  + ("" if response.status_code == 200 else "; answer: " + response.text[:300]))
 
 
 class SharadarCheck:
@@ -116,7 +114,7 @@ class SharadarCheck:
         self.endpoints = endpoints
 
     def run(self, argv, platform):
-        probe = SharadarProbe(self.endpoints, platform.sleep)
+        probe = SharadarProbe(self.endpoints, platform.sleep, Notes("SHARADAR check", limit=3000))
         probe.collector_requests()    # first: GitHub keeps only the first 10 notes of a step
         probe.formats()
         return 0

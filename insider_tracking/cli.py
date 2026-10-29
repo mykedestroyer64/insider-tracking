@@ -2,7 +2,8 @@
 cli.py - the commands:   python -m insider_tracking <group> <name> [options]
 
   collect senate|house|sec|sweden|returns            one collector run
-  check efd|house|sec|sweden|netherlands|sharadar    one access check (can a script read the site?)
+  check efd|house|sec|sweden|netherlands             one access check (can a script read the site?)
+  check sharadar|secdays|libs                        what an API or the installed libraries look like
   db size|slim                                       database tools
   site build                                         build the website
 
@@ -28,6 +29,8 @@ COMMANDS = {
     "check sweden": "insider_tracking.checks.sweden",
     "check netherlands": "insider_tracking.checks.netherlands",
     "check sharadar": "insider_tracking.checks.sharadar",
+    "check secdays": "insider_tracking.checks.secdays",
+    "check libs": "insider_tracking.checks.libs",
     "db size": "insider_tracking.tools.db_size",
     "db slim": "insider_tracking.tools.db_slim",
     "site build": "insider_tracking.website.build",

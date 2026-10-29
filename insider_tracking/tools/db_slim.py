@@ -13,8 +13,8 @@ from ..db.database import Database
 from ..db.maintenance import Maintenance
 from ..db.schema import ensure_schema
 from ..db.size import DatabaseSize
+from ..runs.notes import Notes
 from ..runs.settings import Settings
-from .notes import Notes
 
 REWRITE = ("insider_filings",)                       # tables whose dropped columns must be reclaimed
 TIDY = ("insider_trades", "mar_trades", "reports", "transactions", "fx_rates",

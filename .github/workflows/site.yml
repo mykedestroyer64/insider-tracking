@@ -1,6 +1,6 @@
 # Builds the website from the database and publishes it to GitHub Pages.
-# Runs after every collector run (Senate and House), whenever the site's files change,
-# and on request.
+# Runs after every successful collector run, whenever the code or the site's files change on
+# main, and on request.
 name: Publish the website
 
 on:
@@ -9,7 +9,7 @@ on:
     types: [completed]
   push:
     branches: [main]
-    paths: ["site/**", ".github/workflows/site.yml", "requirements.txt"]
+    paths: ["site/**", "insider_tracking/**", ".github/workflows/site.yml", "requirements.txt"]
   workflow_dispatch:
 
 permissions:
@@ -53,7 +53,7 @@ jobs:
           SITE_URL: ${{ vars.SITE_URL }}               # optional: set when the site gets its own domain
           SITE_BASE_PATH: ${{ vars.SITE_BASE_PATH }}   # optional: "/" for a custom domain
         shell: bash
-        run: python -u site/build.py --out _site 2>&1 | tee build.log
+        run: python -u -m insider_tracking site build --out _site 2>&1 | tee build.log
 
       - name: Post the build's summary as notes (readable through GitHub's API)
         if: always()

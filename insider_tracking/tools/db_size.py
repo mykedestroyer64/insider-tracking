@@ -8,10 +8,14 @@ notes on the run. Needs the SUPABASE_DB_URL and SUPABASE_DB_PASSWORD secrets.
 
 from ..db.database import Database
 from ..db.size import DatabaseSize
+from ..runs.notes import Notes
 from ..runs.settings import Settings
-from .notes import Notes, mb
 
 BIG_TABLES = ("insider_trades", "insider_filings", "transactions", "mar_trades", "report_pages", "reports")
+
+
+def mb(size):
+    return f"{(size or 0) / 1048576:.1f} MB"
 
 
 class DatabaseSizeReport:

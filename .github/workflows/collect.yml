@@ -1,5 +1,6 @@
-# The collector: saves Senate periodic transaction reports from eFD in the Supabase database.
-# Runs by itself every 3 hours, and whenever you press "Run workflow" on the Actions tab.
+# The Senate collector: saves Senate periodic transaction reports from eFD in the Supabase database.
+# Runs by itself on the schedule below, and whenever you press "Run workflow" on the Actions tab.
+# The run itself is the same for every collector: see _collector.yml.
 name: insider-tracking collector
 
 on:
@@ -10,7 +11,7 @@ on:
   workflow_dispatch:         # adds the "Run workflow" button
 
 permissions:
-  contents: write   # only used for the small weekly heartbeat file (last step)
+  contents: write   # only used for the small weekly heartbeat file
 
 concurrency:
   group: collector          # never two collector runs at the same time
@@ -18,97 +19,19 @@ concurrency:
 
 jobs:
   collect:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: Get the files from this repository
-        uses: actions/checkout@v7
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-
-      - name: Install requirements
-        run: python -m pip install -r requirements.txt
-
-      - name: Run the collector
-        shell: bash   # bash with "pipefail": the step fails when the collector fails, even through tee
-        env:   # private settings, stored as repository secrets
-          EFD_CONTACT_EMAIL: ${{ secrets.EFD_CONTACT_EMAIL }}
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          # While eFD refuses the collector (since 23 Oct 2026), a refusal (verdict BLOCKED) is
-          # recorded on the run and in the database but doesn't count as a failed run, so GitHub
-          # doesn't email about it. Any other problem still fails the run and emails you.
-          # Set this to "false" to be emailed about refusals again.
-          QUIET_WHEN_BLOCKED: "true"
-        run: |
-          mkdir -p output
-          if python -u collect.py 2>&1 | tee output/console.log; then
-            exit 0
-          fi
-          if [ "$QUIET_WHEN_BLOCKED" = "true" ] && grep -q '^VERDICT: BLOCKED' output/console.log; then
-            echo "::warning title=Senate collector::eFD refused the collector again; recorded, not counted as a failed run (no email)"
-            exit 0
-          fi
-          exit 1
-
-      - name: Write the verdict to the job summary
-        if: always()   # also when the collector failed
-        shell: bash
-        run: |
-          {
-            echo "## insider-tracking collector"
-            echo
-            if grep -q '^VERDICT' output/console.log 2>/dev/null; then
-              echo "**$(grep '^VERDICT' output/console.log)**"
-              if grep -qE '^\[|^Database now|^History' output/console.log; then
-                echo
-                echo '```'
-                grep -E '^\[|^Database now|^History|^Requests' output/console.log
-                echo '```'
-              fi
-            else
-              echo "**No verdict.** The collector stopped before printing one. Open the \"Run the collector\" step to see why."
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Post the verdict as a note (readable through GitHub's API)
-        if: always()
-        shell: bash
-        run: |
-          grep -E '^VERDICT|^\[|^Database now|^History' output/console.log 2>/dev/null | while IFS= read -r line; do
-            echo "::notice title=Senate collector::$line"
-          done || true
-
-      - name: Keep the output when something went wrong
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: collector-output
-          path: output/
-          if-no-files-found: ignore
-          retention-days: 14
-
-      - name: Weekly heartbeat (stops GitHub from pausing the schedule)
-        if: always()
-        shell: bash
-        run: |
-          # GitHub switches off scheduled workflows in a public repository after 60 days
-          # without any change to it, so once a week we save today's date in a small file.
-          last=$(head -n 1 status/heartbeat.txt 2>/dev/null || true)
-          last_seconds=$(date -u -d "${last:-2000-01-01}" +%s 2>/dev/null || echo 0)
-          if [ $(( ( $(date -u +%s) - last_seconds ) / 86400 )) -ge 7 ]; then
-            mkdir -p status
-            date -u +%F > status/heartbeat.txt
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add status/heartbeat.txt
-            git commit --quiet -m "Weekly heartbeat: the collector is running"
-            git pull --rebase --quiet origin "$GITHUB_REF_NAME"
-            git push --quiet origin "HEAD:$GITHUB_REF_NAME"
-            echo "Saved the weekly heartbeat."
-          else
-            echo "Heartbeat is recent enough ($last), nothing to save."
-          fi
+    uses: ./.github/workflows/_collector.yml
+    with:
+      collector: senate
+      title: Senate collector
+      timeout-minutes: 30
+      artifact: collector-output
+      heartbeat: true
+      # While eFD refuses the collector (since 23 Oct 2026), a refusal (verdict BLOCKED) is
+      # recorded on the run and in the database but doesn't count as a failed run, so GitHub
+      # doesn't email about it. Any other problem still fails the run and emails you.
+      # Delete this line to be emailed about refusals again.
+      blocked-note: "eFD refused the collector again; recorded, not counted as a failed run (no email)"
+    secrets:   # private settings, stored as repository secrets
+      EFD_CONTACT_EMAIL: ${{ secrets.EFD_CONTACT_EMAIL }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}

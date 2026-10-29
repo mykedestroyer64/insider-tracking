@@ -30,7 +30,7 @@ jobs:
           EFD_CONTACT_EMAIL: ${{ secrets.EFD_CONTACT_EMAIL }}   # your email, kept private
         run: |
           mkdir -p output
-          python -u efd_check.py 2>&1 | tee output/console.log
+          python -u -m insider_tracking check efd 2>&1 | tee output/console.log
 
       - name: Write the verdict to the job summary
         if: always()   # also when the check failed
