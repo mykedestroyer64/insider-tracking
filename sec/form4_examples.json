@@ -1,0 +1,286 @@
+[
+  {
+    "form": "4",
+    "period": "2026-10-26",
+    "plan_10b5_1": "0",
+    "company": "AAR CORP",
+    "company_cik": "0000001750",
+    "ticker": "AIR",
+    "insiders": [
+      {
+        "name": "Holmes John McClain III",
+        "cik": "0001554880",
+        "officer_title": "Chairman, President & CEO",
+        "isDirector": true,
+        "isOfficer": true,
+        "isTenPercentOwner": false,
+        "isOther": false
+      }
+    ],
+    "trades": [
+      {
+        "security": "Common Stock",
+        "date": "2026-10-26",
+        "code": "S",
+        "shares": "35000",
+        "price": "97.4051",
+        "acquired_or_disposed": "D",
+        "shares_after": "406362",
+        "direct_or_indirect": "D"
+      }
+    ],
+    "derivative_trades": 0,
+    "file": "form4/0000001750-26-000106.txt",
+    "url": "https://www.sec.gov/Archives/edgar/data/1750/0000001750-26-000106.txt"
+  },
+  {
+    "form": "4",
+    "period": "2026-10-28",
+    "plan_10b5_1": "false",
+    "company": "ACME UNITED CORP",
+    "company_cik": "0000002098",
+    "ticker": "ACU",
+    "insiders": [
+      {
+        "name": "OLSCHAN BRIAN S",
+        "cik": "0001213244",
+        "officer_title": "President and COO",
+        "isDirector": true,
+        "isOfficer": true,
+        "isTenPercentOwner": false,
+        "isOther": false
+      }
+    ],
+    "trades": [
+      {
+        "security": "Common Stock",
+        "date": "2026-10-28",
+        "code": "M",
+        "shares": "35000",
+        "price": "23.05",
+        "acquired_or_disposed": "A",
+        "shares_after": "76172",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common Stock",
+        "date": "2026-10-28",
+        "code": "F",
+        "shares": "27702",
+        "price": "65.78",
+        "acquired_or_disposed": "D",
+        "shares_after": "48470",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common Stock",
+        "date": "2026-10-28",
+        "code": "M",
+        "shares": "9200",
+        "price": "23.94",
+        "acquired_or_disposed": "A",
+        "shares_after": "57670",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common Stock",
+        "date": "2026-10-28",
+        "code": "F",
+        "shares": "3348",
+        "price": "65.78",
+        "acquired_or_disposed": "A",
+        "shares_after": "54322",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common Stock",
+        "date": "2026-10-28",
+        "code": "M",
+        "shares": "7500",
+        "price": "24.06",
+        "acquired_or_disposed": "A",
+        "shares_after": "61822",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common Stock",
+        "date": "2026-10-28",
+        "code": "F",
+        "shares": "2743",
+        "price": "65.78",
+        "acquired_or_disposed": "D",
+        "shares_after": "59079",
+        "direct_or_indirect": "D"
+      }
+    ],
+    "derivative_trades": 3,
+    "file": "form4/0001193125-26-436216.txt",
+    "url": "https://www.sec.gov/Archives/edgar/data/2098/0001193125-26-436216.txt"
+  },
+  {
+    "form": "4",
+    "period": "2026-10-26",
+    "plan_10b5_1": "1",
+    "company": "AGIOS PHARMACEUTICALS, INC.",
+    "company_cik": "0001439222",
+    "ticker": "AGIO",
+    "insiders": [
+      {
+        "name": "Gheuens Sarah",
+        "cik": "0001881190",
+        "officer_title": "Chief Medical Officer",
+        "isDirector": false,
+        "isOfficer": true,
+        "isTenPercentOwner": false,
+        "isOther": false
+      }
+    ],
+    "trades": [
+      {
+        "security": "Common stock",
+        "date": "2026-10-26",
+        "code": "M",
+        "shares": "7866",
+        "price": "25.01",
+        "acquired_or_disposed": "A",
+        "shares_after": "62511",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common stock",
+        "date": "2026-10-26",
+        "code": "S",
+        "shares": "7866",
+        "price": "37.69",
+        "acquired_or_disposed": "D",
+        "shares_after": "54645",
+        "direct_or_indirect": "D"
+      }
+    ],
+    "derivative_trades": 1,
+    "file": "form4/0001439222-26-000124.txt",
+    "url": "https://www.sec.gov/Archives/edgar/data/1439222/0001439222-26-000124.txt"
+  },
+  {
+    "form": "4",
+    "period": "2026-10-16",
+    "plan_10b5_1": "0",
+    "company": "APOGEE ENTERPRISES, INC.",
+    "company_cik": "0000006845",
+    "ticker": "APOG",
+    "insiders": [
+      {
+        "name": "Christian Matthew Sean",
+        "cik": "0002085067",
+        "officer_title": "President, Architectural Serv",
+        "isDirector": false,
+        "isOfficer": true,
+        "isTenPercentOwner": false,
+        "isOther": false
+      }
+    ],
+    "trades": [
+      {
+        "security": "Common Stock",
+        "date": "2026-10-16",
+        "code": "F",
+        "shares": "311",
+        "price": "41.38",
+        "acquired_or_disposed": "D",
+        "shares_after": "37581",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Common Stock",
+        "date": "2026-10-27",
+        "code": "S",
+        "shares": "1200",
+        "price": "44.94",
+        "acquired_or_disposed": "D",
+        "shares_after": "36381",
+        "direct_or_indirect": "D"
+      }
+    ],
+    "derivative_trades": 0,
+    "file": "form4/0002085067-26-000010.txt",
+    "url": "https://www.sec.gov/Archives/edgar/data/6845/0002085067-26-000010.txt"
+  },
+  {
+    "form": "4",
+    "period": "2026-10-26",
+    "plan_10b5_1": "0",
+    "company": "Accenture plc",
+    "company_cik": "0001467373",
+    "ticker": "ACN",
+    "insiders": [
+      {
+        "name": "Price Paula A",
+        "cik": "0001369240",
+        "officer_title": "",
+        "isDirector": true,
+        "isOfficer": false,
+        "isTenPercentOwner": false,
+        "isOther": false
+      }
+    ],
+    "trades": [
+      {
+        "security": "Class A ordinary shares",
+        "date": "2026-10-26",
+        "code": "P",
+        "shares": "800",
+        "price": "249.8097",
+        "acquired_or_disposed": "A",
+        "shares_after": "9361",
+        "direct_or_indirect": "D"
+      }
+    ],
+    "derivative_trades": 0,
+    "file": "form4/0001369240-26-000014.txt",
+    "url": "https://www.sec.gov/Archives/edgar/data/1467373/0001369240-26-000014.txt"
+  },
+  {
+    "form": "4",
+    "period": "2026-10-26",
+    "plan_10b5_1": "0",
+    "company": "Accenture plc",
+    "company_cik": "0001467373",
+    "ticker": "ACN",
+    "insiders": [
+      {
+        "name": "Sweet Julie Spellman",
+        "cik": "0001487630",
+        "officer_title": "Chair and CEO",
+        "isDirector": true,
+        "isOfficer": true,
+        "isTenPercentOwner": false,
+        "isOther": false
+      }
+    ],
+    "trades": [
+      {
+        "security": "Class A ordinary shares",
+        "date": "2026-10-26",
+        "code": "P",
+        "shares": "2100",
+        "price": "245.1063",
+        "acquired_or_disposed": "A",
+        "shares_after": "38810",
+        "direct_or_indirect": "D"
+      },
+      {
+        "security": "Class A ordinary shares",
+        "date": "2026-10-26",
+        "code": "P",
+        "shares": "10100",
+        "price": "246.1701",
+        "acquired_or_disposed": "A",
+        "shares_after": "48910",
+        "direct_or_indirect": "D"
+      }
+    ],
+    "derivative_trades": 0,
+    "file": "form4/0001487630-26-000022.txt",
+    "url": "https://www.sec.gov/Archives/edgar/data/1467373/0001487630-26-000022.txt"
+  }
+]

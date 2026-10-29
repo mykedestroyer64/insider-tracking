@@ -1,0 +1,12 @@
+SEC access check - insider-tracking 0.1
+Running on: GitHub Actions
+Contact email: set (it goes in the User-Agent and is not saved in output)
+
+[1/5] Find the newest quarterly data file .... OK (HTTP 301 -> 200) - 83 quarterly files listed, newest 2026 Q3
+[2/5] Download it ............................ OK (HTTP 200) - 2026q3_form345.zip, 8.7 MB
+[3/5] Count the buys and sells in it ......... OK - 38,152 filings; 5,184 buys and 25,441 sells by 8,070 insiders in 2,845 companies
+[4/5] Find the newest daily list of filings .. OK (HTTP 200 -> 200) - 10/28/2026: 3,556 filings, 236 of them Form 4
+[5/5] Read a few new Form 4 filings .......... OK (HTTP 200 -> 200 -> 200 -> 200 -> 200 -> 200) - 6 read: 14 stock transactions, 6 of them buys or sells
+
+Saved in output/sec: quarter_summary.json, buys_sells_examples.csv, the daily list, form4/, form4_examples.json, summary.json
+VERDICT: OK - 2026 Q3: 5,184 buys and 25,441 sells; 236 Form 4 filings on 2026-10-28, 6 read (ran on GitHub Actions)

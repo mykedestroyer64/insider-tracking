@@ -1,0 +1,207 @@
+{
+  "quarter": "2026 Q3",
+  "zip_contents": [
+    {
+      "name": "DERIV_HOLDING.tsv",
+      "bytes": 1039079
+    },
+    {
+      "name": "DERIV_TRANS.tsv",
+      "bytes": 3162362
+    },
+    {
+      "name": "FOOTNOTES.tsv",
+      "bytes": 27229698
+    },
+    {
+      "name": "NONDERIV_HOLDING.tsv",
+      "bytes": 1428326
+    },
+    {
+      "name": "NONDERIV_TRANS.tsv",
+      "bytes": 6871467
+    },
+    {
+      "name": "OWNER_SIGNATURE.tsv",
+      "bytes": 3231691
+    },
+    {
+      "name": "REPORTINGOWNER.tsv",
+      "bytes": 5923260
+    },
+    {
+      "name": "SUBMISSION.tsv",
+      "bytes": 4280165
+    },
+    {
+      "name": "FORM_345_metadata.json",
+      "bytes": 39131
+    },
+    {
+      "name": "FORM_345_readme.htm",
+      "bytes": 393653
+    }
+  ],
+  "columns": {
+    "SUBMISSION": [
+      "ACCESSION_NUMBER",
+      "FILING_DATE",
+      "PERIOD_OF_REPORT",
+      "DATE_OF_ORIG_SUB",
+      "NO_SECURITIES_OWNED",
+      "NOT_SUBJECT_SEC16",
+      "FORM3_HOLDINGS_REPORTED",
+      "FORM4_TRANS_REPORTED",
+      "DOCUMENT_TYPE",
+      "ISSUERCIK",
+      "ISSUERNAME",
+      "ISSUERTRADINGSYMBOL",
+      "REMARKS",
+      "AFF10B5ONE"
+    ],
+    "REPORTINGOWNER": [
+      "ACCESSION_NUMBER",
+      "RPTOWNERCIK",
+      "RPTOWNERNAME",
+      "RPTOWNER_RELATIONSHIP",
+      "RPTOWNER_TITLE",
+      "RPTOWNER_TXT",
+      "RPTOWNER_STREET1",
+      "RPTOWNER_STREET2",
+      "RPTOWNER_CITY",
+      "RPTOWNER_STATE",
+      "RPTOWNER_ZIPCODE",
+      "RPTOWNER_STATE_DESC",
+      "FILE_NUMBER"
+    ],
+    "NONDERIV_TRANS": [
+      "ACCESSION_NUMBER",
+      "NONDERIV_TRANS_SK",
+      "SECURITY_TITLE",
+      "SECURITY_TITLE_FN",
+      "TRANS_DATE",
+      "TRANS_DATE_FN",
+      "DEEMED_EXECUTION_DATE",
+      "DEEMED_EXECUTION_DATE_FN",
+      "TRANS_FORM_TYPE",
+      "TRANS_CODE",
+      "EQUITY_SWAP_INVOLVED",
+      "EQUITY_SWAP_TRANS_CD_FN",
+      "TRANS_TIMELINESS",
+      "TRANS_TIMELINESS_FN",
+      "TRANS_SHARES",
+      "TRANS_SHARES_FN",
+      "TRANS_PRICEPERSHARE",
+      "TRANS_PRICEPERSHARE_FN",
+      "TRANS_ACQUIRED_DISP_CD",
+      "TRANS_ACQUIRED_DISP_CD_FN",
+      "SHRS_OWND_FOLWNG_TRANS",
+      "SHRS_OWND_FOLWNG_TRANS_FN",
+      "VALU_OWND_FOLWNG_TRANS",
+      "VALU_OWND_FOLWNG_TRANS_FN",
+      "DIRECT_INDIRECT_OWNERSHIP",
+      "DIRECT_INDIRECT_OWNERSHIP_FN",
+      "NATURE_OF_OWNERSHIP",
+      "NATURE_OF_OWNERSHIP_FN"
+    ]
+  },
+  "submissions": 38152,
+  "document_types": {
+    "4": 33521,
+    "3": 3869,
+    "4/A": 627,
+    "3/A": 100,
+    "5": 35
+  },
+  "filing_dates": {
+    "first": "01-JUL-2026",
+    "last": "31-JUL-2026"
+  },
+  "transaction_codes": {
+    "S": {
+      "rows": 25441,
+      "meaning": "open-market or private sale"
+    },
+    "A": {
+      "rows": 9817,
+      "meaning": "grant or award"
+    },
+    "M": {
+      "rows": 7433,
+      "meaning": "exercise of a derivative"
+    },
+    "F": {
+      "rows": 6802,
+      "meaning": "tax withholding"
+    },
+    "P": {
+      "rows": 5184,
+      "meaning": "open-market or private purchase"
+    },
+    "J": {
+      "rows": 1679,
+      "meaning": ""
+    },
+    "D": {
+      "rows": 1382,
+      "meaning": "disposition to the issuer"
+    },
+    "G": {
+      "rows": 1035,
+      "meaning": "gift"
+    },
+    "C": {
+      "rows": 903,
+      "meaning": "conversion"
+    },
+    "L": {
+      "rows": 65,
+      "meaning": ""
+    },
+    "X": {
+      "rows": 56,
+      "meaning": "exercise (in the money)"
+    },
+    "U": {
+      "rows": 38,
+      "meaning": ""
+    },
+    "I": {
+      "rows": 23,
+      "meaning": ""
+    },
+    "W": {
+      "rows": 14,
+      "meaning": ""
+    },
+    "Z": {
+      "rows": 8,
+      "meaning": ""
+    },
+    "": {
+      "rows": 4,
+      "meaning": ""
+    },
+    "O": {
+      "rows": 1,
+      "meaning": ""
+    }
+  },
+  "buys": 5184,
+  "sells": 25441,
+  "buys_sells_value_usd": {
+    "buys": 1600032404275182,
+    "sells": 56252878943
+  },
+  "buys_sells_without_price": 132,
+  "companies_with_buys_or_sells": 2845,
+  "insiders_with_buys_or_sells": 8070,
+  "trade_date_examples": [
+    "28-SEP-2026",
+    "30-SEP-2026",
+    "30-SEP-2026",
+    "30-SEP-2026",
+    "30-SEP-2026"
+  ],
+  "storage_estimate_mb_per_year": 37
+}
