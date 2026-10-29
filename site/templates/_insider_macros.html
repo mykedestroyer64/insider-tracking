@@ -1,3 +1,4 @@
+{% from "macros.html" import return_cell %}
 {% macro insider_cell(t, base, people) -%}
 {% set p = people.get(t.insider_cik) %}
 {% if p %}<a href="{{ base }}/insiders/{{ p.slug }}/" class="plain cell-main">{{ t.insider_name }}</a>{% else %}<span class="cell-main">{{ t.insider_name }}</span>{% endif %}<div class="muted">{{ t.role_text }}</div>
@@ -16,6 +17,7 @@
 {%- endmacro %}
 
 {% macro insider_table(trades, base, people, show_insider=True, show_company=True, caption=None, mixed=False) -%}
+{% set show_return = has_returns and (trades | selectattr("country", "equalto", "US") | list | length) > 0 %}
 <div class="table-wrap">
 <table class="trades">
 {% if caption %}<caption class="visually-hidden">{{ caption }}</caption>{% endif %}
@@ -29,6 +31,7 @@
 <th scope="col" class="r">Value</th>
 <th scope="col">Traded</th>
 <th scope="col">Filed</th>
+{% if show_return %}<th scope="col" class="r">Return</th>{% endif %}
 <th scope="col">Source</th>
 </tr>
 </thead>
@@ -43,6 +46,7 @@
 <td class="r num">{{ value_cell(t) }}</td>
 <td class="num nowrap">{{ fmt_date(t.traded) or "–" }}</td>
 <td class="num nowrap">{{ fmt_date(t.filing.filed) or "–" }}</td>
+{% if show_return %}<td class="r">{{ return_cell(t) }}</td>{% endif %}
 <td class="nowrap"><a href="{{ t.filing.url }}" rel="noopener">{{ t.filing.source_label }}</a></td>
 </tr>
 {% endfor %}

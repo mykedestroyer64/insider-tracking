@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_insider_macros.html" import insider_table %}
+{% from "macros.html" import perf_section %}
 {% block title %}{{ person.name }}: insider trades · Insider Tracking{% endblock %}
 {% block description %}{{ person.name }} ({{ person.description }}): buys and sells of company shares reported to {{ person.market.regulator }}.{% endblock %}
 {% block content %}
@@ -22,8 +23,10 @@
 {% if stats.amendments or stats.suspect or stats.not_current or stats.programme or stats.transfers %}<p class="muted">{% if stats.amendments %}{{ stats.amendments }} row{{ 's' if stats.amendments != 1 }} come{{ 's' if stats.amendments == 1 }} from amendments, which re-file earlier reports; {{ 'they are' if stats.amendments != 1 else 'it is' }} listed but not counted. {% endif %}{% if stats.not_current %}{{ stats.not_current }} row{{ 's' if stats.not_current != 1 }} {{ 'were' if stats.not_current != 1 else 'was' }} later revised or cancelled in the register and {{ 'are' if stats.not_current != 1 else 'is' }} not counted. {% endif %}{% if stats.programme %}{{ stats.programme }} row{{ 's' if stats.programme != 1 }} {{ 'are' if stats.programme != 1 else 'is' }} linked to a share or option programme rather than bought or sold on the market, and {{ 'are' if stats.programme != 1 else 'is' }} not counted. {% endif %}{% if stats.transfers %}{{ stats.transfers }} row{{ 's' if stats.transfers != 1 }} {{ 'are' if stats.transfers != 1 else 'is' }} a move of shares between the insider and a related party (reported as a sell by one and a buy by the other), not a market trade, and {{ 'are' if stats.transfers != 1 else 'is' }} not counted. {% endif %}{% if stats.suspect %}{{ stats.suspect }} row{{ 's' if stats.suspect != 1 }} carr{{ 'y' if stats.suspect != 1 else 'ies' }} impossible numbers as filed and {{ 'are' if stats.suspect != 1 else 'is' }} not counted.{% endif %}</p>{% endif %}
 </section>
 
+{{ perf_section(perf_summary, person.name) }}
+
 <section class="section" aria-labelledby="all-h">
-<div class="titles"><h2 id="all-h">All trades</h2><p class="muted">Newest filing first. Buys and sells only; stock awards, option exercises, subscriptions in new issues and gifts aren’t trades and aren’t listed.</p></div>
+<div class="titles"><h2 id="all-h">All trades</h2><p class="muted">Newest filing first. Buys and sells only; stock awards, option exercises, subscriptions in new issues and gifts aren’t trades and aren’t listed.{% if has_returns and person.country == "US" %} “Return”: how the stock did 1 year after the trade (6 months or 1 month for newer trades), next to the S&amp;P 500.{% endif %}</p></div>
 {{ insider_table(trades, base, {}, show_insider=False, caption="All trades by " ~ person.name) }}
 </section>
 {% endblock %}

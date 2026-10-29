@@ -111,6 +111,7 @@ class Trade:
     is_amendment: bool = False
     chamber: str = "senate"
     filer: "Filer | None" = None
+    perf: object = None          # how the stock did afterwards (returns.Perf), when known
 
     @property
     def date_after_filing(self):

@@ -35,6 +35,7 @@ import charts                                    # noqa: E402
 import data as sitedata                          # noqa: E402
 import insiders as insiderdata                   # noqa: E402
 import people                                    # noqa: E402
+import returns as returnsdata                    # noqa: E402
 from jinja2 import Environment, FileSystemLoader, select_autoescape   # noqa: E402
 
 NAV = [
@@ -165,6 +166,9 @@ class Builder:
             "fmt_money_short": insiderdata.fmt_money_short, "fmt_shares": insiderdata.fmt_shares,
             "fmt_price": insiderdata.fmt_price, "fmt_eur_short": insiderdata.fmt_eur_short,
             "has_insiders": bool(self.ins.trades), "insider_markets": self.ins.markets,
+            "fmt_pct": returnsdata.fmt_pct, "periods": returnsdata.PERIODS,
+            "period_label": returnsdata.LABELS, "period_short": returnsdata.SHORT,
+            "has_returns": any(t.perf for t in dataset.trades) or any(t.perf for t in self.ins.trades),
         })
 
     def write(self, path, text):
@@ -253,6 +257,7 @@ class Builder:
             top = sorted(per_stock.values(), key=lambda s: (-s["trades"], s["ticker"]))[:TOP_STOCKS_ON_MEMBER_PAGE]
             self.page("member.html", f"/congress/{filer.slug}/index.html", page="congress",
                       filer=filer, stats=stats, top_stocks=top,
+                      perf_summary=returnsdata.summary(filer.counted_trades, lambda t: t.group),
                       chambers=sorted({r.chamber for r in filer.reports}),
                       yearly_svg=charts.yearly_bars_svg(by_year, filer.name) if len(by_year) > 1 else "")
             if any(r.chamber == "senate" for r in filer.reports):
@@ -335,7 +340,8 @@ class Builder:
         for person in ins.people.values():
             trades = sorted(person.trades, key=lambda t: (t.filing.filed or date.min, t.traded or date.min), reverse=True)
             self.page("insider.html", f"/insiders/{person.slug}/index.html", page="insiders", person=person,
-                      stats=person.stats(), trades=trades)
+                      stats=person.stats(), trades=trades,
+                      perf_summary=returnsdata.summary(person.counted, lambda t: t.kind))
         # per-letter name index for the Insiders page search
         by_letter = defaultdict(list)
         for person in sorted(ins.people.values(), key=lambda p: p.name):
@@ -475,6 +481,7 @@ def main(argv=None, conn=None, legislators=None):
         log("Reading the database…")
         dataset = sitedata.load(conn)
         insiders = insiderdata.load(conn, dataset.today)
+        perfs = returnsdata.load(conn)
     finally:
         if close:
             close()
@@ -492,6 +499,9 @@ def main(argv=None, conn=None, legislators=None):
             "(add them to site/overrides.json):")
         for filer in matcher.unmatched:
             log(f"    {filer.key!r}: {filer.match_note}")
+
+    found = returnsdata.attach(perfs, dataset.trades, insiders.trades)
+    log(f"  returns: {len(perfs):,} stored, {found:,} trades shown with one")
 
     log("Writing pages…")
     Builder(dataset, args.out, base, site_url, repo, insiders).build()

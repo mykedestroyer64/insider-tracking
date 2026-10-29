@@ -158,6 +158,7 @@ class InsiderTrade:
     superseded: bool = False   # an amendment in the register replaces this row
     instrument: str = ""       # European registers: the share class, e.g. "Investor B"
     transfer: bool = False     # a buy and a sell of the same lot on the same day: shares moved, not traded
+    perf: object = None        # how the stock did afterwards (returns.Perf), when known
 
     @property
     def country(self):

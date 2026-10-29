@@ -11,6 +11,8 @@
 | `sec_site.py`, `sec_parsing.py` | talk to the SEC's sites and turn their quarterly files and filings into clean records |
 | `collect_sweden.py` | the Swedish executives collector: buys and sells of their company's shares from Finansinspektionen's register, every 3 hours |
 | `sweden_site.py`, `sweden_parsing.py`, `ecb_rates.py` | talk to the register and the European Central Bank, read the register's export and the euro exchange rates |
+| `collect_returns.py` | the returns collector: how each traded stock did 1 month, 6 months and 1 year after the trade, next to the S&P 500 (needs a Sharadar subscription) |
+| `sharadar_site.py`, `returns_calc.py` | talk to Sharadar's price API, match tickers and companies to its securities, work out the returns |
 | `efd_site.py` | talks to eFD politely (agreement, search, report pages) and stops if it is blocked |
 | `parsing.py` | turns eFD pages into clean data |
 | `database.py` | creates the tables and saves the data |
@@ -24,6 +26,19 @@
 | `db_size_check.py`, `db_maintenance.py` | show the space each table, index and column takes, and free the space of dropped columns (run through the "New sources check" workflow as `dbsize` and `slim`) |
 | `requirements.txt` | the Python libraries needed |
 | `status/heartbeat.txt` | a date the Senate collector saves once a week (see "Good to know") |
+
+## How the returns collector works
+
+`collect_returns.py` works out, for every stock trade by a member of Congress or a US company insider, how the stock did 1 month, 6 months and 1 year after the trade date (30, 182 and 365 days), next to SPY (an S&P 500 fund) over the same days. It uses Sharadar's closing prices adjusted for splits, dividends and spinoffs. Sharadar's licence for this site (confirmed by email, 23 and 27 Oct 2026) allows showing the returns and charts of them, never the prices: the prices are not stored anywhere, only the returns (table `trade_returns`). Every run:
+
+1. connects to the database (the first run adds the `trade_returns` table)
+2. gets SPY's prices and lists the trades whose returns are missing, or whose period has ended since they were last worked out
+3. downloads Sharadar's list of securities and finds the security of each trade: by ticker and date for Congress (a 2019 trade in `FB` is Meta's stock), by the company's SEC number for insiders
+4. asks for each security's prices once and works out the returns of all its pending trades, saving as it goes
+
+It needs the `SHARADAR_API_KEY` secret (the key from sharadar.com/account); without it a run does nothing and says so. The key is sent in a request header, never in an address. At most 2,500 requests per run, 0.3-0.6 seconds apart; the first runs fill in the past, later ones only the trades whose period has just ended. A run that Sharadar refuses stops (`BLOCKED`); a key that doesn't work stops with `KEY_PROBLEM`.
+
+To start it by hand: **Actions > insider-tracking returns collector > Run workflow**.
 
 ## The website
 

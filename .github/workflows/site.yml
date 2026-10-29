@@ -5,7 +5,7 @@ name: Publish the website
 
 on:
   workflow_run:
-    workflows: ["insider-tracking collector", "insider-tracking House collector", "insider-tracking SEC collector", "insider-tracking Sweden collector"]
+    workflows: ["insider-tracking collector", "insider-tracking House collector", "insider-tracking SEC collector", "insider-tracking Sweden collector", "insider-tracking returns collector"]
     types: [completed]
   push:
     branches: [main]

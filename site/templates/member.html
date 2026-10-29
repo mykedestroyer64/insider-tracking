@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "macros.html" import trade_table %}
+{% from "macros.html" import trade_table, perf_section %}
 {% block title %}{{ filer.name }}: stock trades · Insider Tracking{% endblock %}
 {% block description %}{{ filer.name }}{% if filer.description %} ({{ filer.description }}){% endif %}: {{ stats.trades }} stock trades reported to Congress, with dates, amounts and late filings.{% endblock %}
 {% block content %}
@@ -23,6 +23,8 @@
 </dl>
 {% if stats.amendment_trades or stats.paper_reports or stats.unread_reports %}<p class="muted">{% if stats.amendment_trades %}{{ fmt_number(stats.amendment_trades) }} more row{{ 's' if stats.amendment_trades != 1 }} come{{ 's' if stats.amendment_trades == 1 }} from amendments, which re-file earlier reports; they are listed below but not counted. {% endif %}{% if stats.paper_reports %}{{ stats.paper_reports }} of this filer’s reports {{ 'were' if stats.paper_reports != 1 else 'was' }} filed on paper and {{ "aren’t" if stats.paper_reports != 1 else "isn’t" }} read yet. {% endif %}{% if stats.unread_reports %}{{ stats.unread_reports }} report{{ 's' if stats.unread_reports != 1 }} {{ 'are' if stats.unread_reports != 1 else 'is' }} still waiting to be read.{% endif %}</p>{% endif %}
 </section>
+
+{{ perf_section(perf_summary, filer.name) }}
 
 {% if yearly_svg %}
 <section class="section" aria-labelledby="years-h">
@@ -48,7 +50,7 @@
 {% endif %}
 
 <section class="section" aria-labelledby="all-h">
-<div class="titles"><h2 id="all-h">All trades</h2><p class="muted">Newest disclosure first. “Days” counts from the trade to the public report; the law allows 45.{% if chambers | length > 1 %} Reports from both chambers: the source says which.{% endif %}</p></div>
+<div class="titles"><h2 id="all-h">All trades</h2><p class="muted">Newest disclosure first. “Days” counts from the trade to the public report; the law allows 45.{% if has_returns %} “Return”: how the stock did 1 year after the trade (6 months or 1 month for newer trades), next to the S&amp;P 500.{% endif %}{% if chambers | length > 1 %} Reports from both chambers: the source says which.{% endif %}</p></div>
 {{ trade_table(filer.trades, base, show_filer=False, caption="All trades reported by " ~ filer.name) }}
 </section>
 {% endblock %}

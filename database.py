@@ -17,6 +17,8 @@ Tables (created automatically on the first run):
   mar_trades       European executives' buys and sells (EU Market Abuse Regulation, Art. 19),
                    one row per transaction line, with the country it was reported in
   fx_rates         the European Central Bank's daily euro exchange rates (1 EUR = rate units)
+  trade_returns    how each traded stock did 1 month, 6 months and 1 year after the trade, and the
+                   S&P 500 (SPY) over the same days (from Sharadar's prices; the prices aren't stored)
   collector_runs   one row per run of a collector, with its verdict
   collector_state  the collectors' bookmarks (how far back the history is listed)
 
@@ -187,6 +189,26 @@ SCHEMA = [
     "under Art. 19 of the EU Market Abuse Regulation. country: SE (Finansinspektionen). One row per transaction "
     "line of a notification; status Current/Revised/Cancelled as in the register; suspect marks impossible numbers.'",
     "comment on table fx_rates is 'ECB euro reference rates: 1 EUR = rate units of the currency on that day.'",
+    """
+    create table if not exists trade_returns (
+        stock_key   text not null,
+        trade_date  date not null,
+        security    text,
+        r30         real,
+        r182        real,
+        r365        real,
+        m30         real,
+        m182        real,
+        m365        real,
+        note        text,
+        checked_on  date not null,
+        primary key (stock_key, trade_date)
+    )""",
+    "alter table trade_returns enable row level security",
+    "comment on table trade_returns is 'How a stock did 30, 182 and 365 days after a trade date (r, fractions) "
+    "and SPY over the same days (m), from Sharadar adjusted closes. stock_key: T:<ticker> for a ticker in a "
+    "Congress report, C:<CIK> for a company in an SEC Form 4. security: the Sharadar ticker used. checked_on: "
+    "the market day the numbers were worked out on. Prices are not stored.'",
     "create index if not exists reports_status_received on reports (status, date_received desc)",
     "alter table insider_filings enable row level security",
     "alter table insider_trades enable row level security",
@@ -686,6 +708,97 @@ def total_size(conn):
 
 
 FREE_PLAN_MB = 500
+
+
+# ---------------------------------------------------------------------- returns
+
+CONGRESS_RETURN_ITEMS_SQL = """
+    select distinct trim(t.ticker), t.transaction_date
+    from transactions t join reports r on r.report_path = t.report_path
+    where t.transaction_date is not null and t.transaction_date >= '2012-01-01'
+      and t.transaction_date <= coalesce(r.date_received, t.transaction_date)
+      and t.ticker is not null and position(' ' in trim(t.ticker)) = 0
+      and trim(t.ticker) not in ('', '--', 'N/A')
+      and coalesce(nullif(t.asset_type, ''), 'Stock') in ('Stock', 'Exchange Traded Fund', 'Exchange Traded Note', 'REIT')
+      and t.trade_type in ('purchase', 'sale_full', 'sale_partial', 'sale')
+      and not r.is_amendment"""
+
+INSIDER_RETURN_ITEMS_SQL = """
+    select f.company_cik, t.trade_date, max(f.ticker)
+    from insider_trades t join insider_filings f on f.accession = t.accession
+    where t.trade_date is not null and not t.suspect and not f.is_amendment and f.company_cik is not null
+    group by f.company_cik, t.trade_date"""
+
+RETURN_COLUMNS = ["stock_key", "trade_date", "security", "r30", "r182", "r365", "m30", "m182", "m365",
+                  "note", "checked_on"]
+
+
+def _as_date(value):
+    if value is None or hasattr(value, "year"):
+        return value
+    import datetime as _datetime
+    return _datetime.date.fromisoformat(str(value)[:10])
+
+
+def _as_float(value):
+    return None if value is None else float(value)
+
+
+@handles_errors
+def return_items(conn):
+    """The trades that get returns: [('congress', ticker, day, None), ('insider', cik, day, ticker)]."""
+    cursor = conn.cursor()
+    cursor.execute(CONGRESS_RETURN_ITEMS_SQL)
+    items = [("congress", str(ticker), _as_date(day), None) for ticker, day in cursor.fetchall()]
+    cursor.execute(INSIDER_RETURN_ITEMS_SQL)
+    items += [("insider", str(cik), _as_date(day), ticker) for cik, day, ticker in cursor.fetchall()]
+    conn.commit()
+    return items
+
+
+@handles_errors
+def stored_returns(conn):
+    """{(stock_key, trade_date): (r30, r182, r365, note, checked_on)} for every stored row."""
+    cursor = conn.cursor()
+    cursor.execute("select stock_key, trade_date, r30, r182, r365, note, checked_on from trade_returns")
+    rows = {(str(key), _as_date(day)): (_as_float(r30), _as_float(r182), _as_float(r365), note, _as_date(checked))
+            for key, day, r30, r182, r365, note, checked in cursor.fetchall()}
+    conn.commit()
+    return rows
+
+
+@handles_errors
+def save_returns(conn, rows):
+    """Store worked-out returns (a row seen before is replaced). rows: dicts with RETURN_COLUMNS."""
+    if not rows:
+        return 0
+    cursor = conn.cursor()
+    for start in range(0, len(rows), 500):
+        chunk = rows[start:start + 500]
+        slots = "(" + ", ".join(["%s"] * len(RETURN_COLUMNS)) + ")"
+        params = []
+        for row in chunk:
+            params += [row.get(column) for column in RETURN_COLUMNS]
+        updates = ", ".join(f"{c} = excluded.{c}" for c in RETURN_COLUMNS[2:])
+        cursor.execute(f"insert into trade_returns ({', '.join(RETURN_COLUMNS)}) values "
+                       + ", ".join([slots] * len(chunk))
+                       + f" on conflict (stock_key, trade_date) do update set {updates}", params)
+    conn.commit()
+    return len(rows)
+
+
+@handles_errors
+def returns_counts(conn):
+    cursor = conn.cursor()
+    cursor.execute("""
+        select count(*), count(r30), count(r182), count(r365), count(*) filter (where left(note, 7) = 'stopped'),
+               count(*) filter (where r30 is null and note is not null and left(note, 7) <> 'stopped'),
+               pg_size_pretty(pg_total_relation_size('trade_returns'))
+        from trade_returns""")
+    rows, r30, r182, r365, stopped, failed, size = cursor.fetchone()
+    conn.commit()
+    return {"rows": int(rows), "r30": int(r30), "r182": int(r182), "r365": int(r365),
+            "stopped": int(stopped), "failed": int(failed), "size": str(size)}
 
 
 # ---------------------------------------------------------------------- runs

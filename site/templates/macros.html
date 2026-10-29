@@ -14,6 +14,11 @@
 {% if trade.filer %}<a href="{{ base }}/congress/{{ trade.filer.slug }}/" class="plain cell-main">{{ trade.filer.name }}</a><div class="muted">{{ trade.filer.party_state or trade.filer.filer_type }}</div>{% endif %}
 {%- endmacro %}
 
+{% macro return_cell(t) -%}
+{% set b = t.perf.best if t.perf else none %}
+{% if b %}<span class="num">{{ fmt_pct(b[1]) }}</span><div class="muted nowrap">{{ period_short[b[0]] }} · S&amp;P {{ fmt_pct(b[2]) }}</div>{% if t.perf.stopped %}<div class="muted nowrap">until it stopped trading</div>{% endif %}{% else %}<span class="muted">–</span>{% endif %}
+{%- endmacro %}
+
 {% macro trade_table(trades, base, show_filer=True, show_asset=True, caption=None) -%}
 <div class="table-wrap">
 <table class="trades">
@@ -28,6 +33,7 @@
 <th scope="col">Traded</th>
 <th scope="col">Disclosed</th>
 <th scope="col" class="r">Days</th>
+{% if has_returns %}<th scope="col" class="r">Return</th>{% endif %}
 <th scope="col">Source</th>
 </tr>
 </thead>
@@ -42,10 +48,34 @@
 <td class="num nowrap">{{ fmt_date(t.traded) or "–" }}{% if t.date_after_filing %}<div class="muted">as filed</div>{% endif %}</td>
 <td class="num nowrap">{{ fmt_date(t.received) or "–" }}</td>
 <td class="r">{{ days_cell(t) }}</td>
+{% if has_returns %}<td class="r">{{ return_cell(t) }}</td>{% endif %}
 <td class="nowrap"><a href="{{ t.report_url }}" rel="noopener">{{ "House" if t.chamber == "house" else "Senate" }} report</a></td>
 </tr>
 {% endfor %}
 </tbody>
 </table>
 </div>
+{%- endmacro %}
+
+{% macro perf_section(summary, who) -%}
+{% if summary %}
+<section class="section" aria-labelledby="perf-h">
+<div class="titles"><h2 id="perf-h">How the stocks did afterwards</h2><p class="muted">The average return of the stocks {{ who }} bought or sold, 1 month, 6 months and 1 year after each trade, next to the S&amp;P 500 over the same days. Each trade counts the same, whatever its size; returns include dividends.</p></div>
+<div class="table-wrap">
+<table class="perf">
+<thead><tr><th scope="col"><span class="visually-hidden">Trades</span></th>{% for p in periods %}<th scope="col" class="r">{{ period_label[p] }} later</th>{% endfor %}</tr></thead>
+<tbody>
+{% for side, title, right, unit in (("buy", "After buying", "beat it", "buys"), ("sell", "After selling", "lagged it", "sells")) %}
+<tr><th scope="row" class="nowrap">{{ title }}</th>
+{% for p in periods %}{% set s = summary.get((side, p)) %}
+<td class="r">{% if s %}<span class="num cell-main">{{ fmt_pct(s.stock) }}</span><div class="muted nowrap">S&amp;P 500 {{ fmt_pct(s.market) }}</div><div class="muted nowrap">{{ (s.right * 100) | round | int }}% {{ right }} · {{ fmt_number(s.count) }} {{ unit if s.count != 1 else unit[:-1] }}</div>{% else %}<span class="muted">–</span>{% endif %}</td>
+{% endfor %}
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+<p class="muted">“Beat it”: the stock did better than the S&amp;P 500 after the purchase. “Lagged it”: the stock did worse than the S&amp;P 500 after the sale, so selling was well timed. Trades from the last month, 6 months or year count once that period has passed. Price data: <a href="https://sharadar.com/" rel="noopener">Sharadar.com</a>.</p>
+</section>
+{% endif %}
 {%- endmacro %}
