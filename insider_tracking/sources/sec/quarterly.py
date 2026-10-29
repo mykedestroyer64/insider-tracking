@@ -13,6 +13,7 @@ from ...core.errors import SiteStop
 from ...core.status import CHANGED
 from ...core.text import plural
 from ...web.checks import unexpected
+from ..ports import Bookmarks, InsiderStore, Note, SecGateway
 from .parsing import FilingProblem, parse_quarter
 from .quarters import quarter_name
 
@@ -20,10 +21,10 @@ QUARTERS_PER_RUN = 2
 
 
 class QuarterlyFiles:
-    """site: a SecSite; filings: an InsiderStore; bookmarks: a Bookmarks store; stats: the
-    run's counts; first_quarter: (year, quarter), how far back the files are loaded."""
+    """stats: the run's counts; first_quarter: (year, quarter), how far back the files are loaded."""
 
-    def __init__(self, site, filings, bookmarks, stats, note, first_quarter):
+    def __init__(self, site: SecGateway, filings: InsiderStore, bookmarks: Bookmarks, stats: dict, note: Note,
+                 first_quarter: tuple):
         self.site = site
         self.filings = filings
         self.bookmarks = bookmarks

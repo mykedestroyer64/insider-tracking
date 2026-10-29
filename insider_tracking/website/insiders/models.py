@@ -17,22 +17,7 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from ..names import stock_slug
-
-MARKETS = {
-    "US": {"code": "US", "slug": "united-states", "name": "United States", "currency": "USD",
-           "regulator": "the SEC", "source": "SEC Form 4", "since": "2021",
-           "rule": "Officers and directors must report trades in their own company’s stock to the SEC within two "
-                   "business days, on Form 4.",
-           "coverage": "open-market buys and sells by officers and directors of US-listed companies since 2021"},
-    "SE": {"code": "SE", "slug": "sweden", "name": "Sweden", "currency": "SEK",
-           "regulator": "Finansinspektionen", "source": "Finansinspektionen’s register", "since": "July 2016",
-           "rule": "Executives and board members of companies listed in Sweden must report trades in their company’s "
-                   "shares to Finansinspektionen, the financial regulator, within three business days (EU Market "
-                   "Abuse Regulation, Article 19).",
-           "coverage": "buys and sells of shares by executives and board members of companies listed in Sweden "
-                       "since July 2016"},
-}
-ALL_MARKETS = {"code": "ALL", "slug": "", "name": "All markets", "currency": "EUR"}
+from .markets import market_of
 
 VENUES = {   # the register's venue names, shortened
     "nasdaq stockholm ab": "Nasdaq Stockholm", "omx nordic exchange stockholm ab": "Nasdaq Stockholm",
@@ -68,11 +53,11 @@ class Filing:
 
     @property
     def market(self):
-        return MARKETS[self.country]
+        return market_of(self.country)
 
     @property
     def source_label(self):
-        return f"Form {self.form}" if self.country == "US" else "Register entry"
+        return self.market.system.filing_label.format(form=self.form)
 
 
 @dataclass
@@ -110,12 +95,21 @@ class InsiderTrade:
         return self.filing.country
 
     @property
+    def market(self):
+        return self.filing.market
+
+    @property
+    def repeats_a_filing(self):
+        """An amendment that only repeats a filing (Form 4/A), so it isn't counted."""
+        return self.filing.is_amendment and not self.market.system.corrections_replace
+
+    @property
     def counted(self):
         if self.suspect or self.duplicate or self.superseded or self.programme or self.transfer:
             return False
         if self.status.lower() != "current":
             return False
-        if self.country == "US" and self.filing.is_amendment:
+        if self.repeats_a_filing:
             return False
         return True
 
@@ -126,7 +120,7 @@ class InsiderTrade:
     @property
     def note(self):
         """The one line under the Buy/Sell label that says why a row isn't counted, if it isn't."""
-        if self.country == "US" and self.filing.is_amendment:
+        if self.repeats_a_filing:
             return "amendment"
         if self.suspect:
             return f"not counted: {self.suspect_reason}"
@@ -144,7 +138,7 @@ class InsiderTrade:
             return "share programme, not counted"
         if self.filing.plan:
             return "pre-set plan"
-        if self.country != "US" and self.filing.is_amendment:
+        if self.filing.is_amendment and self.market.system.corrections_replace:
             return "corrected filing"
         return ""
 
@@ -192,11 +186,11 @@ class Company:
 
     @property
     def market(self):
-        return MARKETS[self.country]
+        return market_of(self.country)
 
     @property
     def currency(self):
-        return self.market["currency"]
+        return self.market.currency
 
     @property
     def counted(self):
@@ -228,11 +222,11 @@ class Person:
 
     @property
     def market(self):
-        return MARKETS[self.country]
+        return market_of(self.country)
 
     @property
     def currency(self):
-        return self.market["currency"]
+        return self.market.currency
 
     @property
     def counted(self):
@@ -245,7 +239,7 @@ class Person:
         for t in self.trades:
             if t.ticker and t.stock_slug not in seen:
                 seen[t.stock_slug] = {"ticker": t.ticker, "slug": t.stock_slug, "name": t.filing.company_name,
-                                      "title": t.role_text, "country": t.country}
+                                      "title": t.role_text, "country": t.country, "market": t.market}
         return list(seen.values())
 
     @property
@@ -266,7 +260,7 @@ class Person:
             "currency": self.currency,
             "first": min((t.traded for t in trades if t.traded), default=None),
             "last": max((t.traded for t in trades if t.traded), default=None),
-            "amendments": sum(1 for t in self.trades if t.country == "US" and t.filing.is_amendment),
+            "amendments": sum(1 for t in self.trades if t.repeats_a_filing),
             "suspect": sum(1 for t in self.trades if t.suspect),
             "not_current": sum(1 for t in self.trades if t.status.lower() != "current" or t.superseded),
             "programme": sum(1 for t in self.trades if t.programme),

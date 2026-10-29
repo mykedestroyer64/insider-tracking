@@ -8,11 +8,8 @@ rules first (and keeps to the delay they ask for), and stops if the site refuses
 
 from dataclasses import dataclass
 from datetime import date
-from urllib import robotparser
 from urllib.parse import quote
 
-from ...core.errors import SiteStop
-from ...core.status import BLOCKED
 from ...web.checks import BlockPageCheck, unexpected
 from ...web.pacing import Pacing
 
@@ -56,19 +53,18 @@ class FiRegister:
         self.endpoints = endpoints
         self.check = check or BlockPageCheck()
 
-    def robots_allow(self):
-        """Read robots.txt: a note if scripts may read the register, or a SiteStop if not."""
+    def robots_file(self):
+        """The site's robots.txt (the answer), or None when it has none."""
         response = self.client.get(self.endpoints.robots, check=self.check, ok_codes=(404,), who=WHO_SITE)
-        if response.status_code == 404:
-            return "no robots.txt (no rules given)"
-        parser = robotparser.RobotFileParser()
-        parser.parse(response.text.splitlines())
-        sample = self.endpoints.export.format(start=date(2026, 1, 1), end=date(2026, 1, 2))
-        if not (parser.can_fetch("*", self.endpoints.search_page) and parser.can_fetch("*", sample)):
-            raise SiteStop(BLOCKED, "robots.txt says scripts may not read the register", response)
-        delay = parser.crawl_delay("*")
-        self.client.slow_down_to(delay)
-        return "robots.txt allows the register" + (f", asks for {delay} s between requests" if delay else "")
+        return None if response.status_code == 404 else response
+
+    def addresses(self):
+        """The addresses the collector reads: the search page and (an example of) the export."""
+        return [self.endpoints.search_page, self.endpoints.export.format(start=date(2026, 1, 1), end=date(2026, 1, 2))]
+
+    def slow_down_to(self, seconds):
+        """Wait at least `seconds` between requests from now on (the delay robots.txt asks for)."""
+        self.client.slow_down_to(seconds)
 
     def export(self, start, end):
         """The register's export for notifications published from `start` to `end` (the answer)."""

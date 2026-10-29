@@ -23,11 +23,15 @@ QUEUE_COLUMNS = ["report_path", "url", "first_name", "last_name", "date_received
 
 
 class CongressReports:
-    def __init__(self, db):
-        self.db = db
+    """One chamber's reports: chamber is "senate" or "house" (every count and queue is that
+    chamber's; reports are added with the chamber they carry)."""
 
-    def counts(self, chamber="senate"):
-        """How many of a chamber's reports there are in each state, and how many transactions."""
+    def __init__(self, db, chamber):
+        self.db = db
+        self.chamber = chamber
+
+    def counts(self):
+        """How many of the chamber's reports there are in each state, and how many transactions."""
         with self.db.transaction() as cursor:
             cursor.execute("""
         select count(*),
@@ -35,11 +39,11 @@ class CongressReports:
                count(*) filter (where status = 'to_read'),
                count(*) filter (where status = 'not_read'),
                count(*) filter (where status = 'failed')
-        from reports where chamber = %s""", (chamber,))
+        from reports where chamber = %s""", (self.chamber,))
             reports, read, to_read, paper, failed = (int(value) for value in cursor.fetchone())
             cursor.execute("""
         select count(*) from transactions t join reports r on r.report_path = t.report_path
-        where r.chamber = %s""", (chamber,))
+        where r.chamber = %s""", (self.chamber,))
             transactions = int(cursor.fetchone()[0])
         return {"reports": reports, "read": read, "to_read": to_read, "paper_not_read": paper,
                 "failed": failed, "transactions": transactions}
@@ -61,15 +65,15 @@ class CongressReports:
                 new_paths.update(str(row[0]) for row in cursor.fetchall())
         return [report for report in reports if report["report_path"] in new_paths]
 
-    def to_read(self, limit, chamber="senate"):
-        """A chamber's electronic reports that haven't been read yet, newest first."""
+    def to_read(self, limit):
+        """The chamber's electronic reports that haven't been read yet, newest first."""
         with self.db.transaction() as cursor:
             cursor.execute("""
         select report_path, url, first_name, last_name, date_received
         from reports
         where status = 'to_read' and chamber = %s
         order by date_received desc nulls last, report_path
-        limit %s""", (chamber, int(limit)))
+        limit %s""", (self.chamber, int(limit)))
             rows = cursor.fetchall()
         return [dict(zip(QUEUE_COLUMNS, row)) for row in rows]
 

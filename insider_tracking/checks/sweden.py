@@ -23,14 +23,14 @@ import re
 from collections import Counter
 from dataclasses import replace
 from datetime import date, timedelta
-from urllib import robotparser
 
 from ..core.errors import SiteStop
 from ..core.status import BLOCKED, CHANGED, OK
-from ..web.checks import BlockPageCheck, unexpected
-from ..web.describe import http_codes
 from ..sources.sweden.parsing import decode_export
 from ..sources.sweden.site import FiEndpoints
+from ..web.checks import BlockPageCheck, unexpected
+from ..web.describe import http_codes
+from ..web.robots import read_rules
 from .framework import PACING, Check, CheckDefinition, CheckRunner, common_summary, script_fields, shown, times
 
 RECENT_DAYS = 7
@@ -144,16 +144,14 @@ class SwedenCheck(Check):
         if response.status_code == 404:
             note = "no robots.txt (no rules given, so the register may be read)"
         else:
-            parser = robotparser.RobotFileParser()
-            parser.parse(response.text.splitlines())
             (run.folder / "robots.txt").write_text(response.text, encoding="utf-8")
-            allowed = parser.can_fetch("*", self.endpoints.search_page) and parser.can_fetch(
-                "*", self.endpoints.export.format(start=date(2026, 1, 1), end=date(2026, 1, 2)))
-            if not allowed:
+            rules = read_rules(response.text, [self.endpoints.search_page, self.endpoints.export.format(
+                start=date(2026, 1, 1), end=date(2026, 1, 2))])
+            if not rules.allows_all:
                 raise SiteStop(BLOCKED, "robots.txt says scripts may not read the register "
                                         "(saved as robots.txt)", response)
-            delay = parser.crawl_delay("*")
-            note = "robots.txt allows the register" + (f", asks for {delay} s between requests" if delay else "")
+            note = "robots.txt allows the register" + (f", asks for {rules.delay} s between requests"
+                                                       if rules.delay else "")
         info["robots"] = note
         log.end(OK, note, codes)
 

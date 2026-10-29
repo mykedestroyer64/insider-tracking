@@ -8,7 +8,7 @@
 <div class="hero-text">
 <nav class="crumbs" aria-label="Breadcrumb"><a href="{{ base }}/insiders/">Insiders</a> › <a href="{{ base }}/insiders/{{ person.market.slug }}/">{{ person.market.name }}</a> › {{ person.name }}</nav>
 <h1>{{ person.name }}</h1>
-<p class="lead">{% for c in person.companies %}{% if not loop.first %} · {% endif %}{{ c.title }}, <a href="{{ base }}/stocks/{{ c.slug }}/">{{ c.name }}</a>{% if c.country == "US" %} ({{ c.ticker }}){% endif %}{% endfor %}</p>
+<p class="lead">{% for c in person.companies %}{% if not loop.first %} · {% endif %}{{ c.title }}, <a href="{{ base }}/stocks/{{ c.slug }}/">{{ c.name }}</a>{% if c.market.system.gives_tickers %} ({{ c.ticker }}){% endif %}{% endfor %}</p>
 </div>
 {% include "_search.html" %}
 </section>
@@ -26,7 +26,7 @@
 {{ perf_section(perf_summary, person.name) }}
 
 <section class="section" aria-labelledby="all-h">
-<div class="titles"><h2 id="all-h">All trades</h2><p class="muted">Newest filing first. Buys and sells only; stock awards, option exercises, subscriptions in new issues and gifts aren’t trades and aren’t listed.{% if has_returns and person.country == "US" %} “Return”: how the stock did 1 year after the trade (6 months or 1 month for newer trades), next to the S&amp;P 500.{% endif %}</p></div>
+<div class="titles"><h2 id="all-h">All trades</h2><p class="muted">Newest filing first. Buys and sells only; stock awards, option exercises, subscriptions in new issues and gifts aren’t trades and aren’t listed.{% if has_returns and person.market.returns %} “Return”: how the stock did 1 year after the trade (6 months or 1 month for newer trades), next to the S&amp;P 500.{% endif %}</p></div>
 {{ insider_table(trades, base, {}, show_insider=False, caption="All trades by " ~ person.name) }}
 </section>
 {% endblock %}

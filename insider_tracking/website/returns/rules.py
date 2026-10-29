@@ -7,7 +7,7 @@ rules.py - which trades get a return, and how a person's trades did:
 Every trade counts the same, whatever its size (Congress reports give only ranges).
 """
 
-from ...sources.returns.keys import CONGRESS_TYPES, stock_key
+from ...sources.returns.kinds import CONGRESS_TYPES, stock_key
 from .models import PERIODS
 
 
@@ -21,8 +21,8 @@ def congress_key(trade):
 
 
 def insider_key(trade):
-    """The trade_returns key of a US insider trade, or None (European trades get no return)."""
-    if trade.country != "US" or not trade.filing.company_cik or not trade.traded:
+    """The trade_returns key of an insider trade, or None (only markets with prices get returns)."""
+    if not trade.market.returns or not trade.filing.company_cik or not trade.traded:
         return None
     return stock_key("insider", trade.filing.company_cik), trade.traded
 

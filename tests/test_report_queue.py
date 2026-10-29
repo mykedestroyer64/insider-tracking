@@ -22,11 +22,11 @@ class Reports:
                         "date_received": "2026-10-01"} for n in range(count)]
         self.asked = []
 
-    def to_read(self, limit, chamber="senate"):
-        self.asked.append((limit, chamber))
+    def to_read(self, limit):
+        self.asked.append(limit)
         return self.unread[:limit]
 
-    def counts(self, chamber="senate"):
+    def counts(self):
         return {"to_read": len(self.unread)}
 
 
@@ -58,11 +58,11 @@ def download_within(budget):
     return download
 
 
-def queue(count, results, left=100, chamber="senate", stats=None):
+def queue(count, results, left=100, stats=None):
     reports, budget, notes = Reports(count), Budget(left), []
     stats = stats if stats is not None else {"reports_read": 0, "reports_failed": 0, "transactions_saved": 0}
     reader = Reader(reports, results)
-    return ReportQueue(reports, budget, download_within(budget), reader, stats, notes.append, chamber=chamber), stats, notes, reports
+    return ReportQueue(reports, budget, download_within(budget), reader, stats, notes.append), stats, notes, reports
 
 
 check.section("everything readable")
@@ -76,7 +76,7 @@ check("a note says how many will be read", notes[0] == "reading up to 3 reports,
 
 check.section("scans and failures")
 q, stats, notes, reports = queue(4, [ReadResult(scanned=True), ReadResult(problem="no table"), ReadResult(transactions=3),
-                                     ReadResult(problem="no table")], chamber="house",
+                                     ReadResult(problem="no table")],
                                  stats={"reports_read": 0, "reports_failed": 0, "transactions_saved": 0, "scanned": 0})
 detail = q.read()
 print("  ", detail)
@@ -87,7 +87,7 @@ check("the summary names the scans and the failures",
       detail)
 check("each failure is a note with the report's filer and date",
       "could not read Jane Doe1 (2026-10-01): no table" in notes, notes)
-check("the queue asks for the chamber's reports", reports.asked == [(100, "house")], reports.asked)
+check("the queue asks for as many reports as requests are left", reports.asked == [100], reports.asked)
 q, stats, notes, reports = queue(1, [ReadResult(scanned=True)])
 q.read()
 check("a scan counts even where the run keeps no scan count", stats.get("scanned") == 1, stats)
@@ -109,7 +109,7 @@ check("a readable report in between starts the count again", stats["reports_fail
 check.section("the request budget")
 q, stats, notes, reports = queue(5, [ReadResult(transactions=1)] * 5, left=2)
 detail = q.read()
-check("only as many reports as requests are left", stats["reports_read"] == 2 and reports.asked == [(2, "senate")],
+check("only as many reports as requests are left", stats["reports_read"] == 2 and reports.asked == [2],
       (stats, reports.asked))
 check("the rest stay for the next run", detail.endswith("; 3 left to read"), detail)
 q, stats, notes, reports = queue(5, [], left=0)

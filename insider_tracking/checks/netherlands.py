@@ -16,12 +16,12 @@ import io
 import re
 from collections import Counter
 from dataclasses import dataclass, replace
-from urllib import robotparser
 
 from ..core.errors import SiteStop
 from ..core.status import BLOCKED, CHANGED, OK
 from ..web.checks import BlockPageCheck, unexpected
 from ..web.describe import http_codes
+from ..web.robots import read_rules
 from .framework import PACING, Check, CheckDefinition, CheckRunner, common_summary, script_fields, shown, times
 
 SAMPLE_ROWS = 300
@@ -113,13 +113,12 @@ class NetherlandsCheck(Check):
             note = "no robots.txt (no rules given)"
         else:
             (run.folder / "robots.txt").write_text(response.text, encoding="utf-8")
-            parser = robotparser.RobotFileParser()
-            parser.parse(response.text.splitlines())
-            if not (parser.can_fetch("*", self.endpoints.register_page) and parser.can_fetch("*", self.endpoints.export)):
+            rules = read_rules(response.text, [self.endpoints.register_page, self.endpoints.export])
+            if not rules.allows_all:
                 raise SiteStop(BLOCKED, "robots.txt says scripts may not read the register "
                                         "or its export (saved as robots.txt)", response)
-            delay = parser.crawl_delay("*")
-            note = "robots.txt allows the register" + (f", asks for {delay} s between requests" if delay else "")
+            note = "robots.txt allows the register" + (f", asks for {rules.delay} s between requests"
+                                                       if rules.delay else "")
         info["robots"] = note
         log.end(OK, note, codes)
 

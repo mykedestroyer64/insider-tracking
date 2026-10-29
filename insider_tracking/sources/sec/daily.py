@@ -12,12 +12,13 @@ only the new ones. The last day fully done is the bookmark sec_daily_cursor.
 """
 
 import json
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from ...core.errors import OutOfRequests, SiteStop
 from ...core.status import CHANGED
 from ...core.text import plural
 from ...web.checks import unexpected
+from ..ports import Bookmarks, InsiderStore, Note, SecGateway
 from .parsing import FilingProblem, parse_daily_index, parse_filing
 from .quarters import quarter_end, quarter_name, quarter_of
 
@@ -26,10 +27,10 @@ FAILURES_BEFORE_STOP = 5   # unreadable filings in a row before we assume EDGAR 
 
 
 class DailyLists:
-    """site: a SecSite; filings: an InsiderStore; bookmarks: a Bookmarks store; stats: the
-    run's counts; now: when the run started."""
+    """stats: the run's counts; now: when the run started (it decides which lists are final)."""
 
-    def __init__(self, site, filings, bookmarks, stats, note, now):
+    def __init__(self, site: SecGateway, filings: InsiderStore, bookmarks: Bookmarks, stats: dict, note: Note,
+                 now: datetime):
         self.site = site
         self.filings = filings
         self.bookmarks = bookmarks

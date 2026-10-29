@@ -15,11 +15,12 @@ class InsiderPages:
     def build(self, site):
         ins = site.insiders
         # one page for all markets, and one per market (/insiders/sweden/ ...)
-        for market in [ins.market_info(None)] + ins.markets:
-            country = None if market["code"] == "ALL" else market["code"]
-            path = "/insiders/index.html" if country is None else f"/insiders/{market['slug']}/index.html"
+        pages = [(None, ins.market_info(None))] + [(market.code, market) for market in ins.markets]
+        for country, market in pages:
+            path = "/insiders/index.html" if country is None else f"/insiders/{market.slug}/index.html"
             weekly = ins.weekly_counts(country=country)
             site.writer.page("insiders.html", path, page="insiders", market=market, markets=ins.markets,
+                             all_markets=country is None,
                              stats=ins.overview(country=country), latest=ins.latest(country=country),
                              biggest_buys=ins.biggest("buy", country=country), biggest_sells=ins.biggest("sell", country=country),
                              most_active=ins.most_active(country=country), weekly=weekly,

@@ -7,11 +7,10 @@ table (mar_trades, one row per transaction line, keyed by the country and the pe
 from datetime import timedelta
 
 from ...sources.sec.names import accession_url, company_display_name, is_entity
-from ...sources.sweden.names import company_short_name
-from ...sources.sweden.site import register_search_url
 from ..loading import fetch_text, parse_date, parse_float, table_exists
 from ..names import free_slug, slugify
 from .data import InsiderData
+from .markets import market_of
 from .models import Filing, InsiderTrade, person_key, venue_text
 
 FILINGS_SQL = """
@@ -104,7 +103,7 @@ def load_europe(db):
     for row in rows:
         country, issuer_name, lei = row[0], row[4], row[6]
         key = (country, lei or issuer_name.lower())
-        issuers.setdefault(key, {"name": issuer_name, "short": company_short_name(issuer_name) or issuer_name,
+        issuers.setdefault(key, {"name": issuer_name, "short": market_of(country).short_name(issuer_name) or issuer_name,
                                  "slug": None})
     used = set()
     for key in sorted(issuers, key=lambda k: issuers[k]["short"].lower()):
@@ -116,6 +115,7 @@ def load_europe(db):
          closely, amendment, programme, instrument_type, instrument_name, isin, traded, kind, volume, price,
          currency, value, value_eur, venue, status, suspect, reason) = row
         issuer = issuers[(country, lei or issuer_name.lower())]
+        market = market_of(country)
         accession = f"{country.lower()}:{filing_key}"
         filing = filings.get(accession)
         if filing is None:
@@ -126,13 +126,13 @@ def load_europe(db):
         filing.is_amendment = filing.is_amendment or amendment == "1"
         trade_day = parse_date(traded)
         if not filing.url:
-            filing.url = register_search_url(person, issuer_name, trade_day)
+            filing.url = market.entry_url(person, issuer_name, trade_day)
         trades.append(InsiderTrade(
             filing=filing, row_key=row_key, insider_cik=person_key(country, person), insider_name=person,
             insider_title=position, roles=[role] if role else [], traded=trade_day, kind=kind,
             shares=parse_float(volume), price=parse_float(price), value=parse_float(value), direct=closely != "1",
             nature=(f"via {notifier}" if notifier else "closely associated person") if closely == "1" else "",
-            security=isin, suspect=suspect == "1", suspect_reason=reason, currency=currency or "SEK",
+            security=isin, suspect=suspect == "1", suspect_reason=reason, currency=currency or market.currency,
             value_eur=parse_float(value_eur), status=status or "Current", programme=programme == "1",
             venue=venue_text(venue), instrument=instrument_name,
         ))

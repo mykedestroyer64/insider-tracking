@@ -9,10 +9,12 @@ from datetime import date
 
 from .database import chunks, row_slots
 
-# The trades that get returns: single-ticker stock trades in Congress reports (not amendments,
-# not dated after the report) and company insiders' buys and sells (not suspect, not amendments)
+# The trades that get returns, one query per kind of trade (sources/returns/kinds.py names the
+# kinds), each giving (the stock's id, the trade day, a ticker that helps find it, or null):
+#   congress: single-ticker stock trades in Congress reports (not amendments, not dated after the report)
+#   insider:  company insiders' buys and sells (not suspect, not amendments)
 CONGRESS_RETURN_ITEMS_SQL = """
-    select distinct trim(t.ticker), t.transaction_date
+    select distinct trim(t.ticker), t.transaction_date, null
     from transactions t join reports r on r.report_path = t.report_path
     where t.transaction_date is not null and t.transaction_date >= '2012-01-01'
       and t.transaction_date <= coalesce(r.date_received, t.transaction_date)
@@ -27,6 +29,7 @@ INSIDER_RETURN_ITEMS_SQL = """
     from insider_trades t join insider_filings f on f.accession = t.accession
     where t.trade_date is not null and not t.suspect and not f.is_amendment and f.company_cik is not null
     group by f.company_cik, t.trade_date"""
+ITEM_QUERIES = {"congress": CONGRESS_RETURN_ITEMS_SQL, "insider": INSIDER_RETURN_ITEMS_SQL}
 
 RETURN_COLUMNS = ["stock_key", "trade_date", "security", "r30", "r182", "r365", "m30", "m182", "m365",
                   "note", "checked_on"]
@@ -47,12 +50,13 @@ class TradeReturns:
         self.db = db
 
     def items(self):
-        """The trades that get returns: [('congress', ticker, day, None), ('insider', cik, day, ticker)]."""
+        """The trades that get returns, as (kind, the stock's id, trade day, ticker hint or None):
+        [('congress', ticker, day, None), ('insider', cik, day, ticker), ...]."""
+        items = []
         with self.db.transaction() as cursor:
-            cursor.execute(CONGRESS_RETURN_ITEMS_SQL)
-            items = [("congress", str(ticker), as_date(day), None) for ticker, day in cursor.fetchall()]
-            cursor.execute(INSIDER_RETURN_ITEMS_SQL)
-            items += [("insider", str(cik), as_date(day), ticker) for cik, day, ticker in cursor.fetchall()]
+            for kind, sql in ITEM_QUERIES.items():
+                cursor.execute(sql)
+                items += [(kind, str(ident), as_date(day), hint) for ident, day, hint in cursor.fetchall()]
         return items
 
     def stored(self):

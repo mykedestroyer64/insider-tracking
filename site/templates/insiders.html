@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% from "_insider_macros.html" import insider_table, insider_cell, company_cell, value_cell, market_chips %}
-{% set all_markets = market.code == "ALL" %}
 {% block title %}Company insiders{% if not all_markets %} in {{ market.name }}{% endif %} · Insider Tracking{% endblock %}
 {% block description %}{% if all_markets %}Buys and sells of their own company’s shares by executives and board members, from the official registers in the United States and Europe: the latest trades, the biggest of the month and the most active companies.{% else %}Buys and sells of their own company’s shares by executives and board members in {{ market.name }}, from {{ market.source }}: the latest trades, the biggest of the month and the most active companies.{% endif %}{% endblock %}
 {% block content %}
@@ -82,7 +81,7 @@
 <thead><tr><th scope="col">Company</th><th scope="col" class="r">Trades</th><th scope="col" class="r">Buys</th><th scope="col" class="r">Sells</th><th scope="col" class="r">Bought</th><th scope="col" class="r">Sold</th><th scope="col" class="r">Insiders</th></tr></thead>
 <tbody>
 {% for company, s in most_active %}
-<tr><td><a href="{{ base }}/stocks/{{ company.slug }}/" class="plain cell-main">{{ company.ticker }}</a><div class="muted">{{ company.name }}{% if all_markets and company.country != "US" %} · {{ company.market.name }}{% endif %}</div></td><td class="r num">{{ s.trades }}</td><td class="r num">{{ s.buys }}</td><td class="r num">{{ s.sells }}</td><td class="r num">{{ fmt_money_short(s.bought, s.currency) }}</td><td class="r num">{{ fmt_money_short(s.sold, s.currency) }}</td><td class="r num">{{ s.insiders }}</td></tr>
+<tr><td><a href="{{ base }}/stocks/{{ company.slug }}/" class="plain cell-main">{{ company.ticker }}</a><div class="muted">{{ company.name }}{% if all_markets and not company.market.home %} · {{ company.market.name }}{% endif %}</div></td><td class="r num">{{ s.trades }}</td><td class="r num">{{ s.buys }}</td><td class="r num">{{ s.sells }}</td><td class="r num">{{ fmt_money_short(s.bought, s.currency) }}</td><td class="r num">{{ fmt_money_short(s.sold, s.currency) }}</td><td class="r num">{{ s.insiders }}</td></tr>
 {% endfor %}
 </tbody>
 </table>

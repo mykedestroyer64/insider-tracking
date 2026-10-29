@@ -7,7 +7,8 @@ from collections import Counter
 from datetime import date, timedelta
 
 from ..names import free_slug, slugify
-from .models import ALL_MARKETS, MARKETS, Company, Person
+from .markets import ALL_MARKETS, MARKETS, market_of
+from .models import Company, Person
 from .rules import combine_lots, mark_duplicates, mark_superseded, mark_transfers
 
 LATEST = 50
@@ -31,7 +32,7 @@ class InsiderData:
                                       name=t.filing.company_name, country=t.country)
                     self.companies[t.stock_slug] = company
                 company.trades.append(t)
-                if t.security and t.country != "US":
+                if t.security and t.market.system.gives_isins:
                     company.isins.add(t.security)
             if t.insider_cik:
                 person = self.people.get(t.insider_cik)
@@ -46,7 +47,7 @@ class InsiderData:
         for person in self.people.values():
             newest = max(person.trades, key=lambda t: (t.filing.filed or date.min))
             person.name = newest.insider_name or person.name
-        used = {m["slug"] for m in MARKETS.values()}          # /insiders/sweden/ is a market page
+        used = {m.slug for m in MARKETS.values()}             # /insiders/sweden/ is a market page
         for person in sorted(self.people.values(), key=lambda p: (p.name, p.cik)):
             person.slug = free_slug(slugify(person.name) or "insider", used)
 
@@ -57,7 +58,7 @@ class InsiderData:
         return [MARKETS[code] for code in MARKETS if code in present]
 
     def market_info(self, country=None):
-        return MARKETS[country] if country else ALL_MARKETS
+        return market_of(country) if country else ALL_MARKETS
 
     # ---- lists for the pages (country=None means all markets)
 
@@ -101,7 +102,7 @@ class InsiderData:
         people = [p for p in self.people.values() if country is None or p.country == country]
         filings = [f for f in self.filings if country is None or f.country == country]
         return {
-            "currency": self.market_info(country)["currency"],
+            "currency": self.market_info(country).currency,
             "trades_30d": len(recent),
             "buys_30d": sum(1 for t in recent if t.kind == "buy"),
             "sells_30d": sum(1 for t in recent if t.kind == "sell"),

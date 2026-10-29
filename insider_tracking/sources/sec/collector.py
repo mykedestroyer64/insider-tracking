@@ -1,5 +1,8 @@
 """
 collector.py - the company-insider collector: officers' and directors' buys and sells (SEC Form 4).
+This module is its definition (name, steps, wording) and its wiring: the real database
+tables, the SEC's sites on the polite web client and the request budget, handed to the steps
+in run.py.
 
 GitHub Actions runs it every 3 hours (see .github/workflows/collect-sec.yml). Each run:
   1. connects to the database (and adds the insider tables the first time)
@@ -17,18 +20,14 @@ goes.
 
 from ...core.identity import user_agent
 from ...core.status import BLOCKED, CHANGED, DB_ERROR, ERROR, SITE_DOWN
-from ...core.text import plural
 from ...db.insiders import InsiderFilings
 from ...db.size import DatabaseSize
 from ...db.state import StateStore
 from ...runs.command import CollectorCommand
 from ...runs.definition import CollectorDefinition
-from ...runs.summary import whole_database_note
 from ...web.client import PoliteClient
 from ...web.pacing import RequestBudget
-from .daily import DailyLists
-from .names import ENTITY_SQL
-from .quarterly import QuarterlyFiles
+from .run import SecRun
 from .site import PACING, WHO, SecEndpoints, SecSite
 
 VERSION = "0.5"
@@ -74,81 +73,6 @@ class SecSource:
         return SecRun(filings=InsiderFilings(context.db), bookmarks=StateStore(context.db),
                       size=DatabaseSize(context.db), open_site=open_site, budget=budget,
                       first_quarter=self.first_quarter, now=context.started, note=context.console.note)
-
-
-class SecRun:
-    """filings: an InsiderStore; bookmarks: a Bookmarks store; open_site() -> a SecSite."""
-
-    def __init__(self, filings, bookmarks, size, open_site, budget, first_quarter, now, note):
-        self.filings = filings
-        self.bookmarks = bookmarks
-        self.size = size
-        self.open_site = open_site
-        self.budget = budget
-        self.first_quarter = first_quarter
-        self.now = now                 # when the run started: decides which daily lists are final
-        self.note = note
-        self.site = None
-        self.files = None
-        self.stats = {"filings_saved": 0, "trades_saved": 0, "filings_fetched": 0, "suspect": 0}
-
-    # ------------------------------------------------------------- the run
-
-    def prepare(self):
-        removed = self.filings.remove_entities(ENTITY_SQL)
-        before = self.filings.counts()
-        return (f"tables ready, {before['trades']:,} insider trades stored so far"
-                + (f" ({removed:,} rows by funds or companies removed)" if removed else ""))
-
-    def open(self):
-        self.site = self.open_site()
-
-    def steps(self):
-        return [self.load_quarters, self.read_daily]
-
-    @property
-    def requests_sent(self):
-        return self.budget.sent if self.site else None
-
-    def budget_used_up(self):
-        return "this run's request budget is used up"
-
-    # ----------------------------------------------------------- the steps
-
-    def load_quarters(self):
-        """Step 2: the quarterly files not loaded yet, newest first (quarterly.py)."""
-        self.files = self.site.quarterly_files()
-        loader = QuarterlyFiles(self.site, self.filings, self.bookmarks, self.stats, self.note, self.first_quarter)
-        return loader.load(self.files)
-
-    def read_daily(self):
-        """Step 3: new filings from EDGAR's daily lists, for the days after the newest quarterly
-        file (daily.py)."""
-        lists = DailyLists(self.site, self.filings, self.bookmarks, self.stats, self.note, self.now)
-        return lists.read(max(self.files))
-
-    # ------------------------------------------------------- the summing up
-
-    def read_totals(self):
-        return self.filings.counts()
-
-    def outcome(self, totals):
-        stats = self.stats
-        if stats["filings_saved"] == 0 and stats["filings_fetched"] == 0:
-            return "- nothing new, everything is up to date"
-        outcome = (f"- {plural(stats['trades_saved'], 'trade')} saved from "
-                   f"{plural(stats['filings_saved'], 'filing')}")
-        if stats["filings_fetched"]:
-            outcome += f", {stats['filings_fetched']:,} new filings read"
-        return outcome
-
-    def closing_lines(self, totals):
-        if not totals:
-            return []
-        return [f"Database now: {totals['trades']:,} insider trades ({totals['buys']:,} buys, {totals['sells']:,} sells, "
-                f"{totals['suspect']:,} suspect) from {totals['filings']:,} filings by {totals['insiders']:,} insiders, "
-                f"filed {totals['first_filing']} to {totals['last_filing']}; tables use {totals['size']}"
-                + whole_database_note(self.size)]
 
 
 def command():

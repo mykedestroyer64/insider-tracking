@@ -85,7 +85,7 @@ class SiteBuild:
                            now=platform.clock.now(), today=platform.clock.today())
         for page in self.pages:
             page.build(site)
-        markets = ", ".join(f"{m['name']} {sum(1 for t in insiders.trades if t.country == m['code']):,}"
+        markets = ", ".join(f"{m.name} {sum(1 for t in insiders.trades if t.country == m.code):,}"
                             for m in insiders.markets)
         log(f"  {len(writer.pages)} pages, {len(congress.trades)} trades, {len(congress.filers)} filers, "
             f"{len(congress.stocks)} stocks, {len(insiders.trades)} insider trades by {len(insiders.people)} insiders "

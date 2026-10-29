@@ -23,7 +23,7 @@ class DataFiles:
         listed = {s["slug"] for s in ds.stocks.values() if s["count"]}
         for company in sorted(site.insiders.companies.values(), key=lambda c: -len(c.trades)):
             if company.slug not in listed:
-                where = company.name if company.country == "US" else f"{company.name} · {company.market['name']}"
+                where = company.name if company.market.home else f"{company.name} · {company.market.name}"
                 search.append({"t": "stock", "n": company.ticker, "k": company.name, "s": where,
                                "u": f"/stocks/{company.slug}/"})
         site.writer.write("/data/search.json", json.dumps(search, ensure_ascii=False, separators=(",", ":")))

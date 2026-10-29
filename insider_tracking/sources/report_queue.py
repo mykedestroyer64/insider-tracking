@@ -8,11 +8,12 @@ probably changed: the run stops (CHANGED), and everything read before stays save
 """
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Callable, Protocol
 
 from ..core.errors import OutOfRequests, SiteStop
 from ..core.status import CHANGED
 from ..core.text import plural
+from .ports import Budget, Note, ReportQueueStore
 
 
 @dataclass(frozen=True)
@@ -28,26 +29,27 @@ class ReportReader(Protocol):
 
 
 class ReportQueue:
-    """reports: a ReportStore; budget: the run's RequestBudget; download(url) -> response.
-    stats: the run's counts (reports_read, reports_failed, transactions_saved, and scanned
-    if the chamber has scans that look electronic)."""
+    """reports: the chamber's unread reports; download(url) -> the report's page or file;
+    reader: saves what one report holds. stats: the run's counts (reports_read,
+    reports_failed, transactions_saved, and scanned if the chamber has scans that look
+    electronic)."""
 
-    def __init__(self, reports, budget, download, reader, stats, note, chamber="senate", failures_before_stop=3):
+    def __init__(self, reports: ReportQueueStore, budget: Budget, download: Callable, reader: ReportReader,
+                 stats: dict, note: Note, failures_before_stop=3):
         self.reports = reports
         self.budget = budget
         self.download = download
         self.reader = reader
         self.stats = stats
         self.note = note
-        self.chamber = chamber
         self.failures_before_stop = failures_before_stop
 
     def read(self):
         stats, note = self.stats, self.note
         if self.budget.left == 0:
-            left = self.reports.counts(self.chamber)["to_read"]
+            left = self.reports.counts()["to_read"]
             return f"no requests left in this run's budget; {left} left to read"
-        queue = self.reports.to_read(limit=self.budget.left, chamber=self.chamber)
+        queue = self.reports.to_read(limit=self.budget.left)
         if not queue:
             return "nothing to read - every electronic report found so far is read"
         note(f"reading up to {len(queue)} reports, newest first")
@@ -76,7 +78,7 @@ class ReportQueue:
             if number % 25 == 0:
                 note(f"{number} of {len(queue)} done")
 
-        left = self.reports.counts(self.chamber)["to_read"]
+        left = self.reports.counts()["to_read"]
         detail = (f"read {plural(stats['reports_read'], 'report', separators=False)}, "
                   f"{plural(stats['transactions_saved'], 'transaction', separators=False)} saved")
         if stats.get("scanned"):

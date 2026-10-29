@@ -46,7 +46,7 @@ def mark_duplicates(rows):
     Happens when a fund and its partner each file for the same trade. The earlier filing wins."""
     seen = {}
     for row in sorted(rows, key=lambda r: (r.filing.filed or date.max, r.filing.accession)):
-        if row.filing.is_amendment or row.suspect or not row.insider_cik or row.country != "US":
+        if row.filing.is_amendment or row.suspect or not row.insider_cik or not row.market.system.joint_filers:
             continue
         key = (row.insider_cik, row.ticker, row.traded, row.kind, round(row.shares or 0, 3),
                round(row.price or 0, 2))
@@ -65,11 +65,11 @@ def mark_transfers(rows):
     bought or sold on the market, so neither side is counted."""
     sides = defaultdict(set)
     for row in rows:
-        if row.country != "US" and row.status.lower() == "current" and not row.suspect:
+        if row.market.system.transfers and row.status.lower() == "current" and not row.suspect:
             key = (row.insider_cik, row.security, row.traded, round(row.shares or 0, 3), round(row.price or 0, 2))
             sides[key].add(row.kind)
     for row in rows:
-        if row.country != "US" and row.status.lower() == "current" and not row.suspect:
+        if row.market.system.transfers and row.status.lower() == "current" and not row.suspect:
             key = (row.insider_cik, row.security, row.traded, round(row.shares or 0, 3), round(row.price or 0, 2))
             if sides[key] == {"buy", "sell"}:
                 row.transfer = True
@@ -83,10 +83,10 @@ def mark_superseded(rows):
     collector re-reads; here the older line is marked when a correction exists."""
     corrections = defaultdict(list)
     for row in rows:
-        if row.country != "US" and row.filing.is_amendment and row.status.lower() == "current":
+        if row.market.system.corrections_replace and row.filing.is_amendment and row.status.lower() == "current":
             corrections[(row.insider_cik, row.filing.company_cik, row.traded, row.kind)].append(row.filing.filed)
     for row in rows:
-        if row.country == "US" or row.filing.is_amendment or row.status.lower() != "current":
+        if not row.market.system.corrections_replace or row.filing.is_amendment or row.status.lower() != "current":
             continue
         later = corrections.get((row.insider_cik, row.filing.company_cik, row.traded, row.kind))
         if later and row.filing.filed and any(d and d > row.filing.filed for d in later):

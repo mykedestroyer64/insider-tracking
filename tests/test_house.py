@@ -107,7 +107,7 @@ SENATE = [["Jane", "Example", "Example, Jane (Senator)",
            f"10/0{n}/2026"] for n in range(1, 4)]
 db = Database(DB.connect())
 ensure_schema(db)
-CongressReports(db).add([parse_search_row(row, "https://efdsearch.senate.gov") for row in SENATE])
+CongressReports(db, "senate").add([parse_search_row(row, "https://efdsearch.senate.gov") for row in SENATE])
 db.close()
 senate_before = q("select count(*) from reports")[0][0]
 
@@ -166,7 +166,7 @@ print("   " + verdict)
 check("BLOCKED at step 2, exit 1", code == 1 and "BLOCKED at step 2" in verdict, verdict)
 
 print("== Senate collector's view stays Senate-only")
-senate_counts = CongressReports(Database(DB.connect())).counts("senate")
+senate_counts = CongressReports(Database(DB.connect()), "senate").counts()
 check("counts for the Senate exclude House reports", senate_counts["reports"] == int(senate_before), senate_counts)
 
 check("the stand-in Senate reports were there all along", int(senate_before) == len(SENATE), senate_before)

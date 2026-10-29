@@ -2,7 +2,7 @@
 {% from "macros.html" import trade_table %}
 {% from "_insider_macros.html" import insider_table %}
 {% set company = stock.company %}
-{% set european = company and company.country != "US" %}
+{% set european = company and not company.market.home %}
 {% block title %}{{ stock.ticker }}: trades by {% if not european %}members of Congress{% if insider_total %} and {% endif %}{% endif %}{% if insider_total %}company insiders{% endif %} · Insider Tracking{% endblock %}
 {% block description %}{{ stock.ticker }} ({{ stock.name }}): {% if stock.count %}{{ stock.count }} trades reported by {{ stock.filers | length }} members of Congress{% endif %}{% if stock.count and insider_total %}, and {% endif %}{% if insider_total %}{{ insider_total }} trades by the company's own executives and board members{% if european %}, reported to {{ company.market.regulator }}{% endif %}{% endif %}.{% endblock %}
 {% block content %}

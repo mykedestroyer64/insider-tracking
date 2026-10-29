@@ -5,7 +5,7 @@
 {%- endmacro %}
 
 {% macro company_cell(t, base, mixed=False) -%}
-<a href="{{ base }}/stocks/{{ t.stock_slug }}/" class="plain cell-main">{{ t.ticker }}</a><div class="muted">{{ t.instrument or t.filing.company_name }}{% if mixed and t.country != "US" %} · {{ t.filing.market.name }}{% endif %}</div>
+<a href="{{ base }}/stocks/{{ t.stock_slug }}/" class="plain cell-main">{{ t.ticker }}</a><div class="muted">{{ t.instrument or t.filing.company_name }}{% if mixed and not t.market.home %} · {{ t.filing.market.name }}{% endif %}</div>
 {%- endmacro %}
 
 {% macro kind_cell(t) -%}
@@ -17,7 +17,7 @@
 {%- endmacro %}
 
 {% macro insider_table(trades, base, people, show_insider=True, show_company=True, caption=None, mixed=False) -%}
-{% set show_return = has_returns and (trades | selectattr("country", "equalto", "US") | list | length) > 0 %}
+{% set show_return = has_returns and (trades | selectattr("market.returns") | list | length) > 0 %}
 <div class="table-wrap">
 <table class="trades">
 {% if caption %}<caption class="visually-hidden">{{ caption }}</caption>{% endif %}
