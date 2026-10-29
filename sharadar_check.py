@@ -96,5 +96,5 @@ def collector_requests():
 
 
 if __name__ == "__main__":
+    collector_requests()     # first: GitHub keeps only the first 10 notes of a step
     main()
-    collector_requests()
