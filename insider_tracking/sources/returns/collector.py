@@ -138,16 +138,27 @@ class ReturnsSource:
         self.pacing = pacing
 
     def start(self, context):
-        return ReturnsRun(context, self)
+        budget = RequestBudget(context.max_requests)
+
+        def open_api():
+            session = new_session(user_agent(VERSION), compressed=True)
+            client = PoliteClient(session, self.pacing, budget, who=WHO, sleep=context.sleep)
+            return SharadarApi(client, context.settings.api_key, self.endpoints)
+
+        return ReturnsRun(returns=TradeReturns(context.db), size=DatabaseSize(context.db), open_api=open_api,
+                          budget=budget, today=context.started.date(), note=context.console.note)
 
 
 class ReturnsRun:
-    def __init__(self, context, source):
-        self.context = context
-        self.source = source
-        self.returns = TradeReturns(context.db)
-        self.size = DatabaseSize(context.db)
-        self.today = context.started.date()
+    """returns: a ReturnStore; open_api() -> a SharadarApi."""
+
+    def __init__(self, returns, size, open_api, budget, today, note):
+        self.returns = returns
+        self.size = size
+        self.open_api = open_api
+        self.budget = budget
+        self.today = today             # the UTC date when the run started
+        self.note = note
         self.api = self.market = self.market_last = None
         self.pending, self.groups = [], {}
         self.stats = {"items": 0, "pending": 0, "unmatched": 0, "securities": 0, "worked_out": 0, "no_prices": 0,
@@ -159,17 +170,14 @@ class ReturnsRun:
         return f"tables ready, {self.returns.counts()['rows']:,} trade returns stored so far"
 
     def open(self):
-        session = new_session(user_agent(VERSION), compressed=True)
-        client = PoliteClient(session, self.source.pacing, RequestBudget(self.context.max_requests), who=WHO,
-                              sleep=self.context.sleep)
-        self.api = SharadarApi(client, self.context.settings.api_key, self.source.endpoints)
+        self.api = self.open_api()
 
     def steps(self):
         return [self.find_trades, self.find_securities, self.work_out]
 
     @property
     def requests_sent(self):
-        return self.api.client.requests_sent if self.api else None
+        return self.budget.sent if self.api else None
 
     def budget_used_up(self):
         return f"this run's request budget is used up; {self.stats['left']:,} securities left for the next run"

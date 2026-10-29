@@ -92,19 +92,35 @@ class SwedenSource:
         self.pacing = pacing
 
     def start(self, context):
-        return SwedenRun(context, self)
+        budget = RequestBudget(context.max_requests)
+
+        def open_sites():
+            """The register and the ECB, through one client (one budget, one pace)."""
+            session = new_session(user_agent(VERSION, context.settings.email), compressed=True)
+            client = PoliteClient(session, self.pacing, budget, sleep=context.sleep)
+            return FiRegister(client, self.endpoints), EcbSite(client, self.ecb_endpoints)
+
+        return SwedenRun(trades=MarTrades(context.db), fx=FxRates(context.db), bookmarks=StateStore(context.db),
+                         size=DatabaseSize(context.db), open_sites=open_sites, budget=budget,
+                         today=context.started.astimezone(STOCKHOLM).date(), computer_today=context.today,
+                         note=context.console.note)
 
 
 class SwedenRun:
-    def __init__(self, context, source):
-        self.context = context
-        self.source = source
-        self.trades = MarTrades(context.db)
-        self.fx = FxRates(context.db)
-        self.state = StateStore(context.db)
-        self.size = DatabaseSize(context.db)
-        self.today = context.started.astimezone(STOCKHOLM).date()
-        self.client = self.register = self.ecb = self.rates = None
+    """trades: a MarStore; fx: a RateStore; bookmarks: a Bookmarks store;
+    open_sites() -> (the register, the ECB)."""
+
+    def __init__(self, trades, fx, bookmarks, size, open_sites, budget, today, computer_today, note):
+        self.trades = trades
+        self.fx = fx
+        self.bookmarks = bookmarks
+        self.size = size
+        self.open_sites = open_sites
+        self.budget = budget
+        self.today = today                      # today in Stockholm, when the run started
+        self.computer_today = computer_today    # the computer's date (when nothing is loaded yet)
+        self.note = note
+        self.register = self.ecb = self.rates = None
         self.stats = {"lines": 0, "kept": 0, "new": 0, "updated": 0, "suspect": 0, "skipped_nature": 0,
                       "skipped_instrument": 0, "skipped_entities": 0}
 
@@ -114,18 +130,14 @@ class SwedenRun:
         return f"tables ready, {self.trades.counts(COUNTRY)['trades']:,} Swedish trades stored so far"
 
     def open(self):
-        session = new_session(user_agent(VERSION, self.context.settings.email), compressed=True)
-        self.client = PoliteClient(session, self.source.pacing, RequestBudget(self.context.max_requests),
-                                   sleep=self.context.sleep)
-        self.register = FiRegister(self.client, self.source.endpoints)
-        self.ecb = EcbSite(self.client, self.source.ecb_endpoints)
+        self.register, self.ecb = self.open_sites()
 
     def steps(self):
         return [self.update_rates, self.register.robots_allow, self.export_recent, self.load_history]
 
     @property
     def requests_sent(self):
-        return self.client.requests_sent if self.client else None
+        return self.budget.sent if self.register else None
 
     def budget_used_up(self):
         return "this run's request budget is used up"
@@ -180,8 +192,7 @@ class SwedenRun:
             second = self.save_export(middle + timedelta(days=1), end, label)
             return tuple(a + b for a, b in zip(first, second))
         if counts["lines"] >= EXPORT_CAP:
-            self.context.console.note(f"{start}: {counts['lines']:,} lines on one day, the export's limit; "
-                                      "some may be missing")
+            self.note(f"{start}: {counts['lines']:,} lines on one day, the export's limit; some may be missing")
         new, updated = self.trades.save(rows, source=f"{label} {start}..{end}")
         stats = self.stats
         stats["lines"] += counts["lines"]
@@ -199,20 +210,20 @@ class SwedenRun:
         today = self.today
         start = today - timedelta(days=RECENT_DAYS)
         kept, new, updated, lines = self.save_export(start, today, "recent")
-        if self.state.get("se_history_cursor") is None:
-            self.state.set("se_history_cursor", start.isoformat())   # history continues from here
-        self.state.set("se_recent_through", today.isoformat())
+        if self.bookmarks.get("se_history_cursor") is None:
+            self.bookmarks.set("se_history_cursor", start.isoformat())   # history continues from here
+        self.bookmarks.set("se_recent_through", today.isoformat())
         return (f"{lines:,} lines published {start} to {today}; {kept:,} buys or sells of shares kept "
                 f"({new:,} new, {updated:,} seen before)")
 
     def load_history(self):
         """Step 5: months before the loaded range, MONTHS_PER_RUN per run, back to FIRST_DAY."""
-        if self.state.get("se_history_version") != HISTORY_VERSION:
-            recent_from = as_date(self.state.get("se_recent_through")) or self.context.today
-            self.state.set("se_history_cursor", (recent_from - timedelta(days=RECENT_DAYS)).isoformat())
-            self.state.set("se_history_version", HISTORY_VERSION)
-            self.context.console.note("the history is loaded again from the start (the way it is read changed)")
-        cursor = as_date(self.state.get("se_history_cursor"))
+        if self.bookmarks.get("se_history_version") != HISTORY_VERSION:
+            recent_from = as_date(self.bookmarks.get("se_recent_through")) or self.computer_today
+            self.bookmarks.set("se_history_cursor", (recent_from - timedelta(days=RECENT_DAYS)).isoformat())
+            self.bookmarks.set("se_history_version", HISTORY_VERSION)
+            self.note("the history is loaded again from the start (the way it is read changed)")
+        cursor = as_date(self.bookmarks.get("se_history_cursor"))
         if cursor is None or cursor <= FIRST_DAY:
             return f"complete - the register is loaded back to {FIRST_DAY}"
         loaded = []
@@ -224,9 +235,9 @@ class SwedenRun:
             kept, new, updated, lines = self.save_export(start, end, "history")
             loaded.append(f"{start:%Y-%m}: {lines:,} lines, {kept:,} kept ({new:,} new)")
             cursor = start
-            self.state.set("se_history_cursor", cursor.isoformat())
+            self.bookmarks.set("se_history_cursor", cursor.isoformat())
         for line in loaded:
-            self.context.console.note(line)
+            self.note(line)
         if cursor <= FIRST_DAY:
             return f"loaded {len(loaded)} months; the history is complete back to {FIRST_DAY}"
         months_left = (cursor.year - FIRST_DAY.year) * 12 + cursor.month - FIRST_DAY.month

@@ -30,6 +30,7 @@ from ...runs.steps import StepResult
 from ...web.client import PoliteClient, new_session
 from ...web.pacing import RequestBudget
 from ..congress import plain_kinds
+from ..report_queue import ReadResult, ReportQueue
 from .parsing import ReportProblem, parse_report_page, parse_search_row
 from .site import PACING, EfdEndpoints, EfdSite
 
@@ -76,12 +77,13 @@ def month_start_before(day):
     return max(start, HISTORY_START)
 
 
-def report_count(count):
-    return plural(count, "report", separators=False)
+def count(number, word):
+    return plural(number, word, separators=False)
 
 
 class SenateSource:
-    """The Senate collector, with the eFD addresses and pacing to use (tests pass a stand-in site)."""
+    """The Senate collector, with the eFD addresses and pacing to use (tests pass a stand-in
+    site), and the report reader (tests pass one that fails)."""
 
     definition = DEFINITION
 
@@ -91,15 +93,53 @@ class SenateSource:
         self.read_page = read_page
 
     def start(self, context):
-        return SenateRun(context, self)
+        budget = RequestBudget(context.max_requests)
+
+        def open_site():
+            session = new_session(user_agent(VERSION, context.settings.email))
+            return EfdSite(PoliteClient(session, self.pacing, budget, sleep=context.sleep), self.endpoints)
+
+        reports = CongressReports(context.db)
+        return SenateRun(reports=reports, bookmarks=StateStore(context.db), open_site=open_site, budget=budget,
+                         reader=PageReader(reports, self.read_page), today=context.today, note=context.console.note)
+
+
+class PageReader:
+    """Reads one downloaded Senate report page and saves its transactions (and the page)."""
+
+    def __init__(self, reports, read_page):
+        self.reports = reports
+        self.read_page = read_page
+
+    def read(self, report, response):
+        path = report["report_path"]
+        if response.status_code in (404, 410):
+            problem = f"page not found (HTTP {response.status_code})"
+            self.reports.mark_failed(path, problem)
+            return ReadResult(problem=problem)
+        try:
+            _, transactions, odd_rows = self.read_page(response.text)
+        except ReportProblem as error:
+            self.reports.mark_failed(path, str(error), response.content)
+            return ReadResult(problem=str(error))
+        remark = None
+        if odd_rows:
+            remark = f"{odd_rows} table rows had a different number of cells and were skipped"
+        self.reports.save_read(path, transactions, response.content, remark)
+        return ReadResult(transactions=len(transactions))
 
 
 class SenateRun:
-    def __init__(self, context, source):
-        self.context = context
-        self.source = source
-        self.reports = CongressReports(context.db)
-        self.state = StateStore(context.db)
+    """reports: a ReportStore; bookmarks: a Bookmarks store; open_site() -> an EfdSite."""
+
+    def __init__(self, reports, bookmarks, open_site, budget, reader, today, note):
+        self.reports = reports
+        self.bookmarks = bookmarks
+        self.open_site = open_site
+        self.budget = budget
+        self.reader = reader
+        self.today = today
+        self.note = note
         self.site = None
         self.history = None
         self.stats = {"new_reports": 0, "reports_read": 0, "reports_failed": 0, "transactions_saved": 0}
@@ -110,17 +150,14 @@ class SenateRun:
         return f"tables ready, {self.reports.counts()['reports']} reports stored so far"
 
     def open(self):
-        session = new_session(user_agent(VERSION, self.context.settings.email))
-        client = PoliteClient(session, self.source.pacing, RequestBudget(self.context.max_requests),
-                              sleep=self.context.sleep)
-        self.site = EfdSite(client, self.source.endpoints)
+        self.site = self.open_site()
 
     def steps(self):
         return [self.accept_agreement, self.check_recent, self.list_history, self.read_reports]
 
     @property
     def requests_sent(self):
-        return self.site.client.requests_sent if self.site else None
+        return self.budget.sent if self.site else None
 
     def budget_used_up(self):
         return "this run's request budget is used up"
@@ -133,23 +170,23 @@ class SenateRun:
 
     def check_recent(self):
         """Step 3: reports received in the last RECENT_DAYS days (more after a long pause)."""
-        today = self.context.today
-        last_scan = iso_date(self.state.get("recent_scan_day"))
+        today = self.today
+        last_scan = iso_date(self.bookmarks.get("recent_scan_day"))
         recent_from = min(last_scan or today, today) - timedelta(days=RECENT_DAYS)
         reports = self.read_rows(self.site.search_all(recent_from, today + timedelta(days=1)))
         new = self.reports.add(reports)
-        self.state.set("recent_scan_day", today.isoformat())
-        if self.state.get("history_listed_back_to") is None:
-            self.state.set("history_listed_back_to", recent_from.isoformat())
+        self.bookmarks.set("recent_scan_day", today.isoformat())
+        if self.bookmarks.get("history_listed_back_to") is None:
+            self.bookmarks.set("history_listed_back_to", recent_from.isoformat())
         self.stats["new_reports"] += len(new)
-        detail = f"{report_count(len(reports))} received since {recent_from:%m/%d/%Y}, {len(new)} new"
+        detail = f"{count(len(reports), 'report')} received since {recent_from:%m/%d/%Y}, {len(new)} new"
         if new:
             detail += f" ({plain_kinds(new)})"
         return detail
 
     def list_history(self):
         """Step 4: list older reports month by month, going back to HISTORY_START."""
-        cursor = iso_date(self.state.get("history_listed_back_to"))
+        cursor = iso_date(self.bookmarks.get("history_listed_back_to"))
         if cursor is None:
             return "nothing to do yet - the first check for new reports hasn't finished"
         if cursor <= HISTORY_START:
@@ -161,69 +198,21 @@ class SenateRun:
                 reports = self.read_rows(self.site.search_all(start, cursor))
                 new_reports += self.reports.add(reports)
                 cursor = start
-                self.state.set("history_listed_back_to", cursor.isoformat())
+                self.bookmarks.set("history_listed_back_to", cursor.isoformat())
                 months += 1
         except OutOfRequests:
-            self.context.console.note("stopped listing: this run's request budget is used up")
+            self.note("stopped listing: this run's request budget is used up")
         self.stats["new_reports"] += len(new_reports)
         if cursor <= HISTORY_START:
             return f"complete - listed back to {HISTORY_START:%m/%Y} ({len(new_reports)} new this run)"
-        return (f"listed {plural(months, 'more month', separators=False)}, back to {cursor:%m/%Y}: "
-                f"{plural(len(new_reports), 'new report', separators=False)} ({plain_kinds(new_reports)})")
+        return (f"listed {count(months, 'more month')}, back to {cursor:%m/%Y}: "
+                f"{count(len(new_reports), 'new report')} ({plain_kinds(new_reports)})")
 
     def read_reports(self):
         """Step 5: download and read electronic reports, newest first, within the budget."""
-        stats, note = self.stats, self.context.console.note
-        if self.site.client.requests_left == 0:
-            left = self.reports.counts()["to_read"]
-            return f"no requests left in this run's budget; {left} left to read"
-        queue = self.reports.to_read(limit=self.site.client.requests_left)
-        if not queue:
-            return "nothing to read - every electronic report found so far is read"
-        note(f"reading up to {len(queue)} reports, newest first")
-        in_a_row = 0
-        for number, report in enumerate(queue, 1):
-            try:
-                response = self.site.get_report(report["url"])
-            except OutOfRequests:
-                break
-            path = report["report_path"]
-            problem = None
-            if response.status_code in (404, 410):
-                problem = f"page not found (HTTP {response.status_code})"
-                self.reports.mark_failed(path, problem)
-            else:
-                try:
-                    _, transactions, odd_rows = self.source.read_page(response.text)
-                except ReportProblem as error:
-                    problem = str(error)
-                    self.reports.mark_failed(path, problem, response.content)
-                else:
-                    remark = None
-                    if odd_rows:
-                        remark = f"{odd_rows} table rows had a different number of cells and were skipped"
-                    self.reports.save_read(path, transactions, response.content, remark)
-                    stats["reports_read"] += 1
-                    stats["transactions_saved"] += len(transactions)
-            if problem:
-                stats["reports_failed"] += 1
-                in_a_row += 1
-                note(f"could not read {report['first_name']} {report['last_name']} "
-                     f"({report['date_received']}): {problem}")
-                if in_a_row >= FAILURES_BEFORE_STOP:
-                    raise SiteStop(CHANGED, f"{in_a_row} reports in a row could not be read "
-                                            f"(last: {problem})", response)
-            else:
-                in_a_row = 0
-            if number % 25 == 0:
-                note(f"{number} of {len(queue)} done")
-
-        left = self.reports.counts()["to_read"]
-        detail = (f"read {report_count(stats['reports_read'])}, "
-                  f"{plural(stats['transactions_saved'], 'transaction', separators=False)} saved")
-        if stats["reports_failed"]:
-            detail += f", {stats['reports_failed']} could not be read"
-        return detail + f"; {left} left to read"
+        queue = ReportQueue(self.reports, self.budget, self.site.get_report, self.reader, self.stats, self.note,
+                            failures_before_stop=FAILURES_BEFORE_STOP)
+        return queue.read()
 
     def read_rows(self, rows):
         """Turn search result rows into report dicts (each report once)."""
@@ -246,7 +235,7 @@ class SenateRun:
     def read_totals(self):
         totals = self.reports.counts()
         try:
-            self.history = iso_date(self.state.get("history_listed_back_to"))
+            self.history = iso_date(self.bookmarks.get("history_listed_back_to"))
         except DatabaseError:
             pass
         return totals
@@ -256,9 +245,8 @@ class SenateRun:
         if (stats["new_reports"] == 0 and stats["reports_read"] == 0 and totals
                 and totals["to_read"] == 0 and self.history_complete):
             return "- no new reports, everything is up to date"
-        outcome = (f"- {plural(stats['new_reports'], 'new report', separators=False)}, "
-                   f"{stats['reports_read']} read "
-                   f"({plural(stats['transactions_saved'], 'transaction', separators=False)} saved)")
+        outcome = (f"- {count(stats['new_reports'], 'new report')}, {stats['reports_read']} read "
+                   f"({count(stats['transactions_saved'], 'transaction')} saved)")
         if totals:
             outcome += f", {totals['to_read']} left to read"
         return outcome

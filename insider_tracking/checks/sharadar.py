@@ -49,15 +49,16 @@ def rows_of(response):
     return (rows[0], rows[1:]) if rows else ([], [])
 
 
-class SharadarCheck:
-    def __init__(self, endpoints=SharadarEndpoints(), sleep=None):
+class SharadarProbe:
+    """The requests and their notes. sleep: how to wait between requests."""
+
+    def __init__(self, endpoints, sleep):
         self.endpoints = endpoints
         self.sleep = sleep
 
     def client(self, pacing, limit=None):
-        options = {"sleep": self.sleep} if self.sleep else {}
         return PoliteClient(new_session(user_agent(VERSION), compressed=True), pacing, RequestBudget(limit),
-                            who=WHO, **options)
+                            who=WHO, sleep=self.sleep)
 
     def collector_requests(self):
         """The exact requests the returns collector sends, with the test key: counts and dates only."""
@@ -106,10 +107,18 @@ class SharadarCheck:
              f"columns {header}, {len(rows)} rows" + (f", {dates[0]} to {dates[-1]}" if dates else "")
              + ("" if response.status_code == 200 else "; answer: " + response.text[:300]))
 
+
+class SharadarCheck:
+    """`check sharadar`. Not a step-by-step check: it only writes notes, and always ends with
+    exit code 0."""
+
+    def __init__(self, endpoints=SharadarEndpoints()):
+        self.endpoints = endpoints
+
     def run(self, argv, platform):
-        self.sleep = self.sleep or platform.sleep
-        self.collector_requests()     # first: GitHub keeps only the first 10 notes of a step
-        self.formats()
+        probe = SharadarProbe(self.endpoints, platform.sleep)
+        probe.collector_requests()    # first: GitHub keeps only the first 10 notes of a step
+        probe.formats()
         return 0
 
 

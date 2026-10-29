@@ -14,6 +14,7 @@ from .console import Console, tolerate_unusual_characters
 from .runner import CollectorRunner
 from .settings import Settings
 from .source import RunContext
+from .storage import RunStorage
 
 
 class CollectorCommand:
@@ -54,5 +55,5 @@ class CollectorCommand:
 
         context = RunContext(db=None, settings=settings, max_requests=args.max_requests, started=started,
                              today=today, console=console, sleep=platform.sleep)
-        runner = CollectorRunner(definition, console, platform.connect, archive, ran_on)
+        runner = CollectorRunner(definition, console, RunStorage(platform.connect), archive, ran_on)
         return runner.run(self.source, context)

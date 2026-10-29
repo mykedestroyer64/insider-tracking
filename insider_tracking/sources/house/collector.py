@@ -14,7 +14,7 @@ history fills in over a few days. Everything is saved as it goes. Reading the PD
 pdfplumber library (it is in requirements.txt).
 """
 
-from ...core.errors import OutOfRequests, SiteStop
+from ...core.errors import OutOfRequests
 from ...core.identity import user_agent
 from ...core.status import BLOCKED, CHANGED, DB_ERROR, ERROR, SITE_DOWN
 from ...core.text import plural
@@ -27,6 +27,7 @@ from ...web.checks import unexpected
 from ...web.client import PoliteClient, new_session
 from ...web.pacing import RequestBudget
 from ..congress import plain_kinds
+from ..report_queue import ReadResult, ReportQueue
 from .parsing import ReportProblem, is_amendment, parse_list, parse_report
 from .site import PACING, WHO, HouseEndpoints, HouseSite
 
@@ -74,15 +75,61 @@ class HouseSource:
         self.pacing = pacing
 
     def start(self, context):
-        return HouseRun(context, self)
+        budget = RequestBudget(context.max_requests)
+
+        def open_site():
+            session = new_session(user_agent(VERSION, context.settings.email))
+            return HouseSite(PoliteClient(session, self.pacing, budget, who=WHO, sleep=context.sleep), self.endpoints)
+
+        reports = CongressReports(context.db)
+        return HouseRun(reports=reports, bookmarks=StateStore(context.db), open_site=open_site, budget=budget,
+                        report_url=self.endpoints.report, reader=PdfReader(reports), today=context.today,
+                        note=context.console.note)
+
+
+class PdfReader:
+    """Reads one downloaded House report (a PDF) and saves its transactions."""
+
+    def __init__(self, reports):
+        self.reports = reports
+
+    def read(self, report, response):
+        path = report["report_path"]
+        if response.status_code in (404, 410):
+            problem = f"file not found (HTTP {response.status_code})"
+            self.reports.mark_failed(path, problem)
+            return ReadResult(problem=problem)
+        if not response.content.startswith(b"%PDF"):
+            problem = "the file is not a PDF"
+            self.reports.mark_failed(path, problem)
+            return ReadResult(problem=problem)
+        try:
+            transactions, expected = parse_report(response.content)
+        except ReportProblem as error:
+            if "no text" in str(error):     # a scan with an electronic-looking number
+                self.reports.mark_scanned(path, str(error))
+                return ReadResult(scanned=True)
+            self.reports.mark_failed(path, str(error))
+            return ReadResult(problem=str(error))
+        remark = None
+        if len(transactions) < expected:
+            remark = f"{len(transactions)} of about {expected} transactions could be read"
+        self.reports.save_read(path, transactions, None, remark, is_amendment=is_amendment(transactions))
+        return ReadResult(transactions=len(transactions))
 
 
 class HouseRun:
-    def __init__(self, context, source):
-        self.context = context
-        self.source = source
-        self.reports = CongressReports(context.db)
-        self.state = StateStore(context.db)
+    """reports: a ReportStore; bookmarks: a Bookmarks store; open_site() -> a HouseSite."""
+
+    def __init__(self, reports, bookmarks, open_site, budget, report_url, reader, today, note):
+        self.reports = reports
+        self.bookmarks = bookmarks
+        self.open_site = open_site
+        self.budget = budget
+        self.report_url = report_url        # the pattern of a report's address, for the lists
+        self.reader = reader
+        self.today = today
+        self.note = note
         self.site = None
         self.history = None
         self.stats = {"new_reports": 0, "reports_read": 0, "reports_failed": 0, "scanned": 0,
@@ -94,17 +141,14 @@ class HouseRun:
         return f"tables ready, {self.reports.counts(CHAMBER)['reports']} House reports stored so far"
 
     def open(self):
-        session = new_session(user_agent(VERSION, self.context.settings.email))
-        client = PoliteClient(session, self.source.pacing, RequestBudget(self.context.max_requests), who=WHO,
-                              sleep=self.context.sleep)
-        self.site = HouseSite(client, self.source.endpoints)
+        self.site = self.open_site()
 
     def steps(self):
         return [self.check_recent, self.list_history, self.read_reports]
 
     @property
     def requests_sent(self):
-        return self.site.client.requests_sent if self.site else None
+        return self.budget.sent if self.site else None
 
     def budget_used_up(self):
         return "this run's request budget is used up"
@@ -114,17 +158,17 @@ class HouseRun:
     def read_list(self, response, year):
         """The trade reports in a downloaded yearly list (stops the run if it can't be read)."""
         try:
-            return parse_list(response.content, self.source.endpoints.report)
+            return parse_list(response.content, self.report_url)
         except ReportProblem as problem:
             raise unexpected(response, f"the {year} list of filings: {problem}") from None
 
     def check_recent(self):
         """Step 2: this year's and last year's lists (filings early in a year can be in the last one)."""
-        today = self.context.today
+        today = self.today
         parts = []
         for year in (today.year, today.year - 1):
-            etag = self.state.get(f"house_list_etag_{year}")
-            modified = self.state.get(f"house_list_modified_{year}")
+            etag = self.bookmarks.get(f"house_list_etag_{year}")
+            modified = self.bookmarks.get(f"house_list_modified_{year}")
             response, status = self.site.get_list(year, etag, modified)
             if status != "new":
                 parts.append(f"{year}: {'no list yet' if status == 'missing' else 'unchanged'}")
@@ -134,18 +178,18 @@ class HouseRun:
             self.stats["new_reports"] += len(new)
             for key, header in (("etag", "ETag"), ("modified", "Last-Modified")):
                 if response.headers.get(header):
-                    self.state.set(f"house_list_{key}_{year}", response.headers[header])
+                    self.bookmarks.set(f"house_list_{key}_{year}", response.headers[header])
             part = f"{year}: {count(len(reports), 'trade report')}, {len(new)} new"
             if new:
                 part += f" ({scanned_kinds(new)})"
             parts.append(part)
-        if self.state.get("house_history_listed_back_to") is None:
-            self.state.set("house_history_listed_back_to", str(today.year - 1))
+        if self.bookmarks.get("house_history_listed_back_to") is None:
+            self.bookmarks.set("house_history_listed_back_to", str(today.year - 1))
         return "; ".join(parts)
 
     def list_history(self):
         """Step 3: the lists of older years, YEARS_PER_RUN per run, back to HISTORY_START_YEAR."""
-        back_to = int(self.state.get("house_history_listed_back_to") or 0)
+        back_to = int(self.bookmarks.get("house_history_listed_back_to") or 0)
         if not back_to:
             return "nothing to do yet - the check for new reports hasn't finished"
         if back_to <= HISTORY_START_YEAR:
@@ -158,12 +202,12 @@ class HouseRun:
                 if status == "new":
                     new_reports += self.reports.add(self.read_list(response, year))
                 else:
-                    self.context.console.note(f"no list for {year}")
+                    self.note(f"no list for {year}")
                 back_to = year
-                self.state.set("house_history_listed_back_to", str(back_to))
+                self.bookmarks.set("house_history_listed_back_to", str(back_to))
                 years.append(year)
         except OutOfRequests:
-            self.context.console.note("stopped listing: this run's request budget is used up")
+            self.note("stopped listing: this run's request budget is used up")
         self.stats["new_reports"] += len(new_reports)
         if back_to <= HISTORY_START_YEAR:
             return (f"complete - every list back to {HISTORY_START_YEAR} is read "
@@ -173,67 +217,9 @@ class HouseRun:
 
     def read_reports(self):
         """Step 4: download and read electronic reports, newest first, within the budget."""
-        stats, note = self.stats, self.context.console.note
-        client = self.site.client
-        if client.requests_left == 0:
-            left = self.reports.counts(CHAMBER)["to_read"]
-            return f"no requests left in this run's budget; {left} left to read"
-        queue = self.reports.to_read(limit=client.requests_left, chamber=CHAMBER)
-        if not queue:
-            return "nothing to read - every electronic report found so far is read"
-        note(f"reading up to {len(queue)} reports, newest first")
-        in_a_row = 0
-        for number, report in enumerate(queue, 1):
-            try:
-                response = self.site.get_report(report["url"])
-            except OutOfRequests:
-                break
-            path, problem = report["report_path"], None
-            if response.status_code in (404, 410):
-                problem = f"file not found (HTTP {response.status_code})"
-                self.reports.mark_failed(path, problem)
-            elif not response.content.startswith(b"%PDF"):
-                problem = "the file is not a PDF"
-                self.reports.mark_failed(path, problem)
-            else:
-                try:
-                    transactions, expected = parse_report(response.content)
-                except ReportProblem as error:
-                    if "no text" in str(error):     # a scan with an electronic-looking number
-                        self.reports.mark_scanned(path, str(error))
-                        stats["scanned"] += 1
-                    else:
-                        problem = str(error)
-                        self.reports.mark_failed(path, problem)
-                else:
-                    remark = None
-                    if len(transactions) < expected:
-                        remark = f"{len(transactions)} of about {expected} transactions could be read"
-                    self.reports.save_read(path, transactions, None, remark,
-                                           is_amendment=is_amendment(transactions))
-                    stats["reports_read"] += 1
-                    stats["transactions_saved"] += len(transactions)
-            if problem:
-                stats["reports_failed"] += 1
-                in_a_row += 1
-                note(f"could not read {report['first_name']} {report['last_name']} "
-                     f"({report['date_received']}): {problem}")
-                if in_a_row >= FAILURES_BEFORE_STOP:
-                    raise SiteStop(CHANGED, f"{in_a_row} reports in a row could not be read "
-                                            f"(last: {problem})", response)
-            else:
-                in_a_row = 0
-            if number % 25 == 0:
-                note(f"{number} of {len(queue)} done")
-
-        left = self.reports.counts(CHAMBER)["to_read"]
-        detail = (f"read {count(stats['reports_read'], 'report')}, "
-                  f"{count(stats['transactions_saved'], 'transaction')} saved")
-        if stats["scanned"]:
-            detail += f", {stats['scanned']} turned out to be scans"
-        if stats["reports_failed"]:
-            detail += f", {stats['reports_failed']} could not be read"
-        return detail + f"; {left} left to read"
+        queue = ReportQueue(self.reports, self.budget, self.site.get_report, self.reader, self.stats, self.note,
+                            chamber=CHAMBER, failures_before_stop=FAILURES_BEFORE_STOP)
+        return queue.read()
 
     # ------------------------------------------------------- the summing up
 
@@ -244,7 +230,7 @@ class HouseRun:
     def read_totals(self):
         totals = self.reports.counts(CHAMBER)
         try:
-            history = self.state.get("house_history_listed_back_to")
+            history = self.bookmarks.get("house_history_listed_back_to")
             self.history = int(history) if history else None
         except DatabaseError:
             pass

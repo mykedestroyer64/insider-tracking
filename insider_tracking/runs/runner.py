@@ -22,35 +22,35 @@ from dataclasses import replace
 from ..core.errors import OutOfRequests, SiteStop
 from ..core.status import DB_ERROR, ERROR, NOT_RUN, OK, SKIPPED
 from ..db.connection import DatabaseError
-from ..db.database import Database
-from ..db.runs import RunLog
-from ..db.schema import ensure_schema
 from ..web.describe import http_codes
 from .steps import StepLog
 
 
 class CollectorRunner:
-    def __init__(self, definition, console, connect, archive, ran_on):
+    """storage: a RunStorage (the database); archive: keeps the page that stopped a run."""
+
+    def __init__(self, definition, console, storage, archive, ran_on):
         self.definition = definition
         self.console = console
-        self.connect = connect
+        self.storage = storage
         self.archive = archive
         self.ran_on = ran_on
 
     def run(self, source, context):
         """Run `source`. `context` is the run's RunContext; its database is opened here (step 1)."""
-        definition = self.definition
+        definition, storage = self.definition, self.storage
         log = StepLog(definition.steps, self.console, definition.label_width, definition.shows_http_codes)
         status, failed_step, failure = OK, None, None
-        db = run_id = work = None
+        opened = False
+        run_id = work = None
         step = 1
         try:
-            db = Database(self.connect(context.settings.db_url, context.settings.db_password))
-            context = replace(context, db=db)
-            ensure_schema(db)
+            context = replace(context, db=storage.open(context.settings))
+            opened = True
+            storage.ensure_tables()
             work = source.start(context)
             detail = work.prepare()
-            run_id = RunLog(db).start(self.ran_on, definition.key)
+            run_id = storage.start_run(self.ran_on, definition.key)
             log.done(1, OK, detail)
 
             work.open()
@@ -84,7 +84,7 @@ class CollectorRunner:
             traceback.print_exc(file=sys.stdout)
 
         totals = None
-        if db is not None and work is not None and status != DB_ERROR:
+        if opened and work is not None and status != DB_ERROR:
             try:
                 totals = work.read_totals()
             except DatabaseError:
@@ -103,9 +103,9 @@ class CollectorRunner:
                 self.console.line(definition.requests_line(work.requests_sent))
         if status in definition.advice:
             self.console.lines(definition.advice[status])
-        if db is not None and run_id is not None:
+        if opened and run_id is not None:
             try:
-                RunLog(db).finish(run_id, status, verdict_line, {
+                storage.finish_run(run_id, status, verdict_line, {
                     "collector": definition.key,
                     "started_at_utc": context.started.isoformat(timespec="seconds"),
                     "steps": log.entries, "stats": work.stats, "totals": totals,
@@ -113,7 +113,6 @@ class CollectorRunner:
                 })
             except DatabaseError:
                 pass
-        if db is not None:
-            db.close()
+        storage.close()
         self.console.line(verdict_line)
         return 0 if status == OK else 1

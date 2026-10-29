@@ -20,8 +20,10 @@ from .congress import loader as congress_loader
 from .congress.data import CongressData
 from .insiders import loader as insider_loader
 from .pages import PAGES, SiteContext
-from .people.legislators import load_legislators, load_overrides
+from .people.dataset import PublicDataset
+from .people.legislators import Legislator
 from .people.matcher import Matcher
+from .people.overrides import load_overrides
 from .render import Renderer, template_globals
 from .returns import loader as returns_loader
 from .returns.rules import attach
@@ -33,11 +35,13 @@ def log(message):
 
 
 class SiteBuild:
-    """legislators: a fixed list (tests); otherwise the public list is downloaded (or read from
-    last week's copy)."""
+    """legislators: where the members' records come from (a LegislatorRecords: the public
+    dataset, or a fixed list in tests); overrides: the corrections file; pages: what is built,
+    in order."""
 
-    def __init__(self, legislators=None, pages=PAGES):
+    def __init__(self, legislators, overrides=OVERRIDES, pages=PAGES):
         self.legislators = legislators
+        self.overrides = overrides
         self.pages = pages
 
     def parser(self):
@@ -61,10 +65,9 @@ class SiteBuild:
             f"data updated {congress.updated or 'never'}")
 
         log("Matching names to the legislators list…")
-        legislators = self.legislators
-        if legislators is None:
-            legislators = load_legislators(CACHE, offline=args.offline, log=log, today=platform.clock.today())
-        matcher = Matcher(legislators, load_overrides(OVERRIDES), log=log)
+        today = platform.clock.today()
+        legislators = [Legislator(record, today) for record in self.legislators.records(args.offline, log)]
+        matcher = Matcher(legislators, load_overrides(self.overrides), log=log)
         congress.apply_people(matcher)
         log(f"  {matcher.matched} filers matched")
         if matcher.unmatched:
@@ -112,4 +115,4 @@ class SiteBuild:
 
 def command():
     """`python -m insider_tracking site build`."""
-    return SiteBuild()
+    return SiteBuild(PublicDataset(CACHE))

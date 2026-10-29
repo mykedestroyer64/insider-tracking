@@ -1,32 +1,20 @@
 """
-legislators.py - the public-domain congress-legislators dataset (the @unitedstates project):
-every member of Congress with their terms, party and state.
-
-The two files (current and historical members) are downloaded once a week and cached. If they
-can't be downloaded and there is no cache, the site is still built, just without party and state.
+legislators.py - one member of Congress as the public-domain congress-legislators dataset
+(the @unitedstates project) describes them: their terms, party and state. Where the records
+come from is dataset.py.
 """
 
-import json
-import sys
-import time
-import urllib.request
 from datetime import date
-from pathlib import Path
 
 from ..names import squash
 
-SOURCES = [
-    "https://unitedstates.github.io/congress-legislators/legislators-current.json",
-    "https://unitedstates.github.io/congress-legislators/legislators-historical.json",
-]
-CACHE_DAYS = 7
 SINCE = date(2011, 1, 1)      # eFD starts in 2012; keep people who served from 2011 on
 PARTY_LETTERS = {"Democrat": "D", "Republican": "R", "Independent": "I"}
 
 
 class Legislator:
-    def __init__(self, record, today=None):
-        self.today = today or date.today()      # whether someone still serves depends on the day
+    def __init__(self, record, today):
+        self.today = today                      # whether someone still serves depends on the day
         name = record.get("name", {})
         self.bioguide = record.get("id", {}).get("bioguide")
         self.first = name.get("first", "") or ""
@@ -86,42 +74,3 @@ class Legislator:
             for token in text.replace("-", " ").split():
                 tokens.add(squash(token))
         return {t for t in tokens if t}
-
-
-def load_legislators(cache_dir, offline=False, log=print, today=None):
-    """Download (or read from cache) the current and historical legislators."""
-    cache_dir = Path(cache_dir)
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    records = []
-    for url in SOURCES:
-        path = cache_dir / url.rsplit("/", 1)[-1]
-        fresh = path.exists() and (time.time() - path.stat().st_mtime) < CACHE_DAYS * 86400
-        if not fresh and not offline:
-            try:
-                request = urllib.request.Request(url, headers={"User-Agent": "insider-tracking site build"})
-                with urllib.request.urlopen(request, timeout=60) as response:
-                    data = response.read()
-                json.loads(data)                    # make sure it's valid before caching
-                path.write_bytes(data)
-                log(f"  downloaded {path.name} ({len(data) // 1024} KB)")
-            except Exception as error:              # noqa: BLE001 - any download problem
-                log(f"  could not download {url}: {error}")
-        if path.exists():
-            try:
-                records += json.loads(path.read_text(encoding="utf-8"))
-            except ValueError:
-                log(f"  cached {path.name} is not valid JSON, ignoring it")
-        else:
-            log(f"  no copy of {path.name}: party and state will be missing for some senators")
-    return [Legislator(r, today) for r in records]
-
-
-def load_overrides(path):
-    path = Path(path)
-    if not path.exists():
-        return {}
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except ValueError as error:
-        print(f"  overrides file {path} is not valid JSON ({error}); ignoring it", file=sys.stderr)
-        return {}

@@ -15,12 +15,6 @@ that names the project and gives a contact email, as the SEC asks. Everything is
 goes.
 """
 
-import json
-import tempfile
-from datetime import date, timedelta
-from pathlib import Path
-
-from ...core.errors import OutOfRequests, SiteStop
 from ...core.identity import user_agent
 from ...core.status import BLOCKED, CHANGED, DB_ERROR, ERROR, SITE_DOWN
 from ...core.text import plural
@@ -30,18 +24,15 @@ from ...db.state import StateStore
 from ...runs.command import CollectorCommand
 from ...runs.definition import CollectorDefinition
 from ...runs.summary import whole_database_note
-from ...web.checks import unexpected
 from ...web.client import PoliteClient, new_session
 from ...web.pacing import RequestBudget
+from .daily import DailyLists
 from .names import ENTITY_SQL
-from .parsing import FilingProblem, parse_daily_index, parse_filing, parse_quarter
+from .quarterly import QuarterlyFiles
 from .site import PACING, WHO, SecEndpoints, SecSite
 
 VERSION = "0.5"
 FIRST_QUARTER = (2021, 1)  # how far back the quarterly files are loaded
-QUARTERS_PER_RUN = 2
-DAY_COMPLETE_AFTER = timedelta(hours=6)   # a day's list is final 6 hours after that day ends (UTC), i.e. after 1 am in Washington
-FAILURES_BEFORE_STOP = 5   # unreadable filings in a row before we assume EDGAR changed
 
 DEFINITION = CollectorDefinition(
     key="sec",
@@ -65,20 +56,6 @@ DEFINITION = CollectorDefinition(
 )
 
 
-def quarter_of(day):
-    return day.year, (day.month - 1) // 3 + 1
-
-
-def quarter_end(year, quarter):
-    month = quarter * 3
-    first_of_next = date(year + (month == 12), (month % 12) + 1, 1)
-    return first_of_next - timedelta(days=1)
-
-
-def quarter_name(year, quarter):
-    return f"{year}q{quarter}"
-
-
 class SecSource:
     definition = DEFINITION
 
@@ -88,16 +65,29 @@ class SecSource:
         self.first_quarter = first_quarter
 
     def start(self, context):
-        return SecRun(context, self)
+        budget = RequestBudget(context.max_requests)
+
+        def open_site():
+            session = new_session(user_agent(VERSION, context.settings.email), compressed=True)
+            return SecSite(PoliteClient(session, self.pacing, budget, who=WHO, sleep=context.sleep), self.endpoints)
+
+        return SecRun(filings=InsiderFilings(context.db), bookmarks=StateStore(context.db),
+                      size=DatabaseSize(context.db), open_site=open_site, budget=budget,
+                      first_quarter=self.first_quarter, now=context.started, note=context.console.note)
 
 
 class SecRun:
-    def __init__(self, context, source):
-        self.context = context
-        self.source = source
-        self.filings = InsiderFilings(context.db)
-        self.state = StateStore(context.db)
-        self.size = DatabaseSize(context.db)
+    """filings: an InsiderStore; bookmarks: a Bookmarks store; open_site() -> a SecSite."""
+
+    def __init__(self, filings, bookmarks, size, open_site, budget, first_quarter, now, note):
+        self.filings = filings
+        self.bookmarks = bookmarks
+        self.size = size
+        self.open_site = open_site
+        self.budget = budget
+        self.first_quarter = first_quarter
+        self.now = now                 # when the run started: decides which daily lists are final
+        self.note = note
         self.site = None
         self.files = None
         self.stats = {"filings_saved": 0, "trades_saved": 0, "filings_fetched": 0, "suspect": 0}
@@ -111,17 +101,14 @@ class SecRun:
                 + (f" ({removed:,} rows by funds or companies removed)" if removed else ""))
 
     def open(self):
-        session = new_session(user_agent(VERSION, self.context.settings.email), compressed=True)
-        client = PoliteClient(session, self.source.pacing, RequestBudget(self.context.max_requests), who=WHO,
-                              sleep=self.context.sleep)
-        self.site = SecSite(client, self.source.endpoints)
+        self.site = self.open_site()
 
     def steps(self):
         return [self.load_quarters, self.read_daily]
 
     @property
     def requests_sent(self):
-        return self.site.client.requests_sent if self.site else None
+        return self.budget.sent if self.site else None
 
     def budget_used_up(self):
         return "this run's request budget is used up"
@@ -129,141 +116,16 @@ class SecRun:
     # ----------------------------------------------------------- the steps
 
     def load_quarters(self):
-        """Step 2: load the quarterly files not loaded yet, newest first, QUARTERS_PER_RUN per run."""
-        self.files = files = self.site.quarterly_files()
-        stats = self.stats
-        done = set(filter(None, (self.state.get("sec_quarters_done") or "").split(",")))
-        wanted = sorted((q for q in files if q >= self.source.first_quarter and quarter_name(*q) not in done),
-                        reverse=True)
-        if not wanted:
-            return (f"complete - every quarterly file from {quarter_name(*self.source.first_quarter)} "
-                    f"to {quarter_name(*max(files))} is loaded")
-        loaded = []
-        for year, quarter in wanted[:QUARTERS_PER_RUN]:
-            name = quarter_name(year, quarter)
-            with tempfile.TemporaryDirectory() as folder:
-                response = self.site.quarterly_file(files[(year, quarter)])
-                if not response.content.startswith(b"PK"):
-                    raise unexpected(response, f"the {name} file is not a ZIP file")
-                path = Path(folder) / f"{name}.zip"
-                path.write_bytes(response.content)
-                try:
-                    filings, trades, counts = parse_quarter(path)
-                except (FilingProblem, OSError) as problem:
-                    raise SiteStop(CHANGED, f"the {name} file could not be read: {problem}") from None
-            new = self.filings.save(filings, trades, source=name)
-            done.add(name)
-            self.state.set("sec_quarters_done", ",".join(sorted(done)))
-            stats["filings_saved"] += len(filings)
-            stats["trades_saved"] += len(trades)
-            stats["suspect"] += counts["suspect"]
-            loaded.append(f"{name}: {len(response.content) / 1e6:.0f} MB, {counts['form4']:,} Form 4s, kept "
-                          f"{plural(len(trades), 'trade')} by officers and directors in {len(filings):,} filings "
-                          f"({new:,} new)")
-        for line in loaded:
-            self.context.console.note(line)
-        left = len(wanted) - len(loaded)
-        return f"loaded {len(loaded)}; {left} quarterly file{'s' if left != 1 else ''} left to load"
+        """Step 2: the quarterly files not loaded yet, newest first (quarterly.py)."""
+        self.files = self.site.quarterly_files()
+        loader = QuarterlyFiles(self.site, self.filings, self.bookmarks, self.stats, self.note, self.first_quarter)
+        return loader.load(self.files)
 
     def read_daily(self):
-        """Step 3: new filings from EDGAR's daily lists, for the days after the newest quarterly file.
-
-        EDGAR publishes no list on weekends and US federal holidays, and asking for a list that
-        doesn't exist gets "403 Access Denied" from the SEC's storage, which looks just like a
-        refusal. So a day's list is asked for only when EDGAR's listing of the quarter has it."""
-        now, stats, note = self.context.started, self.stats, self.context.console.note
-        newest = max(self.files)
-        first_day = quarter_end(*newest) + timedelta(days=1)
-        cursor = self.state.get("sec_daily_cursor")        # the last day fully processed
-        day = max(first_day, date.fromisoformat(cursor) + timedelta(days=1)) if cursor else first_day
-        today = (now - DAY_COMPLETE_AFTER).date() - timedelta(days=1)   # the newest day whose list is final
-        if day > now.date():
-            return f"up to date - the daily lists after {quarter_name(*newest)} are read through {cursor}"
-        seen_state = json.loads(self.state.get("sec_daily_seen") or "{}")
-        days_done, fetched, kept, failures_in_a_row = 0, 0, 0, 0
-        progress, stopped = [], None          # what happened on each day, for the step's summary line
-        listings = {}
-        try:
-            while day <= now.date():
-                if day.weekday() >= 5:                                # EDGAR publishes no lists at weekends
-                    if day <= today:
-                        self.state.set("sec_daily_cursor", day.isoformat())
-                    day += timedelta(days=1)
-                    continue
-                year, quarter = quarter_of(day)
-                if (year, quarter) not in listings:
-                    listings[(year, quarter)] = self.site.listed_days(year, quarter)
-                if f"{day:%Y%m%d}" not in listings[(year, quarter)]:
-                    if day <= today:                                  # a weekday without a list: a holiday
-                        progress.append(f"{day:%m/%d}: no list (EDGAR closed)")
-                        self.state.set("sec_daily_cursor", day.isoformat())
-                        day += timedelta(days=1)
-                        continue
-                    break                                             # not published yet
-                response = self.site.daily_index(year, quarter, day)
-                if response.status_code == 404:                       # a holiday, or not published yet
-                    if day <= today:
-                        self.state.set("sec_daily_cursor", day.isoformat())
-                        day += timedelta(days=1)
-                        continue
-                    break
-                listed = parse_daily_index(response.text)
-                if not listed and "Form Type" not in response.text:
-                    raise unexpected(response, f"the daily list for {day} could not be read")
-                seen = set(seen_state.get("accessions", [])) if seen_state.get("day") == day.isoformat() else set()
-                todo = [f for f in listed if f["accession"] not in seen]
-                day_fetched, day_kept = 0, 0
-                for filing in todo:
-                    try:
-                        page = self.site.filing(filing["path"])
-                    except OutOfRequests:
-                        stopped = f"{day:%m/%d}: {len(seen)} of {len(listed)} read, budget used up"
-                        raise
-                    fetched += 1
-                    day_fetched += 1
-                    if page.status_code == 404:
-                        note(f"filing {filing['accession']} is listed but not available (HTTP 404)")
-                    else:
-                        try:
-                            parsed, trades = parse_filing(page.text, filing["accession"], filing["filed"])
-                        except FilingProblem as problem:
-                            failures_in_a_row += 1
-                            note(f"could not read filing {filing['accession']}: {problem}")
-                            if failures_in_a_row >= FAILURES_BEFORE_STOP:
-                                raise SiteStop(CHANGED, f"{failures_in_a_row} filings in a row could not be "
-                                                        f"read (last: {problem})", page)
-                        else:
-                            failures_in_a_row = 0
-                            if trades:
-                                self.filings.save([parsed], trades, source=f"daily {day}")
-                                kept += 1
-                                day_kept += 1
-                                stats["filings_saved"] += 1
-                                stats["trades_saved"] += len(trades)
-                                stats["suspect"] += sum(1 for t in trades if t["suspect"])
-                    seen.add(filing["accession"])
-                    seen_state = {"day": day.isoformat(), "accessions": sorted(seen)}
-                    if len(seen) % 25 == 0:
-                        self.state.set("sec_daily_seen", json.dumps(seen_state))
-                self.state.set("sec_daily_seen", json.dumps(seen_state))
-                progress.append(f"{day:%m/%d}: {len(listed):,} listed, {day_fetched:,} read, {day_kept} kept")
-                if day <= today:
-                    self.state.set("sec_daily_cursor", day.isoformat())
-                    self.state.set("sec_daily_seen", "{}")
-                    days_done += 1
-                    day += timedelta(days=1)
-                else:
-                    break                                             # today's list isn't final: re-read it next run
-        except OutOfRequests:
-            note("stopped: this run's request budget is used up")
-            self.state.set("sec_daily_seen", json.dumps(seen_state))
-        stats["filings_fetched"] += fetched
-        cursor = self.state.get("sec_daily_cursor") or "none yet"
-        detail = (f"{plural(days_done, 'day')} finished (through {cursor}); {fetched:,} Form 4s read, "
-                  f"{kept:,} with officers' or directors' buys or sells")
-        if progress or stopped:
-            detail += " [" + "; ".join(progress + ([stopped] if stopped else [])) + "]"
-        return detail
+        """Step 3: new filings from EDGAR's daily lists, for the days after the newest quarterly
+        file (daily.py)."""
+        lists = DailyLists(self.site, self.filings, self.bookmarks, self.stats, self.note, self.now)
+        return lists.read(max(self.files))
 
     # ------------------------------------------------------- the summing up
 

@@ -23,8 +23,9 @@ import argparse
 import json
 import sys
 import traceback
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 
 from .. import PROJECT
 from ..core.errors import SiteStop
@@ -97,6 +98,7 @@ class CheckRun:
     log: CheckStepLog
     folder: object             # pathlib.Path of the results
     ran_on: str
+    clock: object              # a Clock: when the run started and finished
     today: object
     started: datetime
     status: str = OK
@@ -107,7 +109,7 @@ class CheckRun:
     info: dict = field(default_factory=dict)
 
 
-class Check:
+class Check(ABC):
     """One site's check. The runner calls these, in this order."""
 
     definition: CheckDefinition
@@ -126,21 +128,21 @@ class Check:
         """Lines printed when there is no contact email (nothing is sent anywhere)."""
         return [f"\nNo valid contact email was given, so nothing was sent to {self.definition.site}."]
 
+    @abstractmethod
     def run_steps(self, run, client):
         """The steps (log.begin / log.end); SiteStop stops them. Fills run.info."""
-        raise NotImplementedError
 
+    @abstractmethod
     def outcome(self, run):
         """The end of the verdict line when every step worked (may also set run.advice)."""
-        raise NotImplementedError
 
+    @abstractmethod
     def summary(self, run, verdict_line):
         """summary.json's content."""
-        raise NotImplementedError
 
+    @abstractmethod
     def saved_line(self, run):
         """'Saved in ...': what the run left in the output folder."""
-        raise NotImplementedError
 
     def finish(self, run):
         """Last words before the summary is written (e.g. paths made relative)."""
@@ -164,7 +166,8 @@ class CheckRunner:
         folder.mkdir(parents=True, exist_ok=True)
         check.clear(folder)
         run = CheckRun(console=console, log=CheckStepLog(definition, console), folder=folder,
-                       ran_on=platform.ran_on, today=platform.clock.today(), started=platform.clock.now())
+                       ran_on=platform.ran_on, clock=platform.clock, today=platform.clock.today(),
+                       started=platform.clock.now())
 
         check.setup(run)
         console.line(f"{definition.title} - {PROJECT} {VERSION}")
@@ -232,7 +235,7 @@ def common_summary(run, verdict_line):
 
 def times(run):
     return {"started_at_utc": run.started.isoformat(timespec="seconds"),
-            "finished_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+            "finished_at_utc": run.clock.now().isoformat(timespec="seconds")}
 
 
 def script_fields():
