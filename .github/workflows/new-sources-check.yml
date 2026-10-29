@@ -4,6 +4,8 @@
 # names of the checks to run (any of: house sec sweden netherlands libs).
 # "libs" shows which versions of the Python libraries GitHub installs, and the newest ones on PyPI.
 # "secdays" asks EDGAR (3 requests) which daily lists exist this quarter and what a missing one returns.
+# "dbsize" shows how much space each table, index and column takes in the database (read only).
+# "sharadar" reads Sharadar's free tickers file with the public test key, to learn its format.
 # The results (examples of real filings) are saved on the "check-results" branch.
 name: New sources check
 
@@ -11,7 +13,7 @@ on:
   workflow_dispatch:   # only runs when started by hand (no schedule)
     inputs:
       sources:
-        description: "Which checks to run (space-separated: house sec sweden netherlands libs secdays)"
+        description: "Which checks to run (space-separated: house sec sweden netherlands libs secdays dbsize sharadar)"
         default: "house sec sweden netherlands"
         required: true
 
@@ -88,6 +90,19 @@ jobs:
               note(f"form.{day}.idx: HTTP {r.status_code}, Content-Type {r.headers.get('Content-Type')}, "
                    f"{len(r.content):,} bytes, starts: {text[:200]}")
           PY
+
+      - name: Show the database's size by table, index and column (dbsize)
+        if: contains(inputs.sources, 'dbsize')
+        continue-on-error: true
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python -u db_size_check.py
+
+      - name: Read Sharadar's free tickers file (sharadar)
+        if: contains(inputs.sources, 'sharadar')
+        continue-on-error: true
+        run: python -u sharadar_check.py
 
       - name: Check the House site
         if: contains(inputs.sources, 'house')
