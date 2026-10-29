@@ -6,6 +6,7 @@
 # "secdays" asks EDGAR (3 requests) which daily lists exist this quarter and what a missing one returns.
 # "dbsize" shows how much space each table, index and column takes in the database (read only).
 # "sharadar" reads Sharadar's free tickers file with the public test key, to learn its format.
+# "slim" frees the space of dropped columns and indexes (db_maintenance.py; locks insider_filings ~1 minute).
 # The results (examples of real filings) are saved on the "check-results" branch.
 name: New sources check
 
@@ -13,7 +14,7 @@ on:
   workflow_dispatch:   # only runs when started by hand (no schedule)
     inputs:
       sources:
-        description: "Which checks to run (space-separated: house sec sweden netherlands libs secdays dbsize sharadar)"
+        description: "Which checks to run (space-separated: house sec sweden netherlands libs secdays dbsize sharadar slim)"
         default: "house sec sweden netherlands"
         required: true
 
@@ -98,6 +99,14 @@ jobs:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: python -u db_size_check.py
+
+      - name: Free the space of dropped columns and indexes (slim)
+        if: contains(inputs.sources, 'slim')
+        continue-on-error: true
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: python -u db_maintenance.py
 
       - name: Read Sharadar's free tickers file (sharadar)
         if: contains(inputs.sources, 'sharadar')

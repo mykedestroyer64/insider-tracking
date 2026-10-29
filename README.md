@@ -21,6 +21,7 @@
 | `.github/workflows/site.yml` | builds and publishes the website after every collector run |
 | `efd_check.py` and `.github/workflows/efd-check.yml` | the step 1 access test, still handy for checking eFD by hand |
 | `house_check.py`, `sec_check.py`, `sweden_check.py`, `netherlands_check.py` and `.github/workflows/new-sources-check.yml` | access tests for new sources (type the names of the checks to run when starting the workflow; results go to the `check-results` branch) |
+| `db_size_check.py`, `db_maintenance.py` | show the space each table, index and column takes, and free the space of dropped columns (run through the "New sources check" workflow as `dbsize` and `slim`) |
 | `requirements.txt` | the Python libraries needed |
 | `status/heartbeat.txt` | a date the Senate collector saves once a week (see "Good to know") |
 

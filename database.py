@@ -108,8 +108,6 @@ SCHEMA = [
         plan_10b5_1    boolean,
         is_amendment   boolean not null default false,
         original_date  date,
-        owners         jsonb not null default '[]'::jsonb,
-        url            text,
         source         text not null,
         first_seen_at  timestamptz not null default now()
     )""",
@@ -183,10 +181,6 @@ SCHEMA = [
         rate      double precision not null,
         primary key (day, currency)
     )""",
-    "create index if not exists mar_trades_date on mar_trades (country, trade_date desc)",
-    "create index if not exists mar_trades_person on mar_trades (country, person_name)",
-    "create index if not exists mar_trades_isin on mar_trades (isin)",
-    "create index if not exists mar_trades_published on mar_trades (published_at desc)",
     "alter table mar_trades enable row level security",
     "alter table fx_rates enable row level security",
     "comment on table mar_trades is 'European executives'' buys and sells of their company''s shares, reported "
@@ -194,10 +188,6 @@ SCHEMA = [
     "line of a notification; status Current/Revised/Cancelled as in the register; suspect marks impossible numbers.'",
     "comment on table fx_rates is 'ECB euro reference rates: 1 EUR = rate units of the currency on that day.'",
     "create index if not exists reports_status_received on reports (status, date_received desc)",
-    "create index if not exists insider_filings_date on insider_filings (filing_date desc)",
-    "create index if not exists insider_filings_ticker on insider_filings (ticker)",
-    "create index if not exists insider_trades_insider on insider_trades (insider_cik)",
-    "create index if not exists insider_trades_date on insider_trades (trade_date desc)",
     "alter table insider_filings enable row level security",
     "alter table insider_trades enable row level security",
     "comment on table insider_filings is 'SEC Form 4 filings (and amendments 4/A) by company insiders that hold "
@@ -205,14 +195,28 @@ SCHEMA = [
     "comment on table insider_trades is 'Officers'' and directors'' open-market buys (P) and sells (S) from "
     "Form 4. suspect marks rows with impossible numbers, kept but not counted.'",
     "create index if not exists reports_chamber_status on reports (chamber, status, date_received desc)",
-    "create index if not exists reports_last_name on reports (last_name)",
-    "create index if not exists transactions_ticker on transactions (ticker)",
-    "create index if not exists transactions_date on transactions (transaction_date)",
     "alter table reports enable row level security",
     "alter table transactions enable row level security",
     "alter table report_pages enable row level security",
     "alter table collector_runs enable row level security",
     "alter table collector_state enable row level security",
+    # Space savings (29 Oct 2026; the free plan allows 500 MB): two columns nobody read and eleven
+    # indexes nobody used. The site reads whole tables and the collectors look rows up by their keys.
+    # A filing's address on EDGAR comes from its CIK and accession number; the list of every owner on
+    # a Form 4 (funds and co-filers the site leaves out) can be loaded again from the SEC if ever needed.
+    "alter table insider_filings drop column if exists owners",
+    "alter table insider_filings drop column if exists url",
+    "drop index if exists mar_trades_date",
+    "drop index if exists mar_trades_person",
+    "drop index if exists mar_trades_isin",
+    "drop index if exists mar_trades_published",
+    "drop index if exists insider_filings_date",
+    "drop index if exists insider_filings_ticker",
+    "drop index if exists insider_trades_insider",
+    "drop index if exists insider_trades_date",
+    "drop index if exists reports_last_name",
+    "drop index if exists transactions_ticker",
+    "drop index if exists transactions_date",
     # Descriptions you can see in Supabase's Table Editor
     "comment on table reports is 'One row per trade report. chamber: senate (eFD) or house "
     "(House Clerk). status: to_read (electronic, not read yet), read, failed (see note), "
@@ -478,7 +482,7 @@ def _store_page(cursor, report_path, page):
 # ---------------------------------------------------------- company insiders
 
 FILING_COLUMNS = ["accession", "form", "filing_date", "period", "company_cik", "company_name", "ticker",
-                  "plan_10b5_1", "is_amendment", "original_date", "owners", "url", "source"]
+                  "plan_10b5_1", "is_amendment", "original_date", "source"]
 INSIDER_TRADE_COLUMNS = ["accession", "row_key", "insider_cik", "insider_name", "insider_title", "roles",
                          "trade_date", "code", "kind", "shares", "price", "value", "acquired_disposed",
                          "shares_after", "direct", "nature", "security", "suspect", "suspect_reason"]
@@ -499,20 +503,17 @@ def save_insider_filings(conn, filings, trades, source):
         by_filing.setdefault(trade["accession"], []).append(trade)
     for start in range(0, len(filings), 50):
         chunk = filings[start:start + 50]
-        slots = "(" + ", ".join(["%s"] * (len(FILING_COLUMNS) - 3)) + ", %s::jsonb, %s, %s)"
+        slots = "(" + ", ".join(["%s"] * len(FILING_COLUMNS)) + ")"
         params = []
         for filing in chunk:
-            values = dict(filing, source=source,
-                          owners=json.dumps([{"cik": o["cik"], "name": o["name"], "title": o["title"], "roles": o["roles"]}
-                                             for o in filing["owners"]], ensure_ascii=False))
+            values = dict(filing, source=source)
             params += [values[column] for column in FILING_COLUMNS]
         cursor.execute(
             f"insert into insider_filings ({', '.join(FILING_COLUMNS)}) values " + ", ".join([slots] * len(chunk))
             + " on conflict (accession) do update set form = excluded.form, filing_date = excluded.filing_date, "
             "period = excluded.period, company_cik = excluded.company_cik, company_name = excluded.company_name, "
             "ticker = excluded.ticker, plan_10b5_1 = excluded.plan_10b5_1, is_amendment = excluded.is_amendment, "
-            "original_date = excluded.original_date, owners = excluded.owners, url = excluded.url, "
-            "source = excluded.source returning (xmax = 0)", params)
+            "original_date = excluded.original_date, source = excluded.source returning (xmax = 0)", params)
         new += sum(1 for row in cursor.fetchall() if row[0] in (True, "t", "true", 1))
         accessions = [filing["accession"] for filing in chunk]
         cursor.execute("delete from insider_trades where accession = any(%s)", (accessions,))

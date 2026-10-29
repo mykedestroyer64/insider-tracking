@@ -59,7 +59,7 @@ FILINGS_SQL = """
 select accession, form, to_char(filing_date, 'YYYY-MM-DD'), to_char(period, 'YYYY-MM-DD'),
        coalesce(company_cik, ''), coalesce(company_name, ''), coalesce(ticker, ''),
        case when plan_10b5_1 is null then '' else plan_10b5_1::int::text end,
-       is_amendment::int::text, url
+       is_amendment::int::text
 from insider_filings
 """
 
@@ -558,14 +558,15 @@ def load_us(conn, rates):
     """The SEC tables -> (filings, trades)."""
     if not table_exists(conn, "insider_trades"):
         return [], []
+    import sec_parsing   # the collector's own rules for names and addresses (the repository root is on the path)
     filings = {}
     for row in fetch_all(conn, FILINGS_SQL):
         filings[row[0]] = Filing(
             accession=row[0], form=row[1], filed=parse_date(row[2]), period=parse_date(row[3]),
             company_cik=row[4], company_name=row[5], ticker=row[6].upper(),
-            plan=None if row[7] == "" else row[7] == "1", is_amendment=row[8] == "1", url=row[9] or "",
+            plan=None if row[7] == "" else row[7] == "1", is_amendment=row[8] == "1",
+            url=sec_parsing.accession_url(row[0], row[4]) or "",
         )
-    import sec_parsing   # the collector's own rules for names (the repository root is on the path)
     for filing in filings.values():
         filing.company_name = sec_parsing.company_display_name(filing.company_name) or filing.company_name
     trades = []
