@@ -75,5 +75,26 @@ def main():
          + ("" if response.status_code == 200 else "; answer: " + response.text[:300]))
 
 
+def collector_requests():
+    """The exact requests collect_returns.py sends, with the test key: counts and dates only."""
+    from datetime import date
+    import returns_calc
+    import sharadar_site
+    web = sharadar_site.SharadarSession(TEST_KEY, "insider-tracking/0.1 (non-commercial public transparency project)", 10)
+    for table, ticker in (("stocks", "AAPL"), ("funds", "SPY")):
+        try:
+            series = returns_calc.Series.from_csv(web.closes(table, ticker, date(2026, 9, 1), date(2026, 9, 30)))
+            note(f"collector request {table}/{ticker} Sep 2026: {len(series)} closes, {series.days[0] if len(series) else '-'}"
+                 f" to {series.last_day}")
+        except sharadar_site.SiteStop as stop:
+            note(f"collector request {table}/{ticker}: {stop.status} - {stop.detail}")
+    try:
+        web.table_file("tickers")
+        note("tickers file: downloaded (unexpected with the test key)")
+    except sharadar_site.SiteStop as stop:
+        note(f"tickers file with the test key: {stop.status} - {stop.detail[:200]}")
+
+
 if __name__ == "__main__":
     main()
+    collector_requests()
