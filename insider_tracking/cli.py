@@ -30,6 +30,7 @@ COMMANDS = {
     "check sharadar": "insider_tracking.checks.sharadar",
     "db size": "insider_tracking.tools.db_size",
     "db slim": "insider_tracking.tools.db_slim",
+    "site build": "insider_tracking.website.build",
 }
 
 
