@@ -39,25 +39,25 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Show the library versions (libs)
-        if: contains(inputs.sources, 'libs')
+        if: contains(format(' {0} ', inputs.sources), ' libs ')
         continue-on-error: true
         shell: bash
         run: |
           python -u -m insider_tracking check libs
           for name in pg8000 scramp; do
-            line="$(python -m pip index versions "$name" 2>/dev/null | head -2 | tr '\n' ' ' | cut -c1-400)"
+            line="$(python -m pip index versions "$name" 2>/dev/null | head -2 | tr '\n' ' ' | cut -c1-400 || true)"
             echo "::notice title=LIBS check::on PyPI: $line"
           done
 
       - name: Ask EDGAR which daily lists exist (secdays)
-        if: contains(inputs.sources, 'secdays')
+        if: contains(format(' {0} ', inputs.sources), ' secdays ')
         continue-on-error: true
         env:
           EFD_CONTACT_EMAIL: ${{ secrets.EFD_CONTACT_EMAIL }}
         run: python -u -m insider_tracking check secdays
 
       - name: Show the database's size by table, index and column (dbsize)
-        if: contains(inputs.sources, 'dbsize')
+        if: contains(format(' {0} ', inputs.sources), ' dbsize ')
         continue-on-error: true
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
@@ -65,7 +65,7 @@ jobs:
         run: python -u -m insider_tracking db size
 
       - name: Free the space of dropped columns and indexes (slim)
-        if: contains(inputs.sources, 'slim')
+        if: contains(format(' {0} ', inputs.sources), ' slim ')
         continue-on-error: true
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
@@ -73,12 +73,12 @@ jobs:
         run: python -u -m insider_tracking db slim
 
       - name: Read Sharadar's free tickers file (sharadar)
-        if: contains(inputs.sources, 'sharadar')
+        if: contains(format(' {0} ', inputs.sources), ' sharadar ')
         continue-on-error: true
         run: python -u -m insider_tracking check sharadar
 
       - name: Check the House site
-        if: contains(inputs.sources, 'house')
+        if: contains(format(' {0} ', inputs.sources), ' house ')
         continue-on-error: true   # run the other checks even if this one fails
         shell: bash
         env:
@@ -88,7 +88,7 @@ jobs:
           python -u -m insider_tracking check house 2>&1 | tee output/house/console.log
 
       - name: Check the SEC site
-        if: contains(inputs.sources, 'sec')
+        if: contains(format(' {0} ', inputs.sources), ' sec ')
         continue-on-error: true
         shell: bash
         env:
@@ -98,7 +98,7 @@ jobs:
           python -u -m insider_tracking check sec 2>&1 | tee output/sec/console.log
 
       - name: Check Finansinspektionen's register (Sweden)
-        if: contains(inputs.sources, 'sweden')
+        if: contains(format(' {0} ', inputs.sources), ' sweden ')
         continue-on-error: true
         shell: bash
         env:
@@ -108,7 +108,7 @@ jobs:
           python -u -m insider_tracking check sweden 2>&1 | tee output/sweden/console.log
 
       - name: Check the AFM's register (Netherlands)
-        if: contains(inputs.sources, 'netherlands')
+        if: contains(format(' {0} ', inputs.sources), ' netherlands ')
         continue-on-error: true
         shell: bash
         env:

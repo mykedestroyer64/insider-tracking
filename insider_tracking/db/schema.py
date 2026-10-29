@@ -5,6 +5,12 @@ Every statement is safe to run again: "create table if not exists", "add column 
 exists", "drop index if exists". Changing the tables means adding a statement at the end of
 the list (and asking the owner first when it removes anything).
 
+The statements lock most tables while they run, and a run that locks them while another
+collector is saving can make the two wait for each other ("deadlock detected": one of them
+fails). So they only run when the tables aren't up to date yet: when one of them is missing,
+or when the list has changed since it was last run (its version is kept in collector_state as
+schema_version). Two runs that both find the tables out of date take turns.
+
 Tables:
   reports          one row per trade report (Senate or House: see "chamber");
                    status says what has been done with it
@@ -25,6 +31,10 @@ Row Level Security is switched on for every table and no access rules are added,
 can read the data through Supabase's public API. The collectors connect as the database
 owner, which is not affected by that.
 """
+
+import hashlib
+import re
+
 
 SCHEMA = [
     """
@@ -244,8 +254,37 @@ SCHEMA = [
 ]
 
 
+TABLES = tuple(re.findall(r"create table if not exists (\w+)", "\n".join(SCHEMA)))
+VERSION = hashlib.sha256("\n".join(SCHEMA).encode("utf-8")).hexdigest()[:16]   # changes with the list
+VERSION_KEY = "schema_version"
+TURNS = 80_317_441          # the lock that makes two runs bringing the tables up to date take turns
+
+
+def up_to_date(cursor):
+    """Every table is there and the statements of this version have run."""
+    cursor.execute("select count(*) from pg_tables where schemaname = 'public' and tablename = any(%s)",
+                   (list(TABLES),))
+    if int(cursor.fetchone()[0]) != len(TABLES):
+        return False
+    cursor.execute("select value from collector_state where key = %s", (VERSION_KEY,))
+    row = cursor.fetchone()
+    return row is not None and str(row[0]) == VERSION
+
+
 def ensure_schema(db):
-    """Create the tables if they don't exist yet, and bring them up to date (safe every time)."""
+    """Create the tables if they don't exist yet, and bring them up to date (safe every time).
+    Returns True when the statements ran, False when the tables were already up to date."""
+    with db.transaction() as cursor:       # a quick look first, in its own transaction
+        if up_to_date(cursor):
+            return False
     with db.transaction() as cursor:
+        # take turns before touching any table: a run waiting here holds no lock another needs
+        cursor.execute("select pg_advisory_xact_lock(%s)", (TURNS,))
+        if up_to_date(cursor):             # another run did it while this one waited
+            return False
         for statement in SCHEMA:
             cursor.execute(statement)
+        cursor.execute("""
+        insert into collector_state (key, value, updated_at) values (%s, %s, now())
+        on conflict (key) do update set value = excluded.value, updated_at = now()""", (VERSION_KEY, VERSION))
+    return True

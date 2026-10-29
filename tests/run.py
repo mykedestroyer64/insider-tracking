@@ -23,6 +23,12 @@ def test_files(names):
     return sorted(TESTS.glob("test_*.py"))
 
 
+def quoted(line):
+    """The line as it is shown. A line that looks like one of GitHub's workflow commands
+    ("::notice title=...::") would become a note on the test run, so it is quoted."""
+    return "  | " + line if line.lstrip().startswith("::") else line
+
+
 def run_file(path):
     """Run one test file; (exit code, PASS count, FAIL count, seconds)."""
     started = time.monotonic()
@@ -30,7 +36,7 @@ def run_file(path):
                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     passed = failed = 0
     for line in process.stdout:
-        print(line, end="", flush=True)
+        print(quoted(line), end="", flush=True)
         passed += line.startswith("  PASS  ")
         failed += line.startswith("  FAIL  ")
     return process.wait(), passed, failed, time.monotonic() - started

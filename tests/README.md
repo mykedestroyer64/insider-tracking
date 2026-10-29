@@ -19,6 +19,7 @@ GitHub runs them by itself on every push and every pull request (the **Tests** w
 | `test_returns.py` | The returns collector: matching trades to securities and working out the returns |
 | `test_efd_check.py`, `test_house_check.py`, `test_sec_check.py`, `test_sweden_check.py`, `test_netherlands_check.py` | The access checks |
 | `test_sharadar_check.py`, `test_probes.py` | The probes that only post notes (Sharadar, EDGAR's daily lists, library versions) |
+| `test_schema.py` | Bringing the tables up to date, only when they aren't, without waiting for a collector that is saving |
 | `test_db_tools.py` | The database size report and freeing space |
 | `test_site.py` | The website build: every page, well-formed HTML, working links, the expected totals |
 | `test_workflows.py` | The GitHub workflows: names, schedules, secrets, and their shell steps run for real |

@@ -5,6 +5,7 @@ stand-in "python" that prints a collector's output), including the weekly heartb
 git repository.
 """
 import os
+import re
 import stat
 import subprocess
 import sys
@@ -100,6 +101,25 @@ check("rebuilds when the code or the site's files change on main",
       site["on"]["push"]["branches"] == ["main"] and {"site/**", "insider_tracking/**"} <= set(site["on"]["push"]["paths"]))
 check("after a collector run, only when it succeeded",
       "workflow_run.conclusion == 'success'" in site["jobs"]["build"]["if"])
+
+check.section("the checks workflow")
+checks_workflow = load("new-sources-check.yml")
+
+
+def steps_started(sources):
+    """The steps a "Run workflow" with these check names starts (as GitHub reads their if:)."""
+    started = []
+    for step in checks_workflow["jobs"]["check"]["steps"]:
+        match = re.fullmatch(r"contains\(format\(' \{0\} ', inputs\.sources\), ' (\w+) '\)", step.get("if", ""))
+        if match and f" {match.group(1)} " in f" {sources} ":
+            started.append(match.group(1))
+    return started
+
+
+check("each check is started by its own name only (secdays doesn't start the SEC check)",
+      steps_started("libs secdays dbsize sharadar") == ["libs", "secdays", "dbsize", "sharadar"]
+      and steps_started("house sec sweden netherlands") == ["house", "sec", "sweden", "netherlands"],
+      steps_started("libs secdays dbsize sharadar"))
 
 check.section("the tests workflow")
 tests_workflow = load("tests.yml")
