@@ -115,6 +115,9 @@ class Check:
     def clear(self, folder):
         """Remove the results of an earlier run."""
 
+    def setup(self, run):
+        """Fill run.info with what the summary needs even when nothing is sent (counts at zero)."""
+
     def intro(self, run):
         """Lines printed after "Running on" (none by default)."""
         return []
@@ -163,6 +166,7 @@ class CheckRunner:
         run = CheckRun(console=console, log=CheckStepLog(definition, console), folder=folder,
                        ran_on=platform.ran_on, today=platform.clock.today(), started=platform.clock.now())
 
+        check.setup(run)
         console.line(f"{definition.title} - {PROJECT} {VERSION}")
         console.line(f"Running on: {run.ran_on}")
         console.lines(check.intro(run))

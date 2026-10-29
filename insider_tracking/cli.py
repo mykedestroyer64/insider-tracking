@@ -22,6 +22,14 @@ COMMANDS = {
     "collect sec": "insider_tracking.sources.sec.collector",
     "collect sweden": "insider_tracking.sources.sweden.collector",
     "collect returns": "insider_tracking.sources.returns.collector",
+    "check efd": "insider_tracking.checks.efd",
+    "check house": "insider_tracking.checks.house",
+    "check sec": "insider_tracking.checks.sec",
+    "check sweden": "insider_tracking.checks.sweden",
+    "check netherlands": "insider_tracking.checks.netherlands",
+    "check sharadar": "insider_tracking.checks.sharadar",
+    "db size": "insider_tracking.tools.db_size",
+    "db slim": "insider_tracking.tools.db_slim",
 }
 
 

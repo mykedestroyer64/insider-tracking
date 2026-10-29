@@ -88,11 +88,15 @@ class EfdSite:
         field = page.find("input", attrs={"name": "csrfmiddlewaretoken"})
         return (str(field.get("value") or "") if field else "") or self.client.cookie("csrftoken", "csrf")
 
+    def agreement_answer(self, token):
+        """Send the usage agreement's form, accepted (the answer as it came)."""
+        return self.client.post(self.endpoints.home, check=self.check,
+                                data={"csrfmiddlewaretoken": token, "prohibition_agreement": "1"},
+                                headers={"Referer": self.endpoints.home})
+
     def post_agreement(self, token):
         """Accept the usage agreement; the site should send us on to /search/."""
-        response = self.client.post(self.endpoints.home, check=self.check,
-                                    data={"csrfmiddlewaretoken": token, "prohibition_agreement": "1"},
-                                    headers={"Referer": self.endpoints.home})
+        response = self.agreement_answer(token)
         page = BeautifulSoup(response.text, "html.parser")
         if page.find("input", attrs={"name": "prohibition_agreement"}):
             raise unexpected(response, "the agreement page came back, so it was not accepted")
@@ -165,9 +169,9 @@ class EfdSite:
 
     # -------------------------------------------------------------- reports
 
-    def report(self, url):
-        """Download one report page (the answer as it came)."""
-        return self.client.get(url, check=self.check, ok_codes=(404, 410), headers={"Referer": self.endpoints.search})
+    def report(self, url, ok_codes=(404, 410)):
+        """Download one report page (the answer as it came; a missing page is returned too)."""
+        return self.client.get(url, check=self.check, ok_codes=ok_codes, headers={"Referer": self.endpoints.search})
 
     def get_report(self, url):
         """Download one report page, renewing the session if it ran out.
@@ -184,8 +188,8 @@ class EfdSite:
             self.open()          # the session ran out: accept the agreement again
 
 
-def read_search_answer(response):
-    """The search's JSON answer: (rows, total). Raises SiteStop if it isn't what eFD sends."""
+def search_results(response):
+    """The search's JSON answer as it came. Raises SiteStop if it isn't what eFD sends."""
     try:
         results = response.json()
     except ValueError:
@@ -194,9 +198,18 @@ def read_search_answer(response):
         raise unexpected(response, "the search JSON has no 'data' list")
     if results.get("result", "ok") != "ok":
         raise unexpected(response, f"the search JSON says result = {results.get('result')!r}")
-    rows = results["data"]
+    return results
+
+
+def total_of(results):
+    """How many reports match the search (more than one answer holds, when the site says so)."""
     try:
-        total = int(results.get("recordsFiltered", len(rows)))
+        return int(results.get("recordsFiltered", len(results["data"])))
     except (TypeError, ValueError):
-        total = len(rows)
-    return rows, total
+        return len(results["data"])
+
+
+def read_search_answer(response):
+    """The search's JSON answer: (rows, total). Raises SiteStop if it isn't what eFD sends."""
+    results = search_results(response)
+    return results["data"], total_of(results)
