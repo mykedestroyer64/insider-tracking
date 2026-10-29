@@ -185,5 +185,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
+          if git diff --cached --quiet; then echo "Nothing to save."; exit 0; fi
           git commit -q -m "New sources check results (run ${GITHUB_RUN_ID})"
           git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:check-results
