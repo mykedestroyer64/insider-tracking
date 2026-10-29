@@ -5,6 +5,7 @@ situation the check knows: refusals, outages, a changed site, missing settings.
 import json
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 from insider_tracking.checks.efd import EfdCheck
@@ -21,13 +22,13 @@ EMAIL = "tester@example.com"
 check = Checks()
 
 
-def run(mode, args=("--email", EMAIL), env=None, base_url=None):
+def run(mode, args=("--email", EMAIL), env=None, base_url=None, fast=True):
     site.MODE = mode
     site.LOG.clear()
     site.CALLS.clear()
     outdir = Path(tempfile.mkdtemp())
-    efd = EfdCheck(EfdEndpoints(base_url or BASE), PACING.without_waiting())
-    platform = Platform(environ=dict(env or {}), output_dir=outdir, sleep=lambda seconds: None)
+    efd = EfdCheck(EfdEndpoints(base_url or BASE), PACING.without_waiting() if fast else PACING)
+    platform = Platform(environ=dict(env or {}), output_dir=outdir, sleep=(lambda seconds: None) if fast else time.sleep)
     result = run_command(CheckRunner(efd), args, platform)
     summary = json.loads((outdir / "summary.json").read_text(encoding="utf-8"))
     files = sorted(p.name for p in outdir.iterdir())
@@ -133,6 +134,16 @@ print("\n[github]", out.strip().splitlines()[-1])
 check("[github] OK and ran_on GitHub Actions", code == 0 and summary["ran_on"] == "GitHub Actions")
 code, out, summary, files, outdir, leaked = run("ok", args=(), env={"GITHUB_ACTIONS": "true", "EFD_CONTACT_EMAIL": ""})
 check("[github, secret missing] NOT_RUN with secret advice", summary["verdict"] == "NOT_RUN" and "EFD_CONTACT_EMAIL" in out)
+
+# The real pauses: the check waits 2-3 seconds before each request it plans (the redirect after
+# the agreement is followed at once, as a browser does)
+code, out, summary, files, outdir, leaked = run("ok", fast=False)
+times = [entry[0] for entry in site.LOG]
+paths = [f"{entry[1]} {entry[2]}" for entry in site.LOG]
+gaps = [(later - earlier, path) for earlier, later, path in zip(times, times[1:], paths[1:])]
+print("\n[real pauses]", [f"{path}: {gap:.2f} s" for gap, path in gaps])
+check("[real pauses] planned requests are 2-3 s apart",
+      code == 0 and all(2.0 <= gap <= 3.3 for gap, path in gaps if path != "GET /search/"), gaps)
 
 for mode in ("ok", "blocked", "csrf", "paperonly"):
     print(f"\n========== full output: {mode} ==========")

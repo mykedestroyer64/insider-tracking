@@ -44,6 +44,33 @@ jobs:
         run: command -v psql || (sudo apt-get update -q && sudo apt-get install -y -q postgresql-client)
 
       - name: Run the tests
+        shell: bash   # bash with "pipefail": the step fails when a test fails, even through tee
         env:
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
-        run: python -u -m tests.run
+        run: python -u -m tests.run 2>&1 | tee tests.log
+
+      - name: Write the results to the job summary and as notes (readable through GitHub's API)
+        if: always()
+        shell: bash
+        run: |
+          results=$(sed -n '/^######## summary/,$p' tests.log 2>/dev/null | grep -E '^  test_' || true)
+          verdict=$(grep -E '^Every test file passed|^Failed:' tests.log 2>/dev/null | tail -n 1 || true)
+          {
+            echo "## Tests"
+            echo
+            echo "**${verdict:-No result: the tests stopped early. Open the \"Run the tests\" step to see why.}**"
+            if [ -n "$results" ]; then
+              echo
+              echo '```'
+              echo "$results"
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          # GitHub keeps 10 notes per step: the verdict, every file on one line, the first failures
+          echo "::notice title=Tests::${verdict:-no result}"
+          if [ -n "$results" ]; then
+            echo "::notice title=Tests::$(echo "$results" | awk '{printf "%s%s %s %s/%s", (NR>1?" | ":""), $1, $2, $3, $5}')"
+          fi
+          grep -E '^  FAIL  ' tests.log 2>/dev/null | head -n 8 | while IFS= read -r line; do
+            echo "::warning title=Tests::$line"
+          done || true

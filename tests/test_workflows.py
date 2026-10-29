@@ -101,6 +101,13 @@ check("rebuilds when the code or the site's files change on main",
 check("after a collector run, only when it succeeded",
       "workflow_run.conclusion == 'success'" in site["jobs"]["build"]["if"])
 
+check.section("the tests workflow")
+tests_workflow = load("tests.yml")
+tests_job = tests_workflow["jobs"]["tests"]
+check("runs on every push and pull request", "push" in tests_workflow["on"] and "pull_request" in tests_workflow["on"])
+check("with a PostgreSQL server", tests_job["services"]["postgres"]["image"].startswith("postgres:"))
+check("runs every test file", any("python -u -m tests.run" in step.get("run", "") for step in tests_job["steps"]))
+
 # ------------------------------------------------------------------ the shared run's shell steps
 steps = {step["name"]: step for step in shared["jobs"]["collect"]["steps"]}
 run_step = next(step for name, step in steps.items() if name.startswith("Run the "))
