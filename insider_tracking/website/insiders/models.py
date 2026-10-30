@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from ..names import stock_slug
+from ..formatting import shows_eur
 from .markets import market_of
 
 VENUES = {   # the register's venue names, shortened
@@ -171,7 +172,7 @@ class InsiderTrade:
     @property
     def eur_shown(self):
         """A euro figure is shown next to anything that isn't dollars or euros."""
-        return self.currency not in ("USD", "EUR") and self.value_eur is not None
+        return shows_eur(self.currency) and self.value_eur is not None
 
 
 @dataclass

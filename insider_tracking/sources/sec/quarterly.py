@@ -13,7 +13,7 @@ from ...core.errors import SiteStop
 from ...core.status import CHANGED
 from ...core.text import plural
 from ...web.checks import unexpected
-from ..ports import Bookmarks, InsiderStore, Note, SecGateway
+from ..ports import Bookmarks, FilingSaver, Note, SecQuarterlyFiles
 from .parsing import FilingProblem, parse_quarter
 from .quarters import quarter_name
 
@@ -23,7 +23,7 @@ QUARTERS_PER_RUN = 2
 class QuarterlyFiles:
     """stats: the run's counts; first_quarter: (year, quarter), how far back the files are loaded."""
 
-    def __init__(self, site: SecGateway, filings: InsiderStore, bookmarks: Bookmarks, stats: dict, note: Note,
+    def __init__(self, site: SecQuarterlyFiles, filings: FilingSaver, bookmarks: Bookmarks, stats: dict, note: Note,
                  first_quarter: tuple):
         self.site = site
         self.filings = filings

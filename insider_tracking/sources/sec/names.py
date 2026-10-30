@@ -13,8 +13,6 @@ ENTITY = re.compile(r"\b(LLC|L\.L\.C\.?|LP|L\.P\.?|LLP|Inc\.?|Corp\.?|Co\.?|Ltd\
                     r"Master|Portfolio|Securities|Asset|Assets|International|Global|Family|Trustee|Trustees|Pension|"
                     r"Retirement|Endowment|University|College|Church|Charitable|Enterprises|Industries|Technologies|"
                     r"Systems|Services|Solutions|Sciences|Pharmaceuticals|Healthcare|Energy|Resources|Realty|Properties)\b", re.I)
-# The same test as ENTITY, for PostgreSQL (\y is a word boundary there)
-ENTITY_SQL = ENTITY.pattern.replace("\\b", "\\y")
 SUFFIXES = {"jr", "sr", "ii", "iii", "iv", "v"}
 KEEP_UPPER = {"llc", "lp", "llp", "plc", "ag", "sa", "na", "ii", "iii", "iv", "md", "phd", "cpa", "jd", "dds", "usa", "us"}
 

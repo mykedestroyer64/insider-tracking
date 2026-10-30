@@ -10,7 +10,7 @@ from ...sources.sec.names import accession_url, company_display_name, is_entity
 from ..loading import fetch_text, parse_date, parse_float, table_exists
 from ..names import free_slug, slugify
 from .data import InsiderData
-from .markets import market_of
+from .markets import market_of, published_day_sql
 from .models import Filing, InsiderTrade, person_key, venue_text
 
 FILINGS_SQL = """
@@ -30,8 +30,8 @@ from insider_trades
 order by trade_date desc nulls last, accession, row_key
 """
 
-MAR_SQL = """
-select country, row_key, filing_key, to_char(published_at at time zone 'Europe/Stockholm', 'YYYY-MM-DD'),
+MAR_SQL = f"""
+select country, row_key, filing_key, {published_day_sql("published_at")},
        coalesce(issuer_name, ''), coalesce(issuer_short, ''), coalesce(issuer_lei, ''), coalesce(notifier, ''),
        person_name, coalesce(position, ''), coalesce(role, ''), closely_associated::int::text,
        is_amendment::int::text, option_programme::int::text, coalesce(instrument_type, ''),

@@ -9,7 +9,8 @@ run.py - the returns collector's steps (the wiring is in collector.py).
   4. get each security's prices and work out the returns, saving them as it goes
 Prices are never stored or shown, only the returns (Sharadar's licence).
 
-Written against the interfaces in ../ports.py only: no database or web code in here.
+Written against the interfaces in ../ports.py only: it reaches no database and sends no
+requests itself (the site gateway does; what it uses from web/ only reads a page it was given).
 """
 
 from datetime import date, timedelta

@@ -121,10 +121,11 @@ jobs:
         if: always()
         shell: bash
         run: |
-          # Every check that saved its output in output/<name>/console.log, whatever its name.
+          # Every check that saved its output in output/<name>/console.log, whatever its name,
+          # in the order they ran (oldest log first).
           {
             echo "## New sources check"
-            for log in output/*/console.log; do
+            for log in $(ls -1tr output/*/console.log 2>/dev/null); do
               [ -f "$log" ] || continue
               part="$(basename "$(dirname "$log")")"
               echo
@@ -142,7 +143,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           # The same lines as annotations, so they can be read without opening the logs
           # (a check that stopped before printing any still lets the others' be posted).
-          for log in output/*/console.log; do
+          for log in $(ls -1tr output/*/console.log 2>/dev/null); do
             [ -f "$log" ] || continue
             part="$(basename "$(dirname "$log")")"
             { grep -E '^(\[|VERDICT)' "$log" || true; } | while IFS= read -r line; do

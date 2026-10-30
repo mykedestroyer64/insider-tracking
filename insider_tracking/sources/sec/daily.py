@@ -18,7 +18,7 @@ from ...core.errors import OutOfRequests, SiteStop
 from ...core.status import CHANGED
 from ...core.text import plural
 from ...web.checks import unexpected
-from ..ports import Bookmarks, InsiderStore, Note, SecGateway
+from ..ports import Bookmarks, FilingSaver, Note, SecDailyLists
 from .parsing import FilingProblem, parse_daily_index, parse_filing
 from .quarters import quarter_end, quarter_name, quarter_of
 
@@ -29,7 +29,7 @@ FAILURES_BEFORE_STOP = 5   # unreadable filings in a row before we assume EDGAR 
 class DailyLists:
     """stats: the run's counts; now: when the run started (it decides which lists are final)."""
 
-    def __init__(self, site: SecGateway, filings: InsiderStore, bookmarks: Bookmarks, stats: dict, note: Note,
+    def __init__(self, site: SecDailyLists, filings: FilingSaver, bookmarks: Bookmarks, stats: dict, note: Note,
                  now: datetime):
         self.site = site
         self.filings = filings

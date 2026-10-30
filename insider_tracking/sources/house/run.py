@@ -8,7 +8,8 @@ run.py - the House collector's steps (the wiring is in collector.py).
      their transactions
 Scanned paper reports are stored with status "not_read" and their link.
 
-Written against the interfaces in ../ports.py only: no database or web code in here.
+Written against the interfaces in ../ports.py only: it reaches no database and sends no
+requests itself (the site gateway does; what it uses from web/ only reads a page it was given).
 """
 
 from datetime import date

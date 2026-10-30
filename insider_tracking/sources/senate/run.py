@@ -9,7 +9,8 @@ run.py - the Senate collector's steps, once eFD is open (the wiring is in collec
 Everything is saved as it goes: a run that stops early loses nothing, and the next run
 carries on (the bookmarks recent_scan_day and history_listed_back_to).
 
-Written against the interfaces in ../ports.py only: no database or web code in here.
+Written against the interfaces in ../ports.py only: it reaches no database and sends no
+requests itself (the site gateway does; what it uses from web/ only reads a page it was given).
 """
 
 from datetime import date, timedelta

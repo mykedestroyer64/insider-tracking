@@ -36,6 +36,14 @@ def fmt_money_short(value, currency="USD"):
     return f"{prefix}{value:,.0f}"
 
 
+NO_EUR_NEEDED = ("USD", "EUR")      # amounts in these are shown as they are; any other gets its euro value
+
+
+def shows_eur(currency):
+    """Whether an amount in this currency gets its euro value next to it (≈ €...)."""
+    return currency not in NO_EUR_NEEDED
+
+
 def fmt_eur_short(value):
     return "≈ " + fmt_money_short(value, "EUR") if value else ""
 

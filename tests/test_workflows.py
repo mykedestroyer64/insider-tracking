@@ -131,9 +131,10 @@ with tempfile.TemporaryDirectory() as folder:
     outputs = {"house": "reading the list...\n[OK] list: 2 reports\nVERDICT: OK - the House site can be read\n",
                "crashed": "Traceback (most recent call last):\n",
                "zzz": "[OK] something new\nVERDICT: OK - a check added later\n"}
-    for name, text in outputs.items():
+    for order, (name, text) in enumerate(outputs.items()):           # house ran first, zzz last
         (checks_dir / "output" / name).mkdir(parents=True)
         (checks_dir / "output" / name / "console.log").write_text(text)
+        os.utime(checks_dir / "output" / name / "console.log", (1_800_000_000 + order, 1_800_000_000 + order))
     (checks_dir / "output" / "examples").mkdir()
     summary_file = checks_dir / "summary.md"
     result = bash(summary_script, checks_dir, {**os.environ, "GITHUB_STEP_SUMMARY": str(summary_file)})
@@ -143,6 +144,8 @@ with tempfile.TemporaryDirectory() as folder:
           result.returncode == 0 and "### HOUSE" in summary and "**VERDICT: OK - the House site can be read**" in summary
           and "[OK] list: 2 reports" in summary and "### ZZZ" in summary and "reading the list" not in summary,
           (result.returncode, result.stderr))
+    check("in the order the checks ran", 0 <= summary.find("### HOUSE") < summary.find("### CRASHED")
+          < summary.find("### ZZZ"), summary)
     check("a check that stopped early says so", "### CRASHED\n**No verdict.**" in summary, summary)
     check("and the other checks' lines are still posted as notes",
           "::notice title=HOUSE check::[OK] list: 2 reports" in result.stdout

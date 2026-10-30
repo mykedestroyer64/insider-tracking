@@ -7,7 +7,8 @@ run.py - the SEC collector's steps (the wiring is in collector.py).
      download each new Form 4 and keep the same kind of trades (daily.py)
 Filings seen before are updated, never duplicated, so the two sources can overlap.
 
-Written against the interfaces in ../ports.py only: no database or web code in here.
+Written against the interfaces in ../ports.py only: it reaches no database and sends no
+requests itself (the site gateway does; what it uses from web/ only reads a page it was given).
 """
 
 from datetime import datetime
@@ -17,7 +18,7 @@ from ...core.text import plural
 from ...runs.summary import whole_database_note
 from ..ports import Bookmarks, Budget, InsiderStore, Note, SecGateway, SizeGauge
 from .daily import DailyLists
-from .names import ENTITY_SQL
+from .names import ENTITY
 from .quarterly import QuarterlyFiles
 
 
@@ -42,7 +43,7 @@ class SecRun:
     # ------------------------------------------------------------- the run
 
     def prepare(self):
-        removed = self.filings.remove_entities(ENTITY_SQL)
+        removed = self.filings.remove_entities(ENTITY)
         before = self.filings.counts()
         return (f"tables ready, {before['trades']:,} insider trades stored so far"
                 + (f" ({removed:,} rows by funds or companies removed)" if removed else ""))

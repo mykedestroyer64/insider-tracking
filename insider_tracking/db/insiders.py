@@ -14,6 +14,11 @@ INSIDER_TRADE_COLUMNS = ["accession", "row_key", "insider_cik", "insider_name", 
                          "shares_after", "direct", "nature", "security", "suspect", "suspect_reason"]
 
 
+def postgres_pattern(pattern):
+    """A Python regular expression as PostgreSQL writes it (its word boundary is \\y, not \\b)."""
+    return pattern.pattern.replace("\\b", "\\y")
+
+
 class InsiderFilings:
     def __init__(self, db):
         self.db = db
@@ -54,12 +59,12 @@ class InsiderFilings:
         return new
 
     def remove_entities(self, pattern):
-        """Delete trades attributed to funds or companies (saved before the rule that keeps people only).
-
-        `pattern` is a PostgreSQL regular expression; returns how many trades went."""
+        """Delete trades attributed to funds or companies (saved before the rule that keeps people
+        only): names that `pattern` finds (a Python regular expression, any case) and names that
+        start with a digit. Returns how many trades went."""
         with self.db.transaction() as cursor:
             cursor.execute("delete from insider_trades where insider_name ~* %s or insider_name ~ '^\\d' returning 1",
-                           (pattern,))
+                           (postgres_pattern(pattern),))
             removed = len(cursor.fetchall())
             cursor.execute("delete from insider_filings f where not exists "
                            "(select 1 from insider_trades t where t.accession = f.accession)")

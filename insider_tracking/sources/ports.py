@@ -76,10 +76,15 @@ class ReportResults(Protocol):
 
 
 @runtime_checkable
-class InsiderStore(Protocol):
-    """SEC Form 4 filings and their buys and sells."""
+class FilingSaver(Protocol):
+    """Where a step saves SEC Form 4 filings and their buys and sells."""
 
     def save(self, filings, trades, source) -> int: ...
+
+
+@runtime_checkable
+class InsiderStore(FilingSaver, Protocol):
+    """SEC Form 4 filings and their buys and sells (db/insiders.py), for the run as a whole."""
 
     def remove_entities(self, pattern) -> int: ...
 
@@ -148,18 +153,28 @@ class HouseGateway(Protocol):
 
 
 @runtime_checkable
-class SecGateway(Protocol):
-    """The SEC's data sets and EDGAR (sources/sec/site.py)."""
+class SecQuarterlyFiles(Protocol):
+    """The SEC's quarterly data files (sources/sec/site.py)."""
 
     def quarterly_files(self) -> dict: ...
 
     def quarterly_file(self, url): ...
+
+
+@runtime_checkable
+class SecDailyLists(Protocol):
+    """EDGAR's daily lists of filings, and the filings (sources/sec/site.py)."""
 
     def listed_days(self, year, quarter) -> set: ...
 
     def daily_index(self, year, quarter, day): ...
 
     def filing(self, path): ...
+
+
+@runtime_checkable
+class SecGateway(SecQuarterlyFiles, SecDailyLists, Protocol):
+    """Both, for the SEC run, which hands each step its part."""
 
 
 @runtime_checkable

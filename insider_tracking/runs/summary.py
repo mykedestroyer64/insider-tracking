@@ -1,7 +1,8 @@
 """summary.py - pieces of the lines that sum a run up."""
 
 from ..core.errors import DatabaseError
-from ..db.size import FREE_PLAN_MB
+
+FREE_PLAN_MB = 500        # Supabase's free plan
 
 
 def whole_database_note(size):

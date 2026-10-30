@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_insider_macros.html" import insider_table, insider_cell, company_cell, value_cell, market_chips %}
 {% block title %}Company insiders{% if not all_markets %} in {{ market.name }}{% endif %} · Insider Tracking{% endblock %}
-{% block description %}{% if all_markets %}Buys and sells of their own company’s shares by executives and board members, from the official registers in the United States and Europe: the latest trades, the biggest of the month and the most active companies.{% else %}Buys and sells of their own company’s shares by executives and board members in {{ market.name }}, from {{ market.source }}: the latest trades, the biggest of the month and the most active companies.{% endif %}{% endblock %}
+{% block description %}{% if all_markets %}Buys and sells of their own company’s shares by executives and board members, from the official registers in {{ regions }}: the latest trades, the biggest of the month and the most active companies.{% else %}Buys and sells of their own company’s shares by executives and board members in {{ market.name }}, from {{ market.source }}: the latest trades, the biggest of the month and the most active companies.{% endif %}{% endblock %}
 {% block content %}
 <section class="page-head">
 <div class="hero-text">
@@ -20,8 +20,8 @@
 
 <section class="section">
 <dl class="tiles on-white" aria-label="Last 30 days">
-<div class="tile"><dt class="muted">Buys, last 30 days</dt><dd class="big">{{ fmt_number(stats.buys_30d) }}<span class="of"> {% if all_markets %}{{ fmt_money_short(stats.bought_30d_eur, "EUR") }}{% else %}{{ fmt_money_short(stats.bought_30d, stats.currency) }}{% if stats.currency not in ("USD", "EUR") %} {{ fmt_eur_short(stats.bought_30d_eur) }}{% endif %}{% endif %}</span></dd></div>
-<div class="tile"><dt class="muted">Sells, last 30 days</dt><dd class="big">{{ fmt_number(stats.sells_30d) }}<span class="of"> {% if all_markets %}{{ fmt_money_short(stats.sold_30d_eur, "EUR") }}{% else %}{{ fmt_money_short(stats.sold_30d, stats.currency) }}{% if stats.currency not in ("USD", "EUR") %} {{ fmt_eur_short(stats.sold_30d_eur) }}{% endif %}{% endif %}</span></dd></div>
+<div class="tile"><dt class="muted">Buys, last 30 days</dt><dd class="big">{{ fmt_number(stats.buys_30d) }}<span class="of"> {% if all_markets %}{{ fmt_money_short(stats.bought_30d_eur, "EUR") }}{% else %}{{ fmt_money_short(stats.bought_30d, stats.currency) }}{% if shows_eur(stats.currency) %} {{ fmt_eur_short(stats.bought_30d_eur) }}{% endif %}{% endif %}</span></dd></div>
+<div class="tile"><dt class="muted">Sells, last 30 days</dt><dd class="big">{{ fmt_number(stats.sells_30d) }}<span class="of"> {% if all_markets %}{{ fmt_money_short(stats.sold_30d_eur, "EUR") }}{% else %}{{ fmt_money_short(stats.sold_30d, stats.currency) }}{% if shows_eur(stats.currency) %} {{ fmt_eur_short(stats.sold_30d_eur) }}{% endif %}{% endif %}</span></dd></div>
 <div class="tile"><dt class="muted">Companies, last 30 days</dt><dd class="big">{{ fmt_number(stats.companies_30d) }}</dd></div>
 <div class="tile"><dt class="muted">Insiders, last 30 days</dt><dd class="big">{{ fmt_number(stats.insiders_30d) }}</dd></div>
 <div class="tile"><dt class="muted">{% if all_markets %}Trades recorded{% else %}Trades since {{ market.since }}{% endif %}</dt><dd class="big">{{ fmt_number(stats.trades_total) }}</dd></div>

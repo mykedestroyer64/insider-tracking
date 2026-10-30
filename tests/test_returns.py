@@ -12,6 +12,8 @@ import zipfile
 from datetime import date, datetime, timedelta, timezone
 from urllib.parse import parse_qs, urlparse
 
+from insider_tracking.core.errors import SiteStop
+from insider_tracking.core.status import CHANGED
 from insider_tracking.db.database import Database
 from insider_tracking.db.schema import ensure_schema
 from insider_tracking.runs.command import CollectorCommand
@@ -289,4 +291,42 @@ check("server error: SITE_DOWN", code == 1 and "SITE_DOWN at step 2" in verdict,
 STATE["fail"] = None
 
 check("runs recorded as returns", int(q("select count(*) from collector_runs where collector='returns'")[0][0]) >= 6)
+
+check.section("no prices in a stop's explanation (it becomes a public note)")
+
+
+class Answer:
+    def __init__(self, text, status_code=200):
+        self.content, self.text, self.status_code, self.headers = text.encode(), text, status_code, {}
+
+
+class OneAnswer:
+    """A web client that gives the same answer to every request."""
+
+    def __init__(self, answer):
+        self.answer = answer
+
+    def get(self, url, check=None, **options):
+        if check:
+            check(self.answer)
+        return self.answer
+
+
+for name, text, status in (("prices without the header line", "2026-09-01,226.2100\n2026-09-02,229.7200\n", 200),
+                           ("prices as JSON", '{"datatable": {"data": [["2026-09-01", 226.21]]}}', 200),
+                           ("prices with an unexpected status", "date,closeadj\n2026-09-01,226.2100\n", 206)):
+    api = sharadar_site.SharadarApi(OneAnswer(Answer(text, status)), GOOD_KEY)
+    try:
+        api.closes("stocks", "AAPL", date(2026, 9, 1), date(2026, 9, 30))
+        check(f"{name}: the run stops", False)
+    except SiteStop as stop:
+        print("  ", stop.detail)
+        check(f"{name}: CHANGED, and the explanation has none of the answer's numbers",
+              stop.status == CHANGED and "226" not in stop.detail and "2026-09" not in stop.detail, stop.detail)
+api = sharadar_site.SharadarApi(OneAnswer(Answer("<html><body>Service unavailable</body></html>")), GOOD_KEY)
+try:
+    api.closes("stocks", "AAPL", date(2026, 9, 1), date(2026, 9, 30))
+except SiteStop as stop:
+    check("a page without digits is still quoted, to see what it was",
+          "HTML or XML" in stop.detail and "Service unavailable" in stop.detail, stop.detail)
 sys.exit(check.finish())

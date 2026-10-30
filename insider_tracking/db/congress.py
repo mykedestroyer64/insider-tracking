@@ -14,7 +14,7 @@ from .database import chunks, row_slots
 REPORT_COLUMNS = ["report_path", "report_uuid", "kind", "status", "first_name", "last_name",
                   "filer_name", "filer_type", "title", "is_amendment", "date_received", "url",
                   "chamber", "state_district"]
-REPORT_DEFAULTS = {"chamber": "senate", "state_district": None}
+REPORT_DEFAULTS = {"state_district": None}
 TRANSACTION_COLUMNS = ["report_path", "row_number", "transaction_date", "owner", "ticker",
                        "asset_name", "asset_type", "transaction_type", "trade_type", "amount",
                        "amount_min", "amount_max", "comment", "raw"]
@@ -24,7 +24,7 @@ QUEUE_COLUMNS = ["report_path", "url", "first_name", "last_name", "date_received
 
 class CongressReports:
     """One chamber's reports: chamber is "senate" or "house" (every count and queue is that
-    chamber's; reports are added with the chamber they carry)."""
+    chamber's, and reports are added as that chamber's unless they say otherwise)."""
 
     def __init__(self, db, chamber):
         self.db = db
@@ -55,7 +55,7 @@ class CongressReports:
             for chunk in chunks(reports, 100):
                 params = []
                 for report in chunk:
-                    values = dict(REPORT_DEFAULTS, **report)
+                    values = {**REPORT_DEFAULTS, "chamber": self.chamber, **report}
                     values["status"] = STATUS_FOR_KIND.get(report["kind"], "other")
                     params += [values[column] for column in REPORT_COLUMNS]
                 cursor.execute(

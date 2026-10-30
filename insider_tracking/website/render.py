@@ -38,7 +38,7 @@ def template_globals(config, congress, insiders, build_id):
         "headline": headline, "days_text": days_text, "trade_json": home_trade_json,
         "short_asset": short_asset, "fmt_money": formatting.fmt_money,
         "fmt_money_short": formatting.fmt_money_short, "fmt_shares": formatting.fmt_shares,
-        "fmt_price": formatting.fmt_price, "fmt_eur_short": formatting.fmt_eur_short,
+        "fmt_price": formatting.fmt_price, "fmt_eur_short": formatting.fmt_eur_short, "shows_eur": formatting.shows_eur,
         "has_insiders": bool(insiders.trades), "insider_markets": insiders.markets,
         "fmt_pct": formatting.fmt_pct, "periods": PERIODS,
         "period_label": LABELS, "period_short": SHORT,

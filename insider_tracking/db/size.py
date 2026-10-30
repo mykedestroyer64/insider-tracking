@@ -1,6 +1,4 @@
-"""size.py - how big the database and its tables are (Supabase's free plan allows 500 MB)."""
-
-FREE_PLAN_MB = 500
+"""size.py - how big the database and its tables are."""
 
 
 class DatabaseSize:

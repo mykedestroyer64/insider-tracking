@@ -56,6 +56,10 @@ class Market:
     since: str = ""
     rule: str = ""              # who must report what, for the market's page
     coverage: str = ""          # what the site has, for the all-markets page
+    insiders_note: str = ""     # a stock page's line about its insiders' trades ("{company}": its name)
+    region: str = ""            # where it is, for the all-markets page ("the United States", "Europe")
+    timezone: str = ""          # the time zone of its register's publication times (the filing day is
+                                # the day there); "" when its filings are dated by day
     system: FilingSystem | None = None
     home: bool = False          # the site's home market: members of Congress trade its stocks, and its
                                 # companies need no country after their name
@@ -70,7 +74,9 @@ MARKETS = {market.code: market for market in (
            rule="Officers and directors must report trades in their own company’s stock to the SEC within two "
                 "business days, on Form 4.",
            coverage="open-market buys and sells by officers and directors of US-listed companies since 2021",
-           system=FORM_4, home=True, returns=True),
+           insiders_note="Open-market buys and sells by {company}’s own officers and directors, reported to the "
+                         "SEC on Form 4 (since 2021).",
+           region="the United States", system=FORM_4, home=True, returns=True),
     Market(code="SE", slug="sweden", name="Sweden", currency="SEK",
            regulator="Finansinspektionen", source="Finansinspektionen’s register", since="July 2016",
            rule="Executives and board members of companies listed in Sweden must report trades in their company’s "
@@ -78,9 +84,25 @@ MARKETS = {market.code: market for market in (
                 "Abuse Regulation, Article 19).",
            coverage="buys and sells of shares by executives and board members of companies listed in Sweden "
                     "since July 2016",
+           insiders_note="Buys and sells of {company} shares by its own executives and board members, reported "
+                         "to Finansinspektionen (since July 2016).",
+           region="Europe", timezone="Europe/Stockholm",
            system=MAR_REGISTER, short_name=company_short_name, entry_url=register_search_url),
 )}
 ALL_MARKETS = Market(code="ALL", slug="", name="All markets", currency="EUR")
+
+
+def regions():
+    """Where the markets are, in words: 'the United States and Europe'."""
+    names = list(dict.fromkeys(market.region for market in MARKETS.values()))
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def published_day_sql(column):
+    """SQL: the day a register published a filing (`column`, a timestamp), in its country's time zone."""
+    zones = " ".join(f"when '{market.code}' then '{market.timezone}'" for market in MARKETS.values()
+                     if market.timezone)
+    return f"to_char({column} at time zone (case country {zones} else 'UTC' end), 'YYYY-MM-DD')"
 
 
 def market_of(country):

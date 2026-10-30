@@ -22,6 +22,20 @@ WHO = "Sharadar"
 ROW_LIMIT = 10000          # Sharadar answers at most this many rows per request
 
 
+def answer_shape(text):
+    """What an answer that isn't what was expected looks like, without its values: a stop's
+    explanation is printed, posted as a public note and saved with the run, and Sharadar's prices
+    must never appear anywhere. Its first line is quoted only when it has no digits."""
+    lines = text.splitlines()
+    if not lines:
+        return "an empty answer"
+    start = text.lstrip()[:1]
+    kind = "JSON" if start in ("{", "[") else "HTML or XML" if start == "<" else "text"
+    first = lines[0].strip()
+    quoted = f", starting {first[:60]!r}" if first and not any(c.isdigit() for c in first) else ""
+    return f"{kind}, {len(lines):,} line{'s' if len(lines) != 1 else ''}{quoted}"
+
+
 @dataclass(frozen=True)
 class SharadarEndpoints:
     api: str = "https://api.sharadar.com/v1.0/data/"
@@ -29,7 +43,8 @@ class SharadarEndpoints:
 
 class SharadarCheck:
     """Sharadar's answers: 200 (data) and 302 (a file to fetch) are fine; a 401/403 that talks
-    about the key is a KEY_PROBLEM; other 403s and 429 are refusals (BLOCKED)."""
+    about the key is a KEY_PROBLEM; other 403s and 429 are refusals (BLOCKED). Refusals quote
+    Sharadar's message; any other answer is only described (it could hold prices)."""
 
     def __init__(self, what):
         self.what = what      # "AAPL prices", "the tickers table": named in the stop's explanation
@@ -45,7 +60,7 @@ class SharadarCheck:
             raise SiteStop(BLOCKED, f"HTTP {code} for {self.what}: Sharadar refused the request: {text}", response)
         if code >= 500:
             raise SiteStop(SITE_DOWN, f"HTTP {code} server error for {self.what}, also after one retry", response)
-        raise SiteStop(CHANGED, f"HTTP {code} for {self.what}: {text}", response)
+        raise SiteStop(CHANGED, f"HTTP {code} for {self.what}: {answer_shape(response.text)}", response)
 
 
 class SharadarApi:
@@ -72,7 +87,7 @@ class SharadarApi:
         text = content.decode("utf-8-sig", errors="replace")
         if not text.startswith("table,") and "permaticker" not in text[:300]:
             raise SiteStop(CHANGED, f"the {table} file doesn't look like Sharadar's table "
-                                    f"(it starts: {text[:80]!r})", response)
+                                    f"({answer_shape(text)})", response)
         return text
 
     def closes(self, table, ticker, start, end):
@@ -88,7 +103,7 @@ class SharadarApi:
             lines = text.splitlines()
             if not lines or not lines[0].lower().startswith("date"):
                 raise SiteStop(CHANGED, f"the prices of {ticker} don't look like Sharadar's CSV "
-                                        f"(they start: {text[:60]!r})", response)
+                                        f"({answer_shape(text)})", response)
             parts.append(lines if not parts else lines[1:])
             if len(lines) - 1 < ROW_LIMIT:
                 break

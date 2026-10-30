@@ -7,8 +7,9 @@ the trade_returns table and of finding it in Sharadar's list of securities:
              filing's ticker helps choose between its share classes)
 
 The database lists each kind's trades (db/returns.py, one query per kind, by the same name), and
-the website names a trade's stock with the same key to find its returns. A new kind of trade is
-one more ReturnKind here and its query there; the returns run itself doesn't change.
+the website names a trade's stock with the same key to find its returns (website/returns/rules.py,
+which also decides which of the site's trades are of the kind). A new kind of trade is one more
+ReturnKind here, its query there and its rule on the website; the returns run doesn't change.
 """
 
 from dataclasses import dataclass

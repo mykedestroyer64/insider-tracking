@@ -10,7 +10,8 @@ run.py - the Swedish executives collector's steps (the wiring is in collector.py
 Lines seen before are updated, never duplicated, so the windows can overlap and a
 notification that is later revised or cancelled is marked as such.
 
-Written against the interfaces in ../ports.py only: no database or web code in here.
+Written against the interfaces in ../ports.py only: it reaches no database and sends no
+requests itself (the site gateway does; what it uses from web/ only reads a page it was given).
 """
 
 from datetime import date, timedelta

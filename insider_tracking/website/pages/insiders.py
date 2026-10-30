@@ -8,6 +8,7 @@ from collections import defaultdict
 from datetime import date
 
 from .. import charts
+from ..insiders.markets import regions
 from ..returns.rules import summary
 
 
@@ -20,7 +21,7 @@ class InsiderPages:
             path = "/insiders/index.html" if country is None else f"/insiders/{market.slug}/index.html"
             weekly = ins.weekly_counts(country=country)
             site.writer.page("insiders.html", path, page="insiders", market=market, markets=ins.markets,
-                             all_markets=country is None,
+                             all_markets=country is None, regions=regions(),
                              stats=ins.overview(country=country), latest=ins.latest(country=country),
                              biggest_buys=ins.biggest("buy", country=country), biggest_sells=ins.biggest("sell", country=country),
                              most_active=ins.most_active(country=country), weekly=weekly,
