@@ -32,7 +32,8 @@ def insider_rows(trades):
 class StockPages:
     def build(self, site):
         ds, ins = site.congress, site.insiders
-        stocks = dict(ds.stocks)
+        # the pages' own copies of the stocks: ds.stocks stays as loaded, for the pages built after these
+        stocks = {slug: dict(stock) for slug, stock in ds.stocks.items()}
         for slug, company in ins.companies.items():       # companies only insiders traded get a page too
             if slug not in stocks:                           # (European ones always: their slug is "se/name")
                 stocks[slug] = {"ticker": company.ticker, "slug": slug, "name": company.name, "names": Counter(),

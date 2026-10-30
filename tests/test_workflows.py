@@ -124,6 +124,31 @@ check("each check is started by its own name only (secdays doesn't start the SEC
       and steps_started("house sec sweden netherlands") == ["house", "sec", "sweden", "netherlands"],
       steps_started("libs secdays dbsize sharadar"))
 
+summary_script = next(step["run"] for step in checks_workflow["jobs"]["check"]["steps"]
+                      if step["name"] == "Write the verdicts to the job summary")
+with tempfile.TemporaryDirectory() as folder:
+    checks_dir = Path(folder)
+    outputs = {"house": "reading the list...\n[OK] list: 2 reports\nVERDICT: OK - the House site can be read\n",
+               "crashed": "Traceback (most recent call last):\n",
+               "zzz": "[OK] something new\nVERDICT: OK - a check added later\n"}
+    for name, text in outputs.items():
+        (checks_dir / "output" / name).mkdir(parents=True)
+        (checks_dir / "output" / name / "console.log").write_text(text)
+    (checks_dir / "output" / "examples").mkdir()
+    summary_file = checks_dir / "summary.md"
+    result = bash(summary_script, checks_dir, {**os.environ, "GITHUB_STEP_SUMMARY": str(summary_file)})
+    summary = summary_file.read_text() if summary_file.exists() else ""
+    print(summary)
+    check("the summary has every check that saved its output, whatever its name",
+          result.returncode == 0 and "### HOUSE" in summary and "**VERDICT: OK - the House site can be read**" in summary
+          and "[OK] list: 2 reports" in summary and "### ZZZ" in summary and "reading the list" not in summary,
+          (result.returncode, result.stderr))
+    check("a check that stopped early says so", "### CRASHED\n**No verdict.**" in summary, summary)
+    check("and the other checks' lines are still posted as notes",
+          "::notice title=HOUSE check::[OK] list: 2 reports" in result.stdout
+          and "::notice title=ZZZ check::VERDICT: OK - a check added later" in result.stdout, result.stdout)
+    check("a folder without a console log is left out", "EXAMPLES" not in summary)
+
 check.section("the tests workflow")
 tests_workflow = load("tests.yml")
 tests_job = tests_workflow["jobs"]["tests"]

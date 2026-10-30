@@ -19,6 +19,7 @@ from pathlib import Path
 from insider_tracking.db.database import Database
 from insider_tracking.db.schema import ensure_schema
 from insider_tracking.website.build import SiteBuild
+from insider_tracking.website.pages import PAGES, PageBuilder
 from insider_tracking.website.people.dataset import FixedRecords
 
 from .support.checks import Checks
@@ -116,6 +117,8 @@ if not REAL:
     check("277 pages: every trade, filer, stock and insider",
           "277 pages, 3935 trades, 30 filers, 31 stocks, 335 insider trades by 131 insiders at 74 companies "
           "(United States 100, Sweden 235)" in result.out)
+check("every page builder is a PageBuilder (build(site))", all(isinstance(page, PageBuilder) for page in PAGES),
+      [type(page).__name__ for page in PAGES if not isinstance(page, PageBuilder)])
 
 check.section("the pages")
 files = sorted(OUT.rglob("*"))

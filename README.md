@@ -63,8 +63,20 @@ break another:
 
 - **One job per part.** Talking to a site, reading its pages and saving the results are separate
   modules, so a site that changes its pages means a change in one parsing module only.
-- **New sources plug in.** A new data source is a new folder in `sources/` plus one line in
-  `cli.py` and a small workflow file; nothing that already works has to change.
+- **New parts plug in.** Each kind of addition has its own place, and the only existing files
+  that change are the lists it is added to:
+  - a new data source: a folder in `sources/` (its site, parsing, steps and wiring), its tables at
+    the end of the list in `db/schema.py` with a repository for them in `db/`, one line in
+    `cli.py`, and a small workflow file that calls `_collector.yml` (with its name added to
+    `site.yml`, so the site is rebuilt after it runs, and to `tests/test_workflows.py`);
+  - a new country of company insiders: its collector, and one `Market` in
+    `website/insiders/markets.py` (its words, its currency and how its filings work); the pages
+    and the counting rules read everything from there;
+  - a new kind of trade with returns: one `ReturnKind` in `sources/returns/kinds.py` and its query
+    in `db/returns.py`;
+  - a new page: a builder in `website/pages/` and one entry in the `PAGES` list there;
+  - a new access check: a module in `checks/`, one line in `cli.py` and a step in
+    `new-sources-check.yml` (its results are summed up whatever its name).
 - **Parts depend on small interfaces, not on each other's details.** A collector's steps ask for
   "somewhere to save reports" or "a site to read", and the run hands them the real database and
   the real site. The tests hand them stand-ins instead.

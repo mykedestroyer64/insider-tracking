@@ -16,10 +16,6 @@ class DatabaseSize:
         """The whole database's size in MB, rounded."""
         return round(self.database_bytes() / 1024 / 1024)
 
-    def whole_database_note(self):
-        """' (whole database 318 MB of the free plan's 500 MB)', for the end of a run's summary."""
-        return f" (whole database {self.total_mb()} MB of the free plan's {FREE_PLAN_MB} MB)"
-
     def tables(self):
         """[(table, total bytes)], biggest first."""
         with self.db.transaction() as cursor:

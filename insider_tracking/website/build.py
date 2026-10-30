@@ -49,6 +49,7 @@ class SiteBuild:
         return parser
 
     def run(self, argv, platform):
+        """The build: read the database, add party and state, attach the returns, write the pages."""
         args = self.parser().parse_args(argv)
         log = platform.console.line
         config = SiteConfig.read(platform.environ, args.base, args.site_url)
@@ -62,8 +63,27 @@ class SiteBuild:
             f"data updated {congress.updated or 'never'}")
 
         log("Matching names to the legislators list…")
+        self.add_people(congress, args.offline, platform)
+
+        found = attach(perfs, congress.trades, insiders.trades)
+        log(f"  returns: {len(perfs):,} stored, {found:,} trades shown with one")
+
+        log("Writing pages…")
+        writer = self.write(args.out, config, congress, insiders, platform)
+        markets = ", ".join(f"{m.name} {sum(1 for t in insiders.trades if t.country == m.code):,}"
+                            for m in insiders.markets)
+        log(f"  {len(writer.pages)} pages, {len(congress.trades)} trades, {len(congress.filers)} filers, "
+            f"{len(congress.stocks)} stocks, {len(insiders.trades)} insider trades by {len(insiders.people)} insiders "
+            f"at {len(insiders.companies)} companies" + (f" ({markets})" if markets else ""))
+        log(f"Done in {(platform.clock.now() - started).total_seconds():.1f} s")
+        return 0
+
+    def add_people(self, congress, offline, platform):
+        """Party and state for each member of Congress: their names matched to the legislators
+        list (and the corrections file)."""
+        log = platform.console.line
         today = platform.clock.today()
-        legislators = [Legislator(record, today) for record in self.legislators.records(args.offline, log)]
+        legislators = [Legislator(record, today) for record in self.legislators.records(offline, log)]
         matcher = Matcher(legislators, load_overrides(self.overrides, warn=platform.console.error), log=log)
         congress.apply_people(matcher)
         log(f"  {matcher.matched} filers matched")
@@ -73,25 +93,17 @@ class SiteBuild:
             for filer in matcher.unmatched:
                 log(f"    {filer.key!r}: {filer.match_note}")
 
-        found = attach(perfs, congress.trades, insiders.trades)
-        log(f"  returns: {len(perfs):,} stored, {found:,} trades shown with one")
-
-        log("Writing pages…")
+    def write(self, out, config, congress, insiders, platform):
+        """Every page, by the builders in order; returns the writer (it lists the pages written)."""
         build_id = str(int(platform.clock.now().timestamp()))
         renderer = Renderer(TEMPLATES, template_globals(config, congress, insiders, build_id))
-        writer = SiteWriter(args.out, renderer, config.base)
+        writer = SiteWriter(out, renderer, config.base)
         writer.start(STATIC)
         site = SiteContext(congress=congress, insiders=insiders, writer=writer, config=config,
                            now=platform.clock.now(), today=platform.clock.today())
         for page in self.pages:
             page.build(site)
-        markets = ", ".join(f"{m.name} {sum(1 for t in insiders.trades if t.country == m.code):,}"
-                            for m in insiders.markets)
-        log(f"  {len(writer.pages)} pages, {len(congress.trades)} trades, {len(congress.filers)} filers, "
-            f"{len(congress.stocks)} stocks, {len(insiders.trades)} insider trades by {len(insiders.people)} insiders "
-            f"at {len(insiders.companies)} companies" + (f" ({markets})" if markets else ""))
-        log(f"Done in {(platform.clock.now() - started).total_seconds():.1f} s")
-        return 0
+        return writer
 
     def read(self, platform):
         """Everything the pages need from the database: (Congress data, insider data, returns)."""

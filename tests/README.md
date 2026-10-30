@@ -17,6 +17,8 @@ GitHub runs them by itself on every push and every pull request (the **Tests** w
 | `test_sec_parsing.py` | Which SEC filings and trades are kept |
 | `test_sweden.py` | The Swedish collector: recent weeks, the history, robots.txt, a refusal, the export's line limit |
 | `test_returns.py` | The returns collector: matching trades to securities and working out the returns |
+| `test_runs.py`, `test_report_queue.py`, `test_sec_daily.py` | The collectors' steps on their own, with stand-ins for the database and the sites (no web server, no database) |
+| `test_ports.py` | Every real repository and site gateway fits the interface the collectors' steps are written against |
 | `test_efd_check.py`, `test_house_check.py`, `test_sec_check.py`, `test_sweden_check.py`, `test_netherlands_check.py` | The access checks |
 | `test_sharadar_check.py`, `test_probes.py` | The probes that only post notes (Sharadar, EDGAR's daily lists, library versions) |
 | `test_schema.py` | Bringing the tables up to date, only when they aren't, without waiting for a collector that is saving |

@@ -39,9 +39,9 @@ class Bookmarks(Protocol):
 
 @runtime_checkable
 class SizeGauge(Protocol):
-    """The database's size, for the end of a run's summary."""
+    """How big the whole database is, for the end of a run's summary."""
 
-    def whole_database_note(self) -> str: ...
+    def total_mb(self) -> int: ...
 
 
 # ------------------------------------------------------------------ the stores

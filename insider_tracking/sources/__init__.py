@@ -16,4 +16,9 @@ Shared by the sources:
                    checks that every real repository and gateway fits its interface)
   report_queue.py  reading a queue of reports one by one (Senate and House)
   congress.py      the rules the Senate's and the House's reports share
+
+A new source is a new folder like these, plus: its tables (statements at the end of the list in
+db/schema.py, and a repository for them in db/), its command in cli.py ("collect <name>"), and
+a workflow file that calls _collector.yml. README.md ("The code") lists every place each kind
+of addition goes.
 """
