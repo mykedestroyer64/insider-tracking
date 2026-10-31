@@ -1,12 +1,13 @@
 # Builds the website from the database and publishes it to GitHub Pages.
-# Runs every 6 hours, whenever the code or the site's files change on main, and on request.
-# (Not after every collector run for now: each build downloads the whole database, and
-# Supabase's free plan allows 5 GB of downloads a month.)
+# Runs every 3 hours (like the collectors), whenever the code or the site's files change on
+# main, and on request. Supabase's free plan allows 5 GB of downloads a month, so a copy of the
+# data is kept between builds and each build downloads only what changed since the last one
+# (insider_tracking/website/datacopy.py); the build's notes say how much that was.
 name: Publish the website
 
 on:
   schedule:
-    - cron: "17 */6 * * *"
+    - cron: "17 */3 * * *"
   push:
     branches: [main]
     paths: ["site/**", "insider_tracking/**", ".github/workflows/site.yml", "requirements.txt"]
@@ -44,6 +45,13 @@ jobs:
           key: legislators-${{ github.run_id }}
           restore-keys: legislators-
 
+      - name: Keep a copy of the data between builds (only what changed is downloaded)
+        uses: actions/cache@v6
+        with:
+          path: site-data
+          key: site-data-${{ github.run_id }}
+          restore-keys: site-data-
+
       - name: Build the website
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
@@ -51,13 +59,13 @@ jobs:
           SITE_URL: ${{ vars.SITE_URL }}               # optional: set when the site gets its own domain
           SITE_BASE_PATH: ${{ vars.SITE_BASE_PATH }}   # optional: "/" for a custom domain
         shell: bash
-        run: python -u -m insider_tracking site build --out _site 2>&1 | tee build.log
+        run: python -u -m insider_tracking site build --out _site --copy site-data/data.json.gz 2>&1 | tee build.log
 
       - name: Post the build's summary as notes (readable through GitHub's API)
         if: always()
         shell: bash
         run: |
-          grep -E 'reports, .* trades|filers matched|without party/state|^    .\w+\|' build.log 2>/dev/null | head -40 | while IFS= read -r line; do
+          grep -E 'reports, .* trades|downloaded .* from the database|copy of the data|filers matched|without party/state|^    .\w+\|' build.log 2>/dev/null | head -40 | while IFS= read -r line; do
             echo "::notice title=Site build::$line"
           done || true
           if grep -q Traceback build.log 2>/dev/null; then   # the build crashed: post the error as one note

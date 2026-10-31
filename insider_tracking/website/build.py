@@ -8,6 +8,10 @@ the result to GitHub Pages. You can also run it on your computer:
 
 The build: read the database; add party and state from the legislators list; attach the
 returns; write every page (pages/), in order.
+
+With --copy FILE, a copy of the database's rows is kept in FILE between builds, and only what
+changed since the last build is downloaded (datacopy.py): Supabase's free plan allows 5 GB of
+downloads a month, and the whole database is a few hundred MB.
 """
 
 import argparse
@@ -18,6 +22,7 @@ from ..runs.settings import Settings
 from .config import CACHE, OVERRIDES, STATIC, TEMPLATES, SiteConfig
 from .congress import loader as congress_loader
 from .congress.data import CongressData
+from .datacopy import CopiedRows, DataCopy
 from .insiders import loader as insider_loader
 from .pages import PAGES, SiteContext
 from .people.dataset import PublicDataset
@@ -27,6 +32,7 @@ from .people.overrides import load_overrides
 from .render import Renderer, template_globals
 from .returns import loader as returns_loader
 from .returns.rules import attach
+from .rows import LiveRows
 from .writer import SiteWriter
 
 
@@ -46,6 +52,8 @@ class SiteBuild:
         parser.add_argument("--base", help="base path on the domain, e.g. /insider-tracking")
         parser.add_argument("--site-url", help="full address of the site")
         parser.add_argument("--offline", action="store_true", help="don't download the legislators list")
+        parser.add_argument("--copy", help="keep a copy of the data in this file between builds, and download "
+                                           "only what changed")
         return parser
 
     def run(self, argv, platform):
@@ -57,10 +65,12 @@ class SiteBuild:
         started = platform.clock.now()
 
         log("Reading the database…")
-        congress, insiders, perfs = self.read(platform)
+        congress, insiders, perfs, copied = self.read(platform, args.copy)
         log(f"  {len(congress.reports)} reports, {len(congress.trades)} trades, "
             f"{len(congress.filers)} filers; {len(insiders.trades)} insider trades; "
             f"data updated {congress.updated or 'never'}")
+        if copied:
+            log("  " + copied.summary())
 
         log("Matching names to the legislators list…")
         self.add_people(congress, args.offline, platform)
@@ -105,21 +115,27 @@ class SiteBuild:
             page.build(site)
         return writer
 
-    def read(self, platform):
-        """Everything the pages need from the database: (Congress data, insider data, returns)."""
+    def read(self, platform, copy_path=None):
+        """Everything the pages need from the database: (Congress data, insider data, returns,
+        the CopiedRows that read them when a copy is kept, or None)."""
         settings = Settings.read(platform.environ)
         if not settings.db_url:
             raise DatabaseError("SUPABASE_DB_URL is not set")
         db = Database(platform.connect(settings.db_url, settings.db_password))
         try:
             today = platform.clock.today()
-            reports, trades, updated = congress_loader.load(db)
+            copied = CopiedRows(db, DataCopy.load(copy_path, platform.console.line)) if copy_path else None
+            source = copied or LiveRows(db)
+            reports, trades, updated = congress_loader.load(source)
             congress = CongressData(reports, trades, updated, today)
-            insiders = insider_loader.load(db, today)
-            perfs = returns_loader.load(db)
+            insiders = insider_loader.load(source, today)
+            perfs = returns_loader.load(source)
         finally:
             db.close()
-        return congress, insiders, perfs
+        if copied:
+            copied.keep_only_read()
+            copied.copy.save(copy_path)
+        return congress, insiders, perfs, copied
 
 
 def command():

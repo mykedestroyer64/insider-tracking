@@ -27,7 +27,7 @@ The site: https://mykedestroyer64.github.io/insider-tracking/
 | insider-tracking SEC collector | company insiders' buys and sells (Form 4) | every 3 hours, at :38 |
 | insider-tracking Sweden collector | Swedish executives' buys and sells | every 3 hours, at :08 |
 | insider-tracking returns collector | how each traded stock did afterwards (Sharadar prices) | by hand for now |
-| Publish the website | builds and publishes the site | every 6 hours, and when the code changes |
+| Publish the website | builds and publishes the site | every 3 hours, and when the code changes |
 | eFD access check | can GitHub read eFD? | by hand |
 | New sources check | access checks for other sources, and database tools | by hand |
 | Tests | runs every test (see "Tests" below) | on every push |
@@ -183,7 +183,7 @@ build can't match by name are listed in the build log and can be added to `site/
 
 1. In the repository, open **Settings > Pages**. Under **Build and deployment**, set **Source** to **GitHub Actions**.
 2. Open the **Actions** tab, click **Publish the website**, then **Run workflow**.
-3. The run's Summary shows the address of the site. From then on, the site is rebuilt every 6 hours.
+3. The run's Summary shows the address of the site. From then on, the site is rebuilt every 3 hours.
 
 ### Building it on your computer
 
@@ -253,6 +253,7 @@ them on your computer.
 - **Failure emails:** when a scheduled run fails, GitHub emails you. Exception: while eFD refuses the Senate collector (since 23 Oct 2026), a refusal is recorded on the run (a yellow warning and the verdict note) but doesn't count as a failed run, so it sends no email; every other kind of failure still does. Delete the `blocked-note` line in `.github/workflows/collect.yml` to be emailed about refusals again.
 - **Heartbeat:** GitHub switches off scheduled workflows in public repositories after 60 days without any change, so once a week the Senate collector saves today's date in `status/heartbeat.txt`. Those small commits are expected.
 - **Supabase free plan:** Supabase pauses a free project after a week without activity. Runs every 3 hours keep it awake. The "New sources check" workflow with `dbsize` shows how much space each table takes; `slim` frees the space of dropped columns.
+- **Downloads from the database:** the free plan allows 5 GB a month (Supabase: Organization > Usage > Egress). The website build keeps a copy of the data in GitHub's cache and downloads only what changed since the last build (about 1 MB); its notes on each run say how much. Without a copy (the first build, or after GitHub drops an unused cache after 7 days) it downloads everything once, a few hundred MB.
 - **Who can see the database:** only you, in Supabase. Row Level Security is switched on for every table and no read access is granted; the website build connects with your password and publishes plain pages.
 - **Reading failed reports again** (after a collector has been fixed): run this in Supabase's **SQL Editor** (use `'house'` for House reports):
   ```sql

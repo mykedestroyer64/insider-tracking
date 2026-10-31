@@ -97,9 +97,15 @@ check("the returns collector posts its requests line as a note, not History",
 
 check.section("the website workflow")
 site = load("site.yml")
-check("rebuilds every 6 hours (not after every collector run: each build downloads the whole database)",
-      [entry["cron"] for entry in site["on"]["schedule"]] == ["17 */6 * * *"] and "workflow_run" not in site["on"],
+check("rebuilds every 3 hours, like the collectors", [entry["cron"] for entry in site["on"]["schedule"]] == ["17 */3 * * *"],
       site["on"])
+site_steps = site["jobs"]["build"]["steps"]
+copy_step = next((step for step in site_steps if step.get("with", {}).get("path") == "site-data"), {})
+build_step = next(step for step in site_steps if step["name"] == "Build the website")
+check("keeps a copy of the data between builds, and builds with it (only what changed is downloaded)",
+      copy_step.get("uses", "").startswith("actions/cache@") and copy_step["with"].get("restore-keys") == "site-data-"
+      and "--copy site-data/data.json.gz" in build_step["run"]
+      and site_steps.index(copy_step) < site_steps.index(build_step), (copy_step, build_step.get("run")))
 check("rebuilds when the code or the site's files change on main",
       site["on"]["push"]["branches"] == ["main"] and {"site/**", "insider_tracking/**"} <= set(site["on"]["push"]["paths"]))
 
