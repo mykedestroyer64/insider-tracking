@@ -24,6 +24,7 @@ GitHub runs them by itself on every push and every pull request (the **Tests** w
 | `test_database.py` | The database layer: a driver's error is a database problem, a mistake in the code isn't; either way nothing half-done is kept |
 | `test_schema.py` | Bringing the tables up to date, only when they aren't, without waiting for a collector that is saving |
 | `test_db_tools.py` | The database size report and freeing space |
+| `test_people.py` | Matching filers to the legislators list, and the corrections in `site/overrides.json` |
 | `test_site.py` | The website build: every page, well-formed HTML, working links, the expected totals |
 | `test_site_copy.py` | The build with a copy of the data kept between builds: the same pages as reading everything, whatever changed, while downloading only the changed parts |
 | `test_workflows.py` | The GitHub workflows: names, schedules, secrets, and their shell steps run for real |

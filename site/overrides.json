@@ -1,3 +1,5 @@
 {
-  "_comment": "Filers the automatic matcher can't place. Key: the filer's key as the build log prints it, e.g. 'senate|McConnell, Jr.|A. Mitchell' or 'house|Pelosi|Nancy|CA'. Value: a bioguide ID from https://bioguide.congress.gov. The build log lists unmatched members."
+  "_comment": "Filers the automatic matcher can't place. Key: the filer's key as the build log prints it, e.g. 'senate|McConnell, Jr.|A. Mitchell' or 'house|Pelosi|Nancy|CA'. Value: a bioguide ID from https://bioguide.congress.gov, or \"candidate\" for someone who files trade reports while running for Congress but has never been a member. The build log lists unmatched members.",
+  "house|Reisdorf|Richard B.|MN": "candidate",
+  "house|Henriquez|Ada Norah|PR": "candidate"
 }

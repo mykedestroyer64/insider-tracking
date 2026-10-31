@@ -177,7 +177,8 @@ per stock, an Insiders section (all markets, and one page per market: `/insiders
 reader can follow. Once the returns collector has worked them out, trades show how their stock did
 afterwards. Party, state and House district come from the public-domain
 [congress-legislators](https://github.com/unitedstates/congress-legislators) dataset; members the
-build can't match by name are listed in the build log and can be added to `site/overrides.json`.
+build can't match by name are listed in the build log and can be added to `site/overrides.json`
+(with their bioguide ID, or as `"candidate"` for someone who ran for Congress but never served).
 
 ### Switching it on (once)
 

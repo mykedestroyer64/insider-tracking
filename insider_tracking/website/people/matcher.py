@@ -7,13 +7,18 @@ filers to representatives by last name, state and first name (and district if ne
 Anything ambiguous is left unmatched and listed in the build log, so it can be fixed by hand
 in site/overrides.json, like this:
     {"senate|McConnell, Jr.|A. Mitchell": "M000355",
-     "house|Pelosi|Nancy|CA": "P000197"}
-(the key is the filer's key as the build log prints it, the value a bioguide ID).
+     "house|Pelosi|Nancy|CA": "P000197",
+     "house|Reisdorf|Richard B.|MN": "candidate"}
+(the key is the filer's key as the build log prints it, the value a bioguide ID, or "candidate"
+for someone who files trade reports while running for Congress but has never been a member:
+they are listed with the candidates, and the build log stops asking about them).
 """
 
 import re
 
 from ..names import last_name_core, slugify, squash
+
+CANDIDATE = "candidate"     # the override for someone who ran for Congress but was never a member
 
 # First names eFD and the legislators list may write differently ("Thomas" vs "Tom").
 NICKNAME_GROUPS = """
@@ -73,6 +78,10 @@ class Matcher:
     def apply(self, filer):
         leg = None
         override = self.overrides.get(filer.key)
+        if override == CANDIDATE:
+            filer.filer_type = "Candidate"
+            filer.match_note = "a candidate, never a member (site/overrides.json)"
+            return
         if override:
             leg = self.by_bioguide.get(override)
             if leg is None:
