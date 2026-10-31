@@ -27,7 +27,7 @@ The site: https://mykedestroyer64.github.io/insider-tracking/
 | insider-tracking SEC collector | company insiders' buys and sells (Form 4) | every 3 hours, at :38 |
 | insider-tracking Sweden collector | Swedish executives' buys and sells | every 3 hours, at :08 |
 | insider-tracking returns collector | how each traded stock did afterwards (Sharadar prices) | by hand for now |
-| Publish the website | builds and publishes the site | after every successful collector run |
+| Publish the website | builds and publishes the site | every 6 hours, and when the code changes |
 | eFD access check | can GitHub read eFD? | by hand |
 | New sources check | access checks for other sources, and database tools | by hand |
 | Tests | runs every test (see "Tests" below) | on every push |
@@ -183,7 +183,7 @@ build can't match by name are listed in the build log and can be added to `site/
 
 1. In the repository, open **Settings > Pages**. Under **Build and deployment**, set **Source** to **GitHub Actions**.
 2. Open the **Actions** tab, click **Publish the website**, then **Run workflow**.
-3. The run's Summary shows the address of the site. From then on, the site is rebuilt after every collector run.
+3. The run's Summary shows the address of the site. From then on, the site is rebuilt every 6 hours.
 
 ### Building it on your computer
 

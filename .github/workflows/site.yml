@@ -1,12 +1,12 @@
 # Builds the website from the database and publishes it to GitHub Pages.
-# Runs after every successful collector run, whenever the code or the site's files change on
-# main, and on request.
+# Runs every 6 hours, whenever the code or the site's files change on main, and on request.
+# (Not after every collector run for now: each build downloads the whole database, and
+# Supabase's free plan allows 5 GB of downloads a month.)
 name: Publish the website
 
 on:
-  workflow_run:
-    workflows: ["insider-tracking collector", "insider-tracking House collector", "insider-tracking SEC collector", "insider-tracking Sweden collector", "insider-tracking returns collector"]
-    types: [completed]
+  schedule:
+    - cron: "17 */6 * * *"
   push:
     branches: [main]
     paths: ["site/**", "insider_tracking/**", ".github/workflows/site.yml", "requirements.txt"]
@@ -23,8 +23,6 @@ concurrency:
 
 jobs:
   build:
-    # after a collector run, only rebuild when that run succeeded (otherwise the data hasn't changed)
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

@@ -97,13 +97,11 @@ check("the returns collector posts its requests line as a note, not History",
 
 check.section("the website workflow")
 site = load("site.yml")
-check("rebuilds after every collector workflow (by their names)",
-      sorted(site["on"]["workflow_run"]["workflows"]) == sorted(entry[0] for entry in COLLECTORS.values()),
-      site["on"]["workflow_run"]["workflows"])
+check("rebuilds every 6 hours (not after every collector run: each build downloads the whole database)",
+      [entry["cron"] for entry in site["on"]["schedule"]] == ["17 */6 * * *"] and "workflow_run" not in site["on"],
+      site["on"])
 check("rebuilds when the code or the site's files change on main",
       site["on"]["push"]["branches"] == ["main"] and {"site/**", "insider_tracking/**"} <= set(site["on"]["push"]["paths"]))
-check("after a collector run, only when it succeeded",
-      "workflow_run.conclusion == 'success'" in site["jobs"]["build"]["if"])
 
 check.section("the checks workflow")
 checks_workflow = load("new-sources-check.yml")
